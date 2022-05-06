@@ -1,0 +1,56 @@
+\section{Modello Base}
+
+\subsection{Elementi del Modello}
+
+\subsubsection{Popolazione}
+Distribuzione... 
+
+\subsubsection{Rete stradale}
+
+\subsubsection{Rifugi}
+luoghi sicuri dove evacuare. possono essere orizzontali o verticali
+
+\subsubsection{Inondazione dello tsunami}
+(time-dependent) scenarios, casualties (wave height Hc) 
+
+\subsection{Evacuazione}
+Milling Time....
+
+L'evacuazione può avvenire in due modi: a piedi e in auto. Una volta che ogni agente decide
+in che modo evacuare non cambierà scelta per tutta la simulazione.
+
+All'inizio della simulazione ogni agente decide come destinazione il rifugio più vicino 
+che verrà raggiunto seguendo il percorso più breve (\it{shortest path}).
+
+
+\subsubsection{Movimento dei Pedoni}
+- descrizione stato dell agente (la propria visione dell ambiente)
+
+- velocità costante di [valore]
+
+Each pedestrian agent is assigned a
+walking speed which will not vary over the simulation
+
+The effect of tiredness of evacuees and topography of the
+environment have been neglected in this simulation
+
+All evacuees begin to evacuate by
+foot to the nearest road.
+
+\subsubsection{Movimento delle Auto}
+- descrizione stato dell agente (la propria visione dell ambiente)
+
+- descrizione car following model
+
+\subsection{Limitazioni}
+
+tutte le strade a senso unico con un unica corsia
+con limite massimo di velocità di 30mph
+
+non vengono gestite interazioni tra macchine e pedoni.
+
+l´accesso ad un link / le intersezioni non sono gestite.
+
+Nel lavoro [] vengono menzionati turisti e residenti
+ma i turisti non vengono gestiti veramente è trattati
+con una stessa entità senza un comportamento differenziato.
