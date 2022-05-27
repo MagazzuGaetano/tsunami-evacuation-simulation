@@ -21,6 +21,7 @@ extensions [
         ;                                           2. shelter locations
         ;                                       and 3. population distribution
   csv   ; the CSV extension is required to read the tsunami inundation file
+  table
 ]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;; BREEDS ;;;;;;;;;;;;;;
@@ -60,11 +61,13 @@ residents-own [  ; the variables that residents own
   time_in_water  ; time that the agent has been in the water in seconds
 ]
 
-roads-own [      ; the variables that roads own
-  crowd          ; number of people on foot on each link at any time
-  traffic        ; number of cars on each link at any time
-  mid-x          ; xcor of the middle point of a link, in patches
-  mid-y          ; ycor of the middle point of a link, in patches
+roads-own [        ; the variables that roads own
+  crowd            ; number of people on foot on each link at any time
+  traffic          ; number of cars on each link at any time
+  mid-x            ; xcor of the middle point of a link, in patches
+  mid-y            ; ycor of the middle point of a link, in patches
+  ped_costs        ; list of costs on each link in time step (Nash equilibrium)
+  car_costs        ; list of costs on each link in time step (Nash equilibrium)
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -77,11 +80,16 @@ intersections-own [ ; the variables that intersections own
   gscore            ; for calculating the shortest path from each intersection to the a shelter (A* Alg)
   ver-path          ; best path from an intersection to the vertical shelter (list of intersection 'who's)
   hor-path          ; best path from an intersection to the horizontal shelter (list of intersection 'who's)
+  nash-hor-path-car
+  nash-ver-path-car
+  nash-hor-path-ped
+  nash-ver-path-ped
   evacuee_count     ; the number of agents that are evacuated in an intersection, if there is a shelter in it
 ]
 
 
 pedestrians-own [; the variables that pedestrians own
+  id             ; resident id
   current_int    ; current/previous intersection of an agent, 0 if none
   shelter        ; 'who' of the intersection that the agent is heading to (its shelter)
                  ; -1 if there is none due to disconnectivity in the network
@@ -94,9 +102,11 @@ pedestrians-own [; the variables that pedestrians own
   decision       ; the agents decision code: 1 for Hor Evac on foot
                  ;                           3 for Ver Evac on foot
   time_in_water  ; time that the agent has been in the water in seconds
+  should-update? ; true if the agent should replan the evacuation path (nash equilibrium)
 ]
 
 cars-own [       ; the variables that cars own
+  id             ; resident id
   current_int    ; current/previous intersection of an agent, 0 if none
   moving?        ; true if the agent is moving, false if not (e.g., turning at intersection)
   evacuated?     ; true if an agent is evacuated, either in a shelter or outside of the shelter
@@ -113,6 +123,7 @@ cars-own [       ; the variables that cars own
   acc            ; acceleration of the car agent
   road_on        ; the link that the car is travelling on
   time_in_water  ; time that the agent has been in the water in seconds
+  should-update? ; true if the agent should replan the evacuation path (nash equilibrium)
 ]
 
 globals [        ; global variables
@@ -136,6 +147,15 @@ globals [        ; global variables
 
 
   mortality_rate ; mortality rate of the event
+
+  current_step        ; current time step
+  total_steps         ; number of steps in a simulation (simulation time / step_period)
+  step_period         ; period of each time step (seconds)
+  simulation_time     ; simulation time (seconds)
+  is-running?         ; weather the simulation is running or not
+  iteration           ; number of the nash iteration
+  reroute-prob        ; the probabilty of an agent to replan his path based on the nash equilibrium
+  paths
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; CONVERSION RATIOS ;;;;;;;;;
@@ -209,9 +229,22 @@ to make-decision
   ]
 end
 
+
+to-report get-current-cost [edge agent-type]
+  let costs []
+  ifelse agent-type = "pedestrian" [
+    set costs [ped_costs] of edge
+  ][
+    set costs [car_costs] of edge
+  ]
+
+  let cost item current_step costs
+  report cost
+end
+
 ; finds the shortest path from and intersection (source) to a shelter (one of gls) with A* algorithm
 ; gl is only used as a heuristic for the algorithm, the closest destination in a network is not necessarily the closest in euclidean distance
-to-report Astar [ source gl gls ]
+to-report Astar [ source gl gls use-nash? agent-type ]
   let rchd? false       ; true if the algorithm has found a shelter
   let dstn nobody       ; the destinaton or the closest shelter
   let closedset []      ; equivalent to closed set in A* alg
@@ -234,7 +267,13 @@ to-report Astar [ source gl gls ]
     set closedset lput current closedset
     ask intersection current [                  ; explore the neighbors of the current intersection
       ask out-road-neighbors [
-        let tent_gscore [gscore] of myself + [link-length] of (road [who] of myself who)   ; update f and gscore tentatively
+        let road-cost (get-current-cost (road [who] of myself who) agent-type)
+
+        if not use-nash? [
+          set road-cost [link-length] of (road [who] of myself who)
+        ]
+
+        let tent_gscore [gscore] of myself + road-cost  ; update f and gscore tentatively
         let tent_fscore tent_gscore + distance gl
         if ( member? who closedset and ( tent_fscore >= fscore ) ) [stop]                  ; if not improved, stop
         if ( not member? who closedset or ( tent_fscore >= fscore )) [                     ; if the score improved, continue updating
@@ -471,6 +510,8 @@ to load-network
     set mid-y mean [ycor] of both-ends
     set traffic 0
     set crowd 0
+    set ped_costs n-values total_steps [(patch_to_meter * link-length) / (Ped_Speed * 3.281)] ;; max speed travel time for pedestrians
+    set car_costs n-values total_steps [(patch_to_meter * link-length) / (max_speed * 2.237)] ;; max speed travel time for cars
   ]
   output-print "Network Loaded"
 end
@@ -671,12 +712,39 @@ to load-routes
   let origins find-origins
   ask turtles with [member? self origins] [
     let goals intersections with [shelter? and shelter_type = "Hor"]
-    set hor-path Astar self (min-one-of goals [distance myself]) goals ; hor-path definitely goes to a horizontal shelter
+    set hor-path Astar self (min-one-of goals [distance myself]) goals false "" ; hor-path definitely goes to a horizontal shelter
     set goals intersections with [shelter?]
-    set ver-path Astar self (min-one-of goals [distance myself]) goals ; ver-path can go to either a vertical shelter or
-                                                                       ; a horizontal shelter, depending on which one was closer
+    set ver-path Astar self (min-one-of goals [distance myself]) goals false "" ; ver-path can go to either a vertical shelter or
+                                                                                ; a horizontal shelter, depending on which one was closer
   ]
   output-print "Routes Calculated"
+end
+
+to update-routes-with-nash
+  ;;; selezionare solo le intersezioni degli agenti selezionati con nash.
+  let car_origins [current_int] of cars with [should-update?]
+  let ped_origins [current_int] of pedestrians with [should-update?]
+  let origins sentence car_origins ped_origins
+  set origins remove-duplicates origins
+
+  print (list (count cars) (count pedestrians) (count cars with [should-update?]) (count pedestrians with [should-update?]))
+
+  ;;; horizontal goals.
+  let h-goals intersections with [shelter? and shelter_type = "Hor"]
+  ;;; vertical goals.
+  let v-goals intersections with [shelter?]
+
+  ask turtles with [member? self origins] [
+    set nash-hor-path-car Astar self (min-one-of h-goals [distance myself]) h-goals true "car"
+    set nash-ver-path-car Astar self (min-one-of v-goals [distance myself]) v-goals true "car"
+
+    set nash-hor-path-ped Astar self (min-one-of h-goals [distance myself]) h-goals true "pedestrian"
+    set nash-ver-path-ped Astar self (min-one-of v-goals [distance myself]) v-goals true "pedestrian"
+
+    print (list (length nash-hor-path-car) (length nash-hor-path-car) (length nash-hor-path-ped) (length nash-ver-path-ped))
+  ]
+  output-print "Routes Updated With Nash"
+  print current_step
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -686,10 +754,16 @@ end
 ; first part of loading the model, including transportation network, shelters, and tsunami data
 ; before breaking roads and adding vertical shelters
 to load1
-  ca
   print (word "Foot %: " R1_HorEvac_Foot " - Speed ft/s: " Ped_Speed " - Miltime min: " Rtau1)
   ask patches [set pcolor white]
+
   set ev_times []
+
+  set current_step 0
+  set step_period 180             ; 3 minutes
+  set simulation_time 3600        ; 60 minutes
+  set total_steps (simulation_time / step_period)
+
   read-gis-files
   load-network
   load-shelters
@@ -719,7 +793,48 @@ end
 ;######################################
 
 to go
-  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [stop]  ; stop after simulation all the flow depths
+  run-simulation false
+end
+
+to run-simulation [use-nash?]
+  if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [
+    ;; updates costs
+    ask roads [
+      if count pedestrians > 0 [
+        let ped_tt (patch_to_meter * link-length) / (mean [speed] of pedestrians) / 3.281
+        set ped_costs (replace-item current_step ped_costs ped_tt)
+      ]
+      if count cars > 0 [
+        let car_tt (patch_to_meter * link-length) / (mean [speed] of cars) / 2.237
+        set car_costs (replace-item current_step car_costs car_tt)
+      ]
+    ]
+
+    ;; update routes
+    update-routes-with-nash
+
+    ask cars with [should-update?] [
+      if decision = 2 [set path [nash-hor-path-car] of current_int]
+      if decision = 4 [set path [nash-ver-path-car] of current_int]
+    ]
+
+    ask pedestrians with [should-update?] [
+      if decision = 1 [set path [nash-hor-path-ped] of current_int]
+      if decision = 3 [set path [nash-ver-path-ped] of current_int]
+    ]
+
+    set current_step (current_step + 1)
+  ]
+
+  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [
+    ifelse use-nash? [
+      set is-running? false
+      set iteration iteration + 1
+    ][
+      stop
+    ]
+  ]  ; stop after simulation all the flow depths
+
   ; update the tsunami depth every interval seconds
   if int(ticks * tick_to_sec) - tsunami_data_start >= 0 and
      (int(ticks * tick_to_sec) - tsunami_data_start) mod tsunami_data_inc = 0 [
@@ -740,6 +855,8 @@ to go
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; RESIDENTS ;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  ; selezionare i candidati pedoni o macchine e assegnargli il path calcolato con nash.
 
   ; ask residents, if they milling time has passed, to start moving
   ask residents with [not moving? and not dead? and miltime <= ticks][
@@ -764,9 +881,11 @@ to go
   ask residents with [reached?][
     let spd speed                ; to pass on the spd from resident to the hatched pedestrian
     let dcsn decision            ; to pass on the decision from the resident to either car or pedestrian
+    let resident_id who
     if dcsn = 1 or dcsn = 3 [    ; horizontal (1) or vertical (3) evacuation - by FOOT
       ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
         hatch-pedestrians 1 [
+          set id resident_id
           set size 2
           set shape "dot"
           set current_int myself ; myself = current_int of the resident
@@ -774,17 +893,25 @@ to go
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
+          set should-update? random-float 1 < reroute-prob ; if the agent should replan the evacuation path
+
           if dcsn = 1 [          ; horizontal evacuation on foot
             set color orange
             set path [hor-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
                                           ; which passed to the pedestrians and cars
             set decision 1
+
+            ;; overwrite path when using nash
+            if should-update? and (iteration > 0) [set path [nash-hor-path-ped] of myself]
           ]
           if dcsn = 3 [          ; vertical evacuation on foot
             set color turquoise
             set path [ver-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
                                           ; which passed to the pedestrians and cars
             set decision 3
+
+            ;; overwrite path when using nash
+            if should-update? and (iteration > 0) [set path [nash-ver-path-ped] of myself]
           ]
           ifelse empty? path [set shelter -1][set shelter last path] ; if path list is not empty the who of the shelter is the last item of the path
                                                                      ; otherwise, there is no shelter destination, either the current_int is the shelter
@@ -801,20 +928,29 @@ to go
     if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
       ask current_int [         ; ask the current intersection of the resident to hatch a car
         hatch-cars 1 [
+          set id resident_id
           set size 2
           set current_int myself ; myself = current_int of the resident
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
+          set should-update? random-float 1 < reroute-prob ; if the agent should replan the evacuation path
+
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
             set path [hor-path] of myself ; myself = current_int of the resident
             set decision 2
+
+            ;; overwrite path when using nash
+            if should-update? and (iteration > 0) [set path [nash-hor-path-car] of myself]
           ]
           if dcsn = 4 [          ; vertical evacuation by car
             set color magenta
             set path [ver-path] of myself ; myself = current_int of the resident
             set decision 4
+
+            ;; overwrite path when using nash
+            if should-update? and (iteration > 0) [set path [nash-ver-path-car] of myself]
           ]
           ifelse empty? path [set shelter -1][set shelter last path]       ; if path list is not empty the who of the shelter is the last item of the path
           if shelter = -1 [
@@ -891,7 +1027,63 @@ to go
   ask pedestrians with [time_in_water > Tc][mark-dead]
   ; update mortality rate
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
+
   tick
+end
+
+to setup
+  ca
+
+  set iteration 0
+  set is-running? false
+  set reroute-prob 0.1
+  set paths (table:make)
+
+  set step_period 180             ; 3 minutes
+  set simulation_time 3600        ; 60 minutes
+  set total_steps (simulation_time / step_period)
+
+  read-gis-files
+  load-network
+  load-shelters
+
+  ask patches [set pcolor white]
+end
+
+to iterate
+  if iteration > 100 [stop]
+
+  if not is-running? [
+    clear-drawing
+    clear-all-plots
+    clear-patches
+    clear-ticks
+
+    random-seed 42
+
+    ask roads [
+      set traffic 0
+      set crowd 0
+    ]
+
+    ask intersections [
+      set evacuee_count 0
+    ]
+
+    set current_step 0
+
+    ask patches [set pcolor white]
+    set ev_times []
+
+    load-tsunami
+    load-population
+    load-routes
+
+    set is-running? true
+    reset-ticks
+  ]
+
+  run-simulation true
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1002,10 +1194,10 @@ R3_VerEvac_Foot
 Number
 
 MONITOR
-962
-47
-1044
-92
+947
+53
+1029
+98
 Time (min)
 ticks / 60
 1
@@ -1157,10 +1349,10 @@ Ped_Sigma
 Number
 
 MONITOR
-1074
-48
-1156
-93
+1037
+53
+1119
+98
 Evacuated
 count turtles with [ color = green ]
 17
@@ -1168,10 +1360,10 @@ count turtles with [ color = green ]
 11
 
 MONITOR
-1165
-48
-1242
-93
+1128
+53
+1205
+98
 Casualty
 count turtles with [ color = red ]
 17
@@ -1179,10 +1371,10 @@ count turtles with [ color = red ]
 11
 
 MONITOR
+1072
+105
 1166
-101
-1260
-146
+150
 Mortality (%)
 mortality_rate
 2
@@ -1224,10 +1416,10 @@ NIL
 1
 
 MONITOR
-1268
-49
-1355
-94
+1213
+54
+1300
+99
 Vertical Cap
 sum [evacuee_count] of intersections with [shelter? and shelter_type = \"Ver\"]
 17
@@ -1429,10 +1621,10 @@ PENS
 "Median" 1.0 0 -2674135 true "set-plot-pen-mode 0 ; line mode" "plot-pen-reset\nplot-pen-up\nplotxy median ev_times 0\nplot-pen-down\nplotxy median ev_times plot-y-max"
 
 MONITOR
-1043
-101
-1159
-146
+949
+105
+1065
+150
 Per Evacuated (%)
 count turtles with [ color = green ] / (count residents + count pedestrians + count cars) * 100
 1
@@ -1449,6 +1641,40 @@ Tc
 1
 0
 Number
+
+BUTTON
+1286
+117
+1363
+150
+NIL
+iterate
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+1213
+116
+1282
+149
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 @#$#@#$#@
@@ -1734,7 +1960,7 @@ false
 Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 @#$#@#$#@
-NetLogo 6.1.1
+NetLogo 6.2.2
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
