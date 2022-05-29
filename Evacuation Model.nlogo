@@ -721,13 +721,15 @@ to load-routes
 end
 
 to update-routes-with-nash
-  ;;; selezionare solo le intersezioni degli agenti selezionati con nash.
-  let car_origins [current_int] of cars with [should-update?]
-  let ped_origins [current_int] of pedestrians with [should-update?]
-  let origins sentence car_origins ped_origins
-  set origins remove-duplicates origins
-
-  print (list (count cars) (count pedestrians) (count cars with [should-update?]) (count pedestrians with [should-update?]))
+;  let car_origins [current_int] of cars with [should-update?]
+;  let ped_origins [current_int] of pedestrians with [should-update?]
+;  let origins sentence car_origins ped_origins
+;  set origins (turtle-set origins)
+;
+;  let neighbours reduce sentence [[who] of out-link-neighbors] of origins
+;  set origins sentence origins neighbours
+;  set origins remove-duplicates origins
+  let origins intersections with [not shelter?]
 
   ;;; horizontal goals.
   let h-goals intersections with [shelter? and shelter_type = "Hor"]
@@ -797,12 +799,8 @@ to go
 end
 
 to run-simulation [use-nash?]
-  let ped_id 14123
-
   if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [
-    print(current_step)
-
-    ;; updates costs
+    ;; updates network costs
     ask roads [
       if count pedestrians > 0 [
         let ped_tt (patch_to_meter * link-length) / (mean [speed] of pedestrians) / 3.281
@@ -815,21 +813,11 @@ to run-simulation [use-nash?]
     ]
 
     ;; update routes
-    if count pedestrians with [should-update?] > 0 and count cars with [should-update?] > 0 [
+    ifelse count pedestrians with [should-update?] > 0 or count cars with [should-update?] > 0 [
       update-routes-with-nash
-
-      ; set ped_id (item 0 [id] of pedestrians with [should-update?])
-
-      ask cars with [should-update?] [
-        if decision = 2 [set path [nash-hor-path-car] of current_int]
-        if decision = 4 [set path [nash-ver-path-car] of current_int]
-      ]
-
-      ask pedestrians with [should-update?] [
-        if id = ped_id [print current_int]
-        if decision = 1 [set path [nash-hor-path-ped] of current_int]
-        if decision = 3 [set path [nash-ver-path-ped] of current_int]
-      ]
+      set nash-routes-computed? true
+    ][
+      set nash-routes-computed? false
     ]
 
     ;; update current step
@@ -865,8 +853,6 @@ to run-simulation [use-nash?]
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; RESIDENTS ;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ; selezionare i candidati pedoni o macchine e assegnargli il path calcolato con nash.
 
   ; ask residents, if they milling time has passed, to start moving
   ask residents with [not moving? and not dead? and miltime <= ticks][
@@ -975,12 +961,17 @@ to run-simulation [use-nash?]
 
   ; set up the pedestrians that should move
   ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
-    if id = 14123 [print (list current_int next_int)]
-    set next_int intersection item 0 path   ; assign item 0 of path to next_int
-    set path remove-item 0 path             ; remove item 0 of path
-    set heading towards next_int            ; set the heading towards the destination
-    set moving? true
-    ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
+    if should-update? and nash-routes-computed? [
+      if decision = 1 [set path [nash-hor-path-ped] of current_int]
+      if decision = 3 [set path [nash-ver-path-ped] of current_int]
+    ]
+    if not empty? path [
+      set next_int intersection item 0 path   ; assign item 0 of path to next_int
+      set path remove-item 0 path             ; remove item 0 of path
+      set heading towards next_int            ; set the heading towards the destination
+      set moving? true
+      ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
+    ]
   ]
   ; move the pedestrians that should move
   ask pedestrians with [moving?][
@@ -1004,11 +995,17 @@ to run-simulation [use-nash?]
   ]
   ; set up the cars that should move
   ask cars with [not moving? and not empty? path and not evacuated? and not dead?][
-    set next_int intersection item 0 path   ; assign item 0 of path to next_int
-    set path remove-item 0 path             ; remove item 0 of path
-    set heading towards next_int            ; set the heading towards the destination
-    set moving? true
-    ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+    if should-update? and nash-routes-computed? [
+      if decision = 2 [set path [nash-hor-path-car] of current_int]
+      if decision = 4 [set path [nash-ver-path-car] of current_int]
+    ]
+    if not empty? path [
+      set next_int intersection item 0 path   ; assign item 0 of path to next_int
+      set path remove-item 0 path             ; remove item 0 of path
+      set heading towards next_int            ; set the heading towards the destination
+      set moving? true
+      ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+    ]
   ]
   ; move the cars that should move
   ask cars with [moving?][
@@ -1417,9 +1414,9 @@ NIL
 
 MONITOR
 1213
-54
-1300
-99
+55
+1293
+100
 Vertical Cap
 sum [evacuee_count] of intersections with [shelter? and shelter_type = \"Ver\"]
 17
@@ -1643,10 +1640,10 @@ Tc
 Number
 
 BUTTON
-1286
-117
-1363
-150
+1317
+109
+1383
+152
 NIL
 iterate
 T
@@ -1660,10 +1657,10 @@ NIL
 1
 
 BUTTON
-1213
-116
-1282
-149
+1297
+55
+1372
+100
 NIL
 setup
 NIL
@@ -1675,6 +1672,28 @@ NIL
 NIL
 NIL
 1
+
+MONITOR
+1173
+105
+1241
+150
+NIL
+iteration
+17
+1
+11
+
+MONITOR
+1245
+106
+1312
+151
+time step
+current_step + 1
+17
+1
+11
 
 @#$#@#$#@
 @#$#@#$#@
