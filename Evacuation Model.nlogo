@@ -155,7 +155,7 @@ globals [        ; global variables
   is-running?         ; weather the simulation is running or not
   iteration           ; number of the nash iteration
   reroute-prob        ; the probabilty of an agent to replan his path based on the nash equilibrium
-  paths
+  nash-routes-computed?
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; CONVERSION RATIOS ;;;;;;;;;
@@ -741,7 +741,7 @@ to update-routes-with-nash
     set nash-hor-path-ped Astar self (min-one-of h-goals [distance myself]) h-goals true "pedestrian"
     set nash-ver-path-ped Astar self (min-one-of v-goals [distance myself]) v-goals true "pedestrian"
 
-    print (list (length nash-hor-path-car) (length nash-hor-path-car) (length nash-hor-path-ped) (length nash-ver-path-ped))
+    ; print (list (length origins) (length nash-hor-path-car) (length nash-hor-path-car) (length nash-hor-path-ped) (length nash-ver-path-ped))
   ]
   output-print "Routes Updated With Nash"
   print current_step
@@ -797,7 +797,11 @@ to go
 end
 
 to run-simulation [use-nash?]
+  let ped_id 14123
+
   if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [
+    print(current_step)
+
     ;; updates costs
     ask roads [
       if count pedestrians > 0 [
@@ -811,29 +815,35 @@ to run-simulation [use-nash?]
     ]
 
     ;; update routes
-    update-routes-with-nash
+    if count pedestrians with [should-update?] > 0 and count cars with [should-update?] > 0 [
+      update-routes-with-nash
 
-    ask cars with [should-update?] [
-      if decision = 2 [set path [nash-hor-path-car] of current_int]
-      if decision = 4 [set path [nash-ver-path-car] of current_int]
+      ; set ped_id (item 0 [id] of pedestrians with [should-update?])
+
+      ask cars with [should-update?] [
+        if decision = 2 [set path [nash-hor-path-car] of current_int]
+        if decision = 4 [set path [nash-ver-path-car] of current_int]
+      ]
+
+      ask pedestrians with [should-update?] [
+        if id = ped_id [print current_int]
+        if decision = 1 [set path [nash-hor-path-ped] of current_int]
+        if decision = 3 [set path [nash-ver-path-ped] of current_int]
+      ]
     ]
 
-    ask pedestrians with [should-update?] [
-      if decision = 1 [set path [nash-hor-path-ped] of current_int]
-      if decision = 3 [set path [nash-ver-path-ped] of current_int]
-    ]
-
+    ;; update current step
     set current_step (current_step + 1)
   ]
 
   if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [
-    ifelse use-nash? [
+    ifelse use-nash? [ ; when using nash do not stop but go to the next iteration
       set is-running? false
       set iteration iteration + 1
-    ][
+    ][ ; stop after simulation all the flow depths
       stop
     ]
-  ]  ; stop after simulation all the flow depths
+  ]
 
   ; update the tsunami depth every interval seconds
   if int(ticks * tick_to_sec) - tsunami_data_start >= 0 and
@@ -900,18 +910,12 @@ to run-simulation [use-nash?]
             set path [hor-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
                                           ; which passed to the pedestrians and cars
             set decision 1
-
-            ;; overwrite path when using nash
-            if should-update? and (iteration > 0) [set path [nash-hor-path-ped] of myself]
           ]
           if dcsn = 3 [          ; vertical evacuation on foot
             set color turquoise
             set path [ver-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
                                           ; which passed to the pedestrians and cars
             set decision 3
-
-            ;; overwrite path when using nash
-            if should-update? and (iteration > 0) [set path [nash-ver-path-ped] of myself]
           ]
           ifelse empty? path [set shelter -1][set shelter last path] ; if path list is not empty the who of the shelter is the last item of the path
                                                                      ; otherwise, there is no shelter destination, either the current_int is the shelter
@@ -940,17 +944,11 @@ to run-simulation [use-nash?]
             set color sky
             set path [hor-path] of myself ; myself = current_int of the resident
             set decision 2
-
-            ;; overwrite path when using nash
-            if should-update? and (iteration > 0) [set path [nash-hor-path-car] of myself]
           ]
           if dcsn = 4 [          ; vertical evacuation by car
             set color magenta
             set path [ver-path] of myself ; myself = current_int of the resident
             set decision 4
-
-            ;; overwrite path when using nash
-            if should-update? and (iteration > 0) [set path [nash-ver-path-car] of myself]
           ]
           ifelse empty? path [set shelter -1][set shelter last path]       ; if path list is not empty the who of the shelter is the last item of the path
           if shelter = -1 [
@@ -974,8 +972,10 @@ to run-simulation [use-nash?]
     if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
     if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec mark-dead]
   ]
+
   ; set up the pedestrians that should move
   ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
+    if id = 14123 [print (list current_int next_int)]
     set next_int intersection item 0 path   ; assign item 0 of path to next_int
     set path remove-item 0 path             ; remove item 0 of path
     set heading towards next_int            ; set the heading towards the destination
@@ -1037,7 +1037,6 @@ to setup
   set iteration 0
   set is-running? false
   set reroute-prob 0.1
-  set paths (table:make)
 
   set step_period 180             ; 3 minutes
   set simulation_time 3600        ; 60 minutes
@@ -1071,6 +1070,7 @@ to iterate
     ]
 
     set current_step 0
+    set nash-routes-computed? false
 
     ask patches [set pcolor white]
     set ev_times []
