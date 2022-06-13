@@ -97,12 +97,14 @@ pedestrians-own [; the variables that pedestrians own
   moving?        ; true if the agent is moving, false if not (e.g., turning at intersection)
   evacuated?     ; true if an agent is evacuated, either in a shelter or outside of the shelter
   dead?          ; true if an agent is dead and caught by the tsunami
+  free_speed     ; max speed a cui può andare il pedone di merda!!!
   speed          ; speed of the agent, measured in patches per tick
   path           ; list of intersection 'who's that represent the path to the shelter of an agent
   decision       ; the agents decision code: 1 for Hor Evac on foot
                  ;                           3 for Ver Evac on foot
   time_in_water  ; time that the agent has been in the water in seconds
   should-update? ; true if the agent should replan the evacuation path (nash equilibrium)
+  density_ahead  ; the density ahead of the agent in the current intersection
 ]
 
 cars-own [       ; the variables that cars own
@@ -148,7 +150,7 @@ globals [        ; global variables
 
   mortality_rate ; mortality rate of the event
 
-  current_step        ; current time step
+  current_step        ; current time step (TODO: stimare come media delle strade quando sono libere)
   total_steps         ; number of steps in a simulation (simulation time / step_period)
   step_period         ; period of each time step (seconds)
   simulation_time     ; simulation time (seconds)
@@ -156,6 +158,13 @@ globals [        ; global variables
   iteration           ; number of the nash iteration
   reroute-prob        ; the probabilty of an agent to replan his path based on the nash equilibrium
   nash-routes-computed?
+  last-evacuated
+
+  side_width          ; sidewalk width for pedestrians
+  travel_width        ; travel way width for cars
+
+  gamma               ; free parameter for the klodek-formula
+  jam_density         ; density threshold for traffic congestion to arise
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; CONVERSION RATIOS ;;;;;;;;;
@@ -749,6 +758,43 @@ to update-routes-with-nash
   print current_step
 end
 
+
+to update-density-ahead-pedestrians
+  let search_length 10
+  let ped_ahead pedestrians in-cone (search_length / patch_to_feet) 180                      ; get the cars ahead in 10ft (almost half a block) and in field of view of 180 degrees
+  set ped_ahead ped_ahead with [self != myself]                                              ; that are not myself
+  set ped_ahead ped_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
+  set ped_ahead ped_ahead with [not dead?]                                                   ; that have not died yet
+  set ped_ahead ped_ahead with [moving?]                                                     ; that are moving
+  set ped_ahead ped_ahead with [abs(subtract-headings heading [heading] of myself) < 160]
+
+  ;; eventuale controllo di fine strada
+  set density_ahead (count ped_ahead) / (side_width * search_length)
+end
+
+to update-density-ahead-cars
+  let search_length 150
+  ;; è un problema modificare car_ahead che viene usata anche da movegm ???
+  set car_ahead pedestrians in-cone (search_length / patch_to_feet) 180                      ; get the cars ahead in 10ft (almost half a block) and in field of view of 180 degrees
+  set car_ahead car_ahead with [self != myself]                                              ; that are not myself
+  set car_ahead car_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
+  set car_ahead car_ahead with [not dead?]                                                   ; that have not died yet
+  set car_ahead car_ahead with [moving?]                                                     ; that are moving
+  set car_ahead car_ahead with [abs(subtract-headings heading [heading] of myself) < 160]
+
+  ;; eventuale controllo di fine strada
+  set density_ahead (count car_ahead) / (travel_width * search_length)
+end
+
+to klodek_formula
+  ifelse (density_ahead = 0) [
+    set speed free_speed
+  ][
+    let k gamma * ((1 / density_ahead) - (1 / jam_density))
+    set speed free_speed * (1 - e ^ (- k))
+  ]
+end
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; LOAD 1/2 ;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -799,15 +845,22 @@ to go
 end
 
 to run-simulation [use-nash?]
-  if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [
+  if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [ ;;;;
     ;; updates network costs
     ask roads [
-      if count pedestrians > 0 [
-        let ped_tt (patch_to_meter * link-length) / (mean [speed] of pedestrians) / 3.281
+      ;; FIXXXXXXXXXXXXXXXXXXXXX non vengono aggiornate
+      if crowd > 0 [
+        let mean_speed (mean [speed] of (pedestrians with [
+          (road 389 173) = self
+        ])) ;([who] of current_int) ([who] of next_int)
+
+        let ped_tt (patch_to_meter * link-length) / mean_speed / 3.281
         set ped_costs (replace-item current_step ped_costs ped_tt)
       ]
-      if count cars > 0 [
-        let car_tt (patch_to_meter * link-length) / (mean [speed] of cars) / 2.237
+      if traffic > 0 [
+        let mean_speed (mean [speed] of (cars with [(road  389 173) = self]))
+
+        let car_tt (patch_to_meter * link-length) / mean_speed / 2.237
         set car_costs (replace-item current_step car_costs car_tt)
       ]
     ]
@@ -882,14 +935,16 @@ to run-simulation [use-nash?]
       ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
         hatch-pedestrians 1 [
           set id resident_id
-          set size 2
+          set size 0.5 ;;;;;;;;;;;;;;;;;;;;; 2
           set shape "dot"
           set current_int myself ; myself = current_int of the resident
-          set speed spd          ; the speed of the resident is passed on to the pedestrian
+          set free_speed spd     ; the speed of the resident is passed on to the pedestrian as free_speed
+          set speed free_speed   ; the actual speed of the pedestrian is set to the free_speed
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set should-update? random-float 1 < reroute-prob ; if the agent should replan the evacuation path
+          set density_ahead 0
 
           if dcsn = 1 [          ; horizontal evacuation on foot
             set color orange
@@ -919,7 +974,7 @@ to run-simulation [use-nash?]
       ask current_int [         ; ask the current intersection of the resident to hatch a car
         hatch-cars 1 [
           set id resident_id
-          set size 2
+          set size 0.3 ;;;;;;;;;;;;;; 2
           set current_int myself ; myself = current_int of the resident
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
@@ -975,6 +1030,8 @@ to run-simulation [use-nash?]
   ]
   ; move the pedestrians that should move
   ask pedestrians with [moving?][
+    update-density-ahead-pedestrians
+    klodek_formula
     ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
     if (distance next_int < 0.005 ) [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
       set moving? false
@@ -1030,14 +1087,25 @@ end
 
 to setup
   ca
+  random-seed 42
 
   set iteration 0
   set is-running? false
   set reroute-prob 0.1
 
-  set step_period 180             ; 3 minutes
+  set side_width 10 ; feet
+  set travel_width 24 ; feet
+
+  set step_period 60 * 15    ; 180     ; 3 minutes
   set simulation_time 3600        ; 60 minutes
   set total_steps (simulation_time / step_period)
+
+  set gamma 1.913
+  set jam_density 5.4 * 11.625 ; [p / ft²]  5.4 p/m²
+
+  set last-evacuated []
+
+
 
   read-gis-files
   load-network
@@ -1047,9 +1115,13 @@ to setup
 end
 
 to iterate
-  if iteration > 100 [stop]
+  if iteration > 0 [stop]
 
   if not is-running? [
+    if iteration > 0 [
+      set last-evacuated lput (count turtles with [ color = green ]) last-evacuated
+    ]
+
     clear-drawing
     clear-all-plots
     clear-patches
@@ -1174,7 +1246,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-25.0
+50.0
 1
 0
 Number
@@ -1185,7 +1257,7 @@ INPUTBOX
 109
 210
 R3_VerEvac_Foot
-25.0
+0.0
 1
 0
 Number
@@ -1429,7 +1501,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-25.0
+0.0
 1
 0
 Number
@@ -1440,7 +1512,7 @@ INPUTBOX
 217
 210
 R4_VerEvac_Car
-25.0
+0.0
 1
 0
 Number
@@ -1640,10 +1712,10 @@ Tc
 Number
 
 BUTTON
-1317
-109
-1383
-152
+1318
+107
+1384
+150
 NIL
 iterate
 T
@@ -1694,6 +1766,116 @@ current_step + 1
 17
 1
 11
+
+MONITOR
+1421
+14
+1838
+59
+Evacuated Improvement
+(item iteration last-evacuated) - (item (iteration - 1) last-evacuated)
+17
+1
+11
+
+PLOT
+1421
+71
+1836
+209
+Evacuated per Iteration
+NIL
+NIL
+0.0
+12.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "clear-plot\nlet values (n-values iteration [i -> i])\n(foreach values last-evacuated [[x y] -> plotxy x y])"
+
+MONITOR
+1419
+225
+1840
+270
+NIL
+(item 0 [path] of cars with [id = 20800])
+17
+1
+11
+
+MONITOR
+1418
+284
+1840
+329
+NIL
+item 0 ([who] of roads)
+17
+1
+11
+
+PLOT
+1436
+347
+1826
+467
+pedestrian density
+NIL
+p/m²
+0.0
+0.5
+0.0
+0.5
+true
+true
+"" ""
+PENS
+"max" 1.0 0 -955883 true "" "plot max [density_ahead] of pedestrians * 11.625"
+"mean" 1.0 0 -7500403 true "" "plot mean [density_ahead] of pedestrians * 11.625"
+
+PLOT
+1435
+472
+1827
+592
+pedestrian velocity
+NIL
+m/s²
+0.0
+0.0
+0.0
+0.0
+true
+true
+"" ""
+PENS
+"mean" 1.0 0 -16777216 true "" "plot (mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
+"max" 1.0 0 -955883 true "" "plot (max [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
+"min" 1.0 0 -13840069 true "" "plot (min [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
+
+PLOT
+1435
+597
+1828
+717
+car velocity
+NIL
+mph
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "plot (mean [speed] of cars with [moving?]) * fd_to_mph"
+"pen-1" 1.0 0 -955883 true "" "plot (max [speed] of cars with [moving?]) * fd_to_mph"
+"pen-2" 1.0 0 -13840069 true "" "plot (min [speed] of cars with [moving?]) * fd_to_mph"
 
 @#$#@#$#@
 @#$#@#$#@
