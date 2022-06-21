@@ -1,2 +1,5 @@
 # Latex build files
 report/build/
+
+# Netlogo
+*.tmp.nlogo
