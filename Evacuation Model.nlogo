@@ -160,12 +160,6 @@ globals [        ; global variables
   nash-routes-computed?
   last-evacuated
 
-  side_width          ; sidewalk width for pedestrians
-  travel_width        ; travel way width for cars
-
-  gamma               ; free parameter for the klodek-formula
-  jam_density         ; density threshold for traffic congestion to arise
-
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; CONVERSION RATIOS ;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -417,6 +411,10 @@ to setup-init-val
   set Rsig2 1.65                  ; meaning that 99% of the agents evacuate within 5 minutes after the minimum milling time (between 10 to 15 mins in this case)
   set Rsig3 1.65
   set Rsig4 1.65
+  set side_width 10 ; feet
+  set travel_width 24 ; feet
+  set gamma 1.913
+  set jam_density 5.4; p/m²
 end
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -450,7 +448,7 @@ to read-gis-files
   set patch_to_feet patch_to_meter * 3.281     ; 1 m = 3.281 ft                                           ; patch_to_feet conversion multiplier
   set tick_to_sec 1.0                                                                                     ; tick_to_sec ratio is set to 1.0 (preferred)
   set fd_to_ftps patch_to_feet / tick_to_sec                                                              ; patch/tick to ft/s speed conversion multipler
-  set fd_to_mph  fd_to_ftps * 0.682            ; 1ft/s = 0.682 mph                                        ; patch/tick to mph speed conversion multiplier
+  set fd_to_mph fd_to_ftps * 0.682            ; 1ft/s = 0.682 mph                                        ; patch/tick to mph speed conversion multiplier
   ; to calculate the minimum longitude and latitude of the world associated with min_xcor and min_ycor
   ; we need to check and see how the world envelope fits into that of netlogo's. This is why the "_ratio"s need to be compared againsts eachother
   ; this is basically the missing "get-transformation" premitive in netlogo's GIS extension
@@ -758,40 +756,68 @@ to update-routes-with-nash
   print current_step
 end
 
-
 to update-density-ahead-pedestrians
+  let phi 180
   let search_length 10
-  let ped_ahead pedestrians in-cone (search_length / patch_to_feet) 180                      ; get the cars ahead in 10ft (almost half a block) and in field of view of 180 degrees
-  set ped_ahead ped_ahead with [self != myself]                                              ; that are not myself
-  set ped_ahead ped_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
-  set ped_ahead ped_ahead with [not dead?]                                                   ; that have not died yet
-  set ped_ahead ped_ahead with [moving?]                                                     ; that are moving
-  set ped_ahead ped_ahead with [abs(subtract-headings heading [heading] of myself) < 160]
 
-  ;; eventuale controllo di fine strada
-  set density_ahead (count ped_ahead) / (side_width * search_length)
+  ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
+  if search_length / fd_to_ftps > distance next_int [
+    set search_length distance next_int * fd_to_ftps
+  ]
+
+  let peds_ahead pedestrians in-cone (search_length / patch_to_feet) phi                       ; get the pedestrians ahead in search_length (almost half a block) and in field of view of phi degrees
+  set peds_ahead peds_ahead with [self != myself]                                              ; that are not myself
+  set peds_ahead peds_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
+  set peds_ahead peds_ahead with [not dead?]                                                   ; that have not died yet
+  set peds_ahead peds_ahead with [moving?]                                                     ; that are moving
+  set peds_ahead peds_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
+
+  ;; side_width from ft to m
+  let m_side_width side_width / 3.281
+
+  ;; search_length from ft to m
+  let m_search_length search_length / 3.281
+
+  ;; count è giusta???
+  set density_ahead (count peds_ahead) / (m_side_width * m_search_length) ; p/m²
 end
 
 to update-density-ahead-cars
+  let phi 20
   let search_length 150
-  ;; è un problema modificare car_ahead che viene usata anche da movegm ???
-  set car_ahead pedestrians in-cone (search_length / patch_to_feet) 180                      ; get the cars ahead in 10ft (almost half a block) and in field of view of 180 degrees
-  set car_ahead car_ahead with [self != myself]                                              ; that are not myself
-  set car_ahead car_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
-  set car_ahead car_ahead with [not dead?]                                                   ; that have not died yet
-  set car_ahead car_ahead with [moving?]                                                     ; that are moving
-  set car_ahead car_ahead with [abs(subtract-headings heading [heading] of myself) < 160]
 
-  ;; eventuale controllo di fine strada
-  set density_ahead (count car_ahead) / (travel_width * search_length)
+  ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
+  if search_length / fd_to_ftps > distance next_int [
+    set search_length distance next_int * fd_to_ftps
+  ]
+
+  let cars_ahead cars in-cone (search_length / patch_to_feet) phi                              ; get the cars ahead in search_length (almost half a block) and in field of view of phi degrees
+  set cars_ahead cars_ahead with [self != myself]                                              ; that are not myself
+  set cars_ahead cars_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
+  set cars_ahead cars_ahead with [not dead?]                                                   ; that have not died yet
+  set cars_ahead cars_ahead with [moving?]                                                     ; that are moving
+  set cars_ahead cars_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
+
+  ;; side_width from ft to m
+  let m_side_width side_width / 3.281
+
+  ;; search_length from ft to m
+  let m_search_length search_length / 3.281
+
+  ;; count è giusta???
+  set density_ahead (count cars_ahead) / (m_side_width * m_search_length) ; p/m²
 end
 
 to klodek_formula
   ifelse (density_ahead = 0) [
     set speed free_speed
   ][
-    let k gamma * ((1 / density_ahead) - (1 / jam_density))
-    set speed free_speed * (1 - e ^ (- k))
+    ifelse (density_ahead >= jam_density) [
+      set speed 0
+    ][
+      let k gamma * ((1 / density_ahead) - (1 / jam_density))
+      set speed free_speed * (1 - e ^ (- k))
+    ]
   ]
 end
 
@@ -802,6 +828,8 @@ end
 ; first part of loading the model, including transportation network, shelters, and tsunami data
 ; before breaking roads and adding vertical shelters
 to load1
+  ca
+
   print (word "Foot %: " R1_HorEvac_Foot " - Speed ft/s: " Ped_Speed " - Miltime min: " Rtau1)
   ask patches [set pcolor white]
 
@@ -1101,7 +1129,7 @@ to setup
   set total_steps (simulation_time / step_period)
 
   set gamma 1.913
-  set jam_density 5.4 * 11.625 ; [p / ft²]  5.4 p/m²
+  set jam_density 5.4; p/m²
 
   set last-evacuated []
 
@@ -1246,7 +1274,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-50.0
+100.0
 1
 0
 Number
@@ -1768,10 +1796,10 @@ current_step + 1
 11
 
 MONITOR
-1421
-14
-1838
-59
+1391
+10
+1808
+55
 Evacuated Improvement
 (item iteration last-evacuated) - (item (iteration - 1) last-evacuated)
 17
@@ -1779,10 +1807,10 @@ Evacuated Improvement
 11
 
 PLOT
-1421
-71
-1836
-209
+1389
+74
+1804
+212
 Evacuated per Iteration
 NIL
 NIL
@@ -1797,10 +1825,10 @@ PENS
 "default" 1.0 0 -16777216 true "" "clear-plot\nlet values (n-values iteration [i -> i])\n(foreach values last-evacuated [[x y] -> plotxy x y])"
 
 MONITOR
-1419
-225
-1840
-270
+1389
+227
+1810
+272
 NIL
 (item 0 [path] of cars with [id = 20800])
 17
@@ -1808,10 +1836,10 @@ NIL
 11
 
 MONITOR
-1418
-284
-1840
-329
+1388
+286
+1810
+331
 NIL
 item 0 ([who] of roads)
 17
@@ -1819,63 +1847,86 @@ item 0 ([who] of roads)
 11
 
 PLOT
-1436
-347
-1826
-467
-pedestrian density
-NIL
+1388
+342
+1837
+539
+pedestrian density-speed
 p/m²
-0.0
-0.5
-0.0
-0.5
-true
-true
-"" ""
-PENS
-"max" 1.0 0 -955883 true "" "plot max [density_ahead] of pedestrians * 11.625"
-"mean" 1.0 0 -7500403 true "" "plot mean [density_ahead] of pedestrians * 11.625"
-
-PLOT
-1435
-472
-1827
-592
-pedestrian velocity
-NIL
 m/s²
 0.0
-0.0
+8.0
 0.0
 0.0
 true
 true
 "" ""
 PENS
-"mean" 1.0 0 -16777216 true "" "plot (mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
-"max" 1.0 0 -955883 true "" "plot (max [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
-"min" 1.0 0 -13840069 true "" "plot (min [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281 "
+"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif is-running? = 0 [set is-running? false]\nif ticks mod 200 = 0 or not is-running? [\n  ask pedestrians with [dead? = false ][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281)\n  ]\n]\n"
+"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 (4 / 3.281)\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v (4 / fd_to_ftps)\n\n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  \n  if x >= jam_density [\n     set v 0\n  ]\n  plotxy x v\n]" ""
 
 PLOT
-1435
-597
-1828
-717
-car velocity
-NIL
-mph
+1386
+549
+1836
+727
+pedestrian density-flow
+p/m²
+p/s
 0.0
-10.0
+8.0
 0.0
-10.0
+0.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "plot (mean [speed] of cars with [moving?]) * fd_to_mph"
-"pen-1" 1.0 0 -955883 true "" "plot (max [speed] of cars with [moving?]) * fd_to_mph"
-"pen-2" 1.0 0 -13840069 true "" "plot (min [speed] of cars with [moving?]) * fd_to_mph"
+"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif is-running? = 0 [set is-running? false]\nif ticks mod 200 = 0 or not is-running? [\n  ask pedestrians with [dead? = false][; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281) * (density_ahead)\n  ]\n]\n"
+"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 0\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v 4 / fd_to_ftps\n  \n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  if x >= jam_density [\n    set v 0\n  ]\n  plotxy x v * x\n]" ""
+
+INPUTBOX
+8
+673
+105
+733
+gamma
+1.913
+1
+0
+Number
+
+INPUTBOX
+113
+737
+216
+797
+side_width
+10.0
+1
+0
+Number
+
+INPUTBOX
+8
+737
+106
+797
+travel_width
+24.0
+1
+0
+Number
+
+INPUTBOX
+113
+673
+216
+733
+jam_density
+5.4
+1
+0
+Number
 
 @#$#@#$#@
 @#$#@#$#@
