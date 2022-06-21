@@ -66,8 +66,6 @@ roads-own [        ; the variables that roads own
   traffic          ; number of cars on each link at any time
   mid-x            ; xcor of the middle point of a link, in patches
   mid-y            ; ycor of the middle point of a link, in patches
-  ped_costs        ; list of costs on each link in time step (Nash equilibrium)
-  car_costs        ; list of costs on each link in time step (Nash equilibrium)
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -80,10 +78,6 @@ intersections-own [ ; the variables that intersections own
   gscore            ; for calculating the shortest path from each intersection to the a shelter (A* Alg)
   ver-path          ; best path from an intersection to the vertical shelter (list of intersection 'who's)
   hor-path          ; best path from an intersection to the horizontal shelter (list of intersection 'who's)
-  nash-hor-path-car
-  nash-ver-path-car
-  nash-hor-path-ped
-  nash-ver-path-ped
   evacuee_count     ; the number of agents that are evacuated in an intersection, if there is a shelter in it
 ]
 
@@ -103,7 +97,6 @@ pedestrians-own [; the variables that pedestrians own
   decision       ; the agents decision code: 1 for Hor Evac on foot
                  ;                           3 for Ver Evac on foot
   time_in_water  ; time that the agent has been in the water in seconds
-  should-update? ; true if the agent should replan the evacuation path (nash equilibrium)
   density_ahead  ; the density ahead of the agent in the current intersection
 ]
 
@@ -125,7 +118,7 @@ cars-own [       ; the variables that cars own
   acc            ; acceleration of the car agent
   road_on        ; the link that the car is travelling on
   time_in_water  ; time that the agent has been in the water in seconds
-  should-update? ; true if the agent should replan the evacuation path (nash equilibrium)
+  density_ahead  ; the density ahead of the agent in the current intersection
 ]
 
 globals [        ; global variables
@@ -149,16 +142,6 @@ globals [        ; global variables
 
 
   mortality_rate ; mortality rate of the event
-
-  current_step        ; current time step (TODO: stimare come media delle strade quando sono libere)
-  total_steps         ; number of steps in a simulation (simulation time / step_period)
-  step_period         ; period of each time step (seconds)
-  simulation_time     ; simulation time (seconds)
-  is-running?         ; weather the simulation is running or not
-  iteration           ; number of the nash iteration
-  reroute-prob        ; the probabilty of an agent to replan his path based on the nash equilibrium
-  nash-routes-computed?
-  last-evacuated
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; CONVERSION RATIOS ;;;;;;;;;
@@ -233,21 +216,9 @@ to make-decision
 end
 
 
-to-report get-current-cost [edge agent-type]
-  let costs []
-  ifelse agent-type = "pedestrian" [
-    set costs [ped_costs] of edge
-  ][
-    set costs [car_costs] of edge
-  ]
-
-  let cost item current_step costs
-  report cost
-end
-
 ; finds the shortest path from and intersection (source) to a shelter (one of gls) with A* algorithm
 ; gl is only used as a heuristic for the algorithm, the closest destination in a network is not necessarily the closest in euclidean distance
-to-report Astar [ source gl gls use-nash? agent-type ]
+to-report Astar [ source gl gls]
   let rchd? false       ; true if the algorithm has found a shelter
   let dstn nobody       ; the destinaton or the closest shelter
   let closedset []      ; equivalent to closed set in A* alg
@@ -270,13 +241,7 @@ to-report Astar [ source gl gls use-nash? agent-type ]
     set closedset lput current closedset
     ask intersection current [                  ; explore the neighbors of the current intersection
       ask out-road-neighbors [
-        let road-cost (get-current-cost (road [who] of myself who) agent-type)
-
-        if not use-nash? [
-          set road-cost [link-length] of (road [who] of myself who)
-        ]
-
-        let tent_gscore [gscore] of myself + road-cost  ; update f and gscore tentatively
+        let tent_gscore [gscore] of myself + [link-length] of (road [who] of myself who) ; update f and gscore tentatively
         let tent_fscore tent_gscore + distance gl
         if ( member? who closedset and ( tent_fscore >= fscore ) ) [stop]                  ; if not improved, stop
         if ( not member? who closedset or ( tent_fscore >= fscore )) [                     ; if the score improved, continue updating
@@ -517,8 +482,6 @@ to load-network
     set mid-y mean [ycor] of both-ends
     set traffic 0
     set crowd 0
-    set ped_costs n-values total_steps [(patch_to_meter * link-length) / (Ped_Speed * 3.281)] ;; max speed travel time for pedestrians
-    set car_costs n-values total_steps [(patch_to_meter * link-length) / (max_speed * 2.237)] ;; max speed travel time for cars
   ]
   output-print "Network Loaded"
 end
@@ -719,41 +682,12 @@ to load-routes
   let origins find-origins
   ask turtles with [member? self origins] [
     let goals intersections with [shelter? and shelter_type = "Hor"]
-    set hor-path Astar self (min-one-of goals [distance myself]) goals false "" ; hor-path definitely goes to a horizontal shelter
+    set hor-path Astar self (min-one-of goals [distance myself]) goals ; hor-path definitely goes to a horizontal shelter
     set goals intersections with [shelter?]
-    set ver-path Astar self (min-one-of goals [distance myself]) goals false "" ; ver-path can go to either a vertical shelter or
-                                                                                ; a horizontal shelter, depending on which one was closer
+    set ver-path Astar self (min-one-of goals [distance myself]) goals ; ver-path can go to either a vertical shelter or
+                                                                       ; a horizontal shelter, depending on which one was closer
   ]
   output-print "Routes Calculated"
-end
-
-to update-routes-with-nash
-;  let car_origins [current_int] of cars with [should-update?]
-;  let ped_origins [current_int] of pedestrians with [should-update?]
-;  let origins sentence car_origins ped_origins
-;  set origins (turtle-set origins)
-;
-;  let neighbours reduce sentence [[who] of out-link-neighbors] of origins
-;  set origins sentence origins neighbours
-;  set origins remove-duplicates origins
-  let origins intersections with [not shelter?]
-
-  ;;; horizontal goals.
-  let h-goals intersections with [shelter? and shelter_type = "Hor"]
-  ;;; vertical goals.
-  let v-goals intersections with [shelter?]
-
-  ask turtles with [member? self origins] [
-    set nash-hor-path-car Astar self (min-one-of h-goals [distance myself]) h-goals true "car"
-    set nash-ver-path-car Astar self (min-one-of v-goals [distance myself]) v-goals true "car"
-
-    set nash-hor-path-ped Astar self (min-one-of h-goals [distance myself]) h-goals true "pedestrian"
-    set nash-ver-path-ped Astar self (min-one-of v-goals [distance myself]) v-goals true "pedestrian"
-
-    ; print (list (length origins) (length nash-hor-path-car) (length nash-hor-path-car) (length nash-hor-path-ped) (length nash-ver-path-ped))
-  ]
-  output-print "Routes Updated With Nash"
-  print current_step
 end
 
 to update-density-ahead-pedestrians
@@ -835,11 +769,6 @@ to load1
 
   set ev_times []
 
-  set current_step 0
-  set step_period 180             ; 3 minutes
-  set simulation_time 3600        ; 60 minutes
-  set total_steps (simulation_time / step_period)
-
   read-gis-files
   load-network
   load-shelters
@@ -867,52 +796,8 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*#
 ;*************************************#
 ;######################################
-
 to go
-  run-simulation false
-end
-
-to run-simulation [use-nash?]
-  if int(ticks * tick_to_sec) > (current_step + 1) * step_period and use-nash? and iteration > 0 [ ;;;;
-    ;; updates network costs
-    ask roads [
-      ;; FIXXXXXXXXXXXXXXXXXXXXX non vengono aggiornate
-      if crowd > 0 [
-        let mean_speed (mean [speed] of (pedestrians with [
-          (road 389 173) = self
-        ])) ;([who] of current_int) ([who] of next_int)
-
-        let ped_tt (patch_to_meter * link-length) / mean_speed / 3.281
-        set ped_costs (replace-item current_step ped_costs ped_tt)
-      ]
-      if traffic > 0 [
-        let mean_speed (mean [speed] of (cars with [(road  389 173) = self]))
-
-        let car_tt (patch_to_meter * link-length) / mean_speed / 2.237
-        set car_costs (replace-item current_step car_costs car_tt)
-      ]
-    ]
-
-    ;; update routes
-    ifelse count pedestrians with [should-update?] > 0 or count cars with [should-update?] > 0 [
-      update-routes-with-nash
-      set nash-routes-computed? true
-    ][
-      set nash-routes-computed? false
-    ]
-
-    ;; update current step
-    set current_step (current_step + 1)
-  ]
-
-  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [
-    ifelse use-nash? [ ; when using nash do not stop but go to the next iteration
-      set is-running? false
-      set iteration iteration + 1
-    ][ ; stop after simulation all the flow depths
-      stop
-    ]
-  ]
+   if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [stop]  ; stop after simulation all the flow depths
 
   ; update the tsunami depth every interval seconds
   if int(ticks * tick_to_sec) - tsunami_data_start >= 0 and
@@ -971,7 +856,6 @@ to run-simulation [use-nash?]
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
-          set should-update? random-float 1 < reroute-prob ; if the agent should replan the evacuation path
           set density_ahead 0
 
           if dcsn = 1 [          ; horizontal evacuation on foot
@@ -1007,7 +891,7 @@ to run-simulation [use-nash?]
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
-          set should-update? random-float 1 < reroute-prob ; if the agent should replan the evacuation path
+          set density_ahead 0
 
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
@@ -1044,10 +928,6 @@ to run-simulation [use-nash?]
 
   ; set up the pedestrians that should move
   ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
-    if should-update? and nash-routes-computed? [
-      if decision = 1 [set path [nash-hor-path-ped] of current_int]
-      if decision = 3 [set path [nash-ver-path-ped] of current_int]
-    ]
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
       set path remove-item 0 path             ; remove item 0 of path
@@ -1060,6 +940,7 @@ to run-simulation [use-nash?]
   ask pedestrians with [moving?][
     update-density-ahead-pedestrians
     klodek_formula
+
     ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
     if (distance next_int < 0.005 ) [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
       set moving? false
@@ -1080,10 +961,6 @@ to run-simulation [use-nash?]
   ]
   ; set up the cars that should move
   ask cars with [not moving? and not empty? path and not evacuated? and not dead?][
-    if should-update? and nash-routes-computed? [
-      if decision = 2 [set path [nash-hor-path-car] of current_int]
-      if decision = 4 [set path [nash-ver-path-car] of current_int]
-    ]
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
       set path remove-item 0 path             ; remove item 0 of path
@@ -1094,6 +971,7 @@ to run-simulation [use-nash?]
   ]
   ; move the cars that should move
   ask cars with [moving?][
+    update-density-ahead-cars
     move-gm                 ; set the speed with general motors car-following model
     fd speed                ; move
     if (distance next_int < 0.005 ) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
@@ -1111,76 +989,6 @@ to run-simulation [use-nash?]
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
 
   tick
-end
-
-to setup
-  ca
-  random-seed 42
-
-  set iteration 0
-  set is-running? false
-  set reroute-prob 0.1
-
-  set side_width 10 ; feet
-  set travel_width 24 ; feet
-
-  set step_period 60 * 15    ; 180     ; 3 minutes
-  set simulation_time 3600        ; 60 minutes
-  set total_steps (simulation_time / step_period)
-
-  set gamma 1.913
-  set jam_density 5.4; p/m²
-
-  set last-evacuated []
-
-
-
-  read-gis-files
-  load-network
-  load-shelters
-
-  ask patches [set pcolor white]
-end
-
-to iterate
-  if iteration > 0 [stop]
-
-  if not is-running? [
-    if iteration > 0 [
-      set last-evacuated lput (count turtles with [ color = green ]) last-evacuated
-    ]
-
-    clear-drawing
-    clear-all-plots
-    clear-patches
-    clear-ticks
-
-    random-seed 42
-
-    ask roads [
-      set traffic 0
-      set crowd 0
-    ]
-
-    ask intersections [
-      set evacuee_count 0
-    ]
-
-    set current_step 0
-    set nash-routes-computed? false
-
-    ask patches [set pcolor white]
-    set ev_times []
-
-    load-tsunami
-    load-population
-    load-routes
-
-    set is-running? true
-    reset-ticks
-  ]
-
-  run-simulation true
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
