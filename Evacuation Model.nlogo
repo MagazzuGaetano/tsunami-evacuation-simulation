@@ -66,6 +66,9 @@ roads-own [        ; the variables that roads own
   traffic          ; number of cars on each link at any time
   mid-x            ; xcor of the middle point of a link, in patches
   mid-y            ; ycor of the middle point of a link, in patches
+  density
+  flow
+  n_ped_crossing  ; number of pedestrian crossing a crossroad
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -79,6 +82,8 @@ intersections-own [ ; the variables that intersections own
   ver-path          ; best path from an intersection to the vertical shelter (list of intersection 'who's)
   hor-path          ; best path from an intersection to the horizontal shelter (list of intersection 'who's)
   evacuee_count     ; the number of agents that are evacuated in an intersection, if there is a shelter in it
+  crossing_table    ; (a, b): [car1, car2], (b, a): [], (a, c): [car3]
+  crossroad?        ;
 ]
 
 
@@ -98,6 +103,7 @@ pedestrians-own [; the variables that pedestrians own
                  ;                           3 for Ver Evac on foot
   time_in_water  ; time that the agent has been in the water in seconds
   density_ahead  ; the density ahead of the agent in the current intersection
+  side           ; either the left or right sidewalk of the road {Left = 0, Right = 1}
 ]
 
 cars-own [       ; the variables that cars own
@@ -119,6 +125,8 @@ cars-own [       ; the variables that cars own
   road_on        ; the link that the car is travelling on
   time_in_water  ; time that the agent has been in the water in seconds
   density_ahead  ; the density ahead of the agent in the current intersection
+  crossing?      ;
+  prev_int       ; previous intersection of an agent in a crossroad
 ]
 
 globals [        ; global variables
@@ -151,6 +159,7 @@ globals [        ; global variables
   patch_to_feet  ; patch to feet conversion ratio
   fd_to_ftps     ; fd (patch/tick) to feet per second
   fd_to_mph      ; fd (patch/tick) to miles per hour
+  fd_to_kmh      ; fd (patch/tick) to kilometers per hour
   tick_to_sec    ; ticks to seconds - usually 1
 
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -376,8 +385,8 @@ to setup-init-val
   set Rsig2 1.65                  ; meaning that 99% of the agents evacuate within 5 minutes after the minimum milling time (between 10 to 15 mins in this case)
   set Rsig3 1.65
   set Rsig4 1.65
-  set side_width 10 ; feet
-  set travel_width 24 ; feet
+  set side_width 5 ; feet
+  set lane_width 12 ; feet
   set gamma 1.913
   set jam_density 5.4; p/m²
 end
@@ -414,6 +423,7 @@ to read-gis-files
   set tick_to_sec 1.0                                                                                     ; tick_to_sec ratio is set to 1.0 (preferred)
   set fd_to_ftps patch_to_feet / tick_to_sec                                                              ; patch/tick to ft/s speed conversion multipler
   set fd_to_mph fd_to_ftps * 0.682            ; 1ft/s = 0.682 mph                                        ; patch/tick to mph speed conversion multiplier
+  set fd_to_kmh fd_to_ftps * 1.097                                                                       ; patch/tick to kmh speed conversion multiplier
   ; to calculate the minimum longitude and latitude of the world associated with min_xcor and min_ycor
   ; we need to check and see how the world envelope fits into that of netlogo's. This is why the "_ratio"s need to be compared againsts eachother
   ; this is basically the missing "get-transformation" premitive in netlogo's GIS extension
@@ -474,6 +484,11 @@ to load-network
       ]
     ]
   ]
+  ; assign crossroad? variable
+  ask intersections [
+    set crossroad? count my-in-links > 2
+  ]
+
   ; assign mid-x and mid-y variables to the roads that respresent the middle point of the link
   ask roads [
     set color black
@@ -482,6 +497,8 @@ to load-network
     set mid-y mean [ycor] of both-ends
     set traffic 0
     set crowd 0
+    set n_ped_crossing 0
+    set shape "road"
   ]
   output-print "Network Loaded"
 end
@@ -690,30 +707,73 @@ to load-routes
   output-print "Routes Calculated"
 end
 
+;; definition of the density a head of a pedestrian considering roads with two sidewalk and two-way flow on each.
 to update-density-ahead-pedestrians
+
+  ;; select the patch in-front of myself
   let phi 180
   let search_length 10
+  let tmp_search_length search_length
 
+  ;; select the patch ahead of myself
   ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
-  if search_length / fd_to_ftps > distance next_int [
-    set search_length distance next_int * fd_to_ftps
+  if search_length / patch_to_feet > distance next_int [
+    set search_length distance next_int * patch_to_feet
   ]
-
   let peds_ahead pedestrians in-cone (search_length / patch_to_feet) phi                       ; get the pedestrians ahead in search_length (almost half a block) and in field of view of phi degrees
   set peds_ahead peds_ahead with [self != myself]                                              ; that are not myself
   set peds_ahead peds_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
   set peds_ahead peds_ahead with [not dead?]                                                   ; that have not died yet
   set peds_ahead peds_ahead with [moving?]                                                     ; that are moving
-  set peds_ahead peds_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
+  set peds_ahead peds_ahead with [side = [side] of myself]                                     ; that have are on the same side of the sidewalk
 
-  ;; side_width from ft to m
-  let m_side_width side_width / 3.281
+  let peds_forward count peds_ahead with [next_int = [next_int] of myself and current_int = [current_int] of myself] ; with relatively the same general heading as mine (not going the opposite direction)
+  let peds_backward count peds_ahead with [next_int = [current_int] of myself and current_int = [next_int] of myself]
+  let peds_total peds_forward + peds_backward
 
-  ;; search_length from ft to m
-  let m_search_length search_length / 3.281
+  ;; select the patch behind of myself
+  if tmp_search_length / patch_to_feet > distance current_int [
+    set tmp_search_length distance current_int * patch_to_feet
+  ]
 
-  ;; count è giusta???
-  set density_ahead (count peds_ahead) / (m_side_width * m_search_length) ; p/m²
+  rt 180
+  let peds_behind pedestrians in-cone (tmp_search_length / patch_to_feet) phi
+  rt 180
+
+  set peds_behind peds_behind with [not evacuated?]
+  set peds_behind peds_behind with [not dead?]
+  set peds_behind peds_behind with [moving?]
+  set peds_behind peds_behind with [side = [side] of myself]
+
+  let peds_behind_forward count peds_behind with [next_int = [next_int] of myself and current_int = [current_int] of myself]
+  let peds_behind_backward count peds_behind with [next_int = [current_int] of myself and current_int = [next_int] of myself]
+  let peds_behind_total peds_behind_forward + peds_behind_backward ;; this will never be zero at least myself is included!
+  let forward_ratio_behind peds_behind_forward / peds_behind_total
+
+  ifelse peds_total != 0 [
+    ;; side_width from ft to m
+    let m_side_width side_width / 3.281
+
+    ;; side_width updated considering the two-way flow
+    let forward_ratio peds_forward / peds_total
+
+    ;; handle limit cases
+    if forward_ratio_behind = 1 and forward_ratio = 0 [
+      set forward_ratio 0.5
+    ]
+    if forward_ratio_behind < 1 and forward_ratio = 0 [
+      set forward_ratio 0.75 ; valore da definire meglio 0.5 < T < 1
+    ]
+
+    set m_side_width m_side_width * forward_ratio
+
+    ;; search_length from ft to m
+    let m_search_length search_length / 3.281
+
+    set density_ahead (peds_forward) / (m_side_width * m_search_length) ; ped/m²
+  ][
+    set density_ahead 0
+  ]
 end
 
 to update-density-ahead-cars
@@ -721,8 +781,8 @@ to update-density-ahead-cars
   let search_length 150
 
   ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
-  if search_length / fd_to_ftps > distance next_int [
-    set search_length distance next_int * fd_to_ftps
+  if search_length / patch_to_feet > distance next_int [
+    set search_length distance next_int * patch_to_feet
   ]
 
   let cars_ahead cars in-cone (search_length / patch_to_feet) phi                              ; get the cars ahead in search_length (almost half a block) and in field of view of phi degrees
@@ -732,28 +792,63 @@ to update-density-ahead-cars
   set cars_ahead cars_ahead with [moving?]                                                     ; that are moving
   set cars_ahead cars_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
 
-  ;; side_width from ft to m
-  let m_side_width side_width / 3.281
+  ;; search_length from ft to km
+  let m_search_length search_length / 3281
 
-  ;; search_length from ft to m
-  let m_search_length search_length / 3.281
-
-  ;; count è giusta???
-  set density_ahead (count cars_ahead) / (m_side_width * m_search_length) ; p/m²
+  set density_ahead (count cars_ahead) / (m_search_length) ; car/km
 end
 
-to klodek_formula
+to-report klodek_formula
+  let result speed
   ifelse (density_ahead = 0) [
-    set speed free_speed
+    set result free_speed
   ][
     ifelse (density_ahead >= jam_density) [
-      set speed 0
+      set result 0
     ][
       let k gamma * ((1 / density_ahead) - (1 / jam_density))
-      set speed free_speed * (1 - e ^ (- k))
+      set result free_speed * (1 - e ^ (- k))
     ]
   ]
+  report result
 end
+
+
+to-report greenshield_model
+  let v_cm 40 ; km/h
+  let p_cm 250 ; 160 car/km
+
+  ;; v_cm from kmh to patch/tick
+  set v_cm v_cm / fd_to_kmh
+
+  let result 0
+  if density_ahead < p_cm [
+    ;; speed in patch/tick
+    set result v_cm * (1 - density_ahead / p_cm)
+  ]
+
+  if result > distance next_int [set result distance next_int]
+
+  report result
+end
+
+to update-density-flow
+  let moving_cars cars with [moving?]
+
+  let area link-length * (lane_width / patch_to_feet)
+  let n count moving_cars
+
+  set density  n / area
+
+  let avg_vel 0
+
+  if n > 0 [
+    set avg_vel mean [speed] of moving_cars
+  ]
+
+  set flow density * avg_vel
+end
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;; LOAD 1/2 ;;;;;;;;;;;;;;
@@ -805,7 +900,7 @@ to go
     if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) < tsunami_data_count [
       ask patches with [depths != 0][
         set depth item int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) depths   ; set the depth to the correct item of depths list (depending on the time)
-        if depth > max_depth [                                ; monitor the maximum depth observed at each patch, for future use.
+        if depth > max_depth [                                                                       ; monitor the maximum depth observed at each patch, for future use.
           set max_depth depth
         ]
       ]
@@ -848,7 +943,7 @@ to go
       ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
         hatch-pedestrians 1 [
           set id resident_id
-          set size 0.5 ;;;;;;;;;;;;;;;;;;;;; 2
+          set size 0.5 ; 2
           set shape "dot"
           set current_int myself ; myself = current_int of the resident
           set free_speed spd     ; the speed of the resident is passed on to the pedestrian as free_speed
@@ -857,6 +952,12 @@ to go
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set density_ahead 0
+
+          ifelse random-float 1 < 0.5 [
+            set side 0
+          ][
+            set side 1
+          ]
 
           if dcsn = 1 [          ; horizontal evacuation on foot
             set color orange
@@ -884,14 +985,26 @@ to go
     ]
     if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
       ask current_int [         ; ask the current intersection of the resident to hatch a car
+        let in_nodes [who] of in-link-neighbors
+
         hatch-cars 1 [
           set id resident_id
-          set size 0.3 ;;;;;;;;;;;;;; 2
+          set size 0.5 ; 2
           set current_int myself ; myself = current_int of the resident
           set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
           set dead? false        ; initialized as not dead, will be checked immediately after being born
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set density_ahead 0
+          set crossing? false
+
+          ifelse [crossroad?] of current_int
+          [
+            let prev_int_who item random (length in_nodes) in_nodes
+            set prev_int intersection prev_int_who
+          ]
+          [
+            set prev_int -1
+          ]
 
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
@@ -930,16 +1043,52 @@ to go
   ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
-      set path remove-item 0 path             ; remove item 0 of path
-      set heading towards next_int            ; set the heading towards the destination
-      set moving? true
-      ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
+
+;      let visible_cars cars in-radius (30 / patch_to_meter)
+;      let crossing_heading [link-heading] of road ([who] of current_int) ([who] of next_int)
+
+      ;; TODO.........
+;      print crossing_heading
+;
+;      ask intersections [
+;        set pcolor white
+;        set color white
+;      ]
+;      ask current_int [
+;        let origin who
+;        set pcolor green
+;
+;        ask out-link-neighbors [
+;          set pcolor blue
+;          show who
+;          show [link-heading] of road origin who
+;        ]
+;
+;        ask out-link-neighbors with [
+;          abs(subtract-headings crossing_heading [link-heading] of road origin who) < 135 and
+;          abs(subtract-headings crossing_heading [link-heading] of road origin who) > 45
+;        ] [
+;          set pcolor red
+;          set visible_cars visible_cars with [current_int = self]
+;        ]
+;      ]
+;      ask next_int [set color green]
+
+;      let can-cross? count visible_cars = 0
+
+      let can-cross? true
+      if can-cross? [
+        set path remove-item 0 path             ; remove item 0 of path
+        set heading towards next_int            ; set the heading towards the destination
+        set moving? true
+        ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
+      ]
     ]
   ]
   ; move the pedestrians that should move
   ask pedestrians with [moving?][
     update-density-ahead-pedestrians
-    klodek_formula
+    set speed klodek_formula
 
     ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
     if (distance next_int < 0.005 ) [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
@@ -961,26 +1110,49 @@ to go
   ]
   ; set up the cars that should move
   ask cars with [not moving? and not empty? path and not evacuated? and not dead?][
+
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
-      set path remove-item 0 path             ; remove item 0 of path
-      set heading towards next_int            ; set the heading towards the destination
-      set moving? true
-      ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+
+      if not [crossroad?] of current_int or ([crossroad?] of current_int and
+         [n_ped_crossing] of road ([who] of prev_int) ([who] of current_int) = 0 and
+         [n_ped_crossing] of road ([who] of current_int) ([who] of next_int) = 0)
+      [
+        set path remove-item 0 path             ; remove item 0 of path
+        set heading towards next_int            ; set the heading towards the destination
+        set moving? true
+        ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+      ]
     ]
   ]
+
   ; move the cars that should move
   ask cars with [moving?][
-    update-density-ahead-cars
     move-gm                 ; set the speed with general motors car-following model
     fd speed                ; move
-    if (distance next_int < 0.005 ) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
+
+    if (distance next_int < 40 / patch_to_meter and not crossing? and [crossroad?] of next_int) [
+      ;; add to queue
+
+      ;; crossing
+      set crossing? true
+
+      ;; decelerate
+      set speed 0
+    ]
+
+    if (distance next_int < 0.005) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
       set moving? false
+
       ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
+      set prev_int current_int           ; update previous intersection
       set current_int next_int           ; update current intersection
       if [who] of current_int = shelter [mark-evacuated]
     ]
   ]
+
+  ;;;;;;;;;;;;;;;; ask roads [update-density-flow]
+
   ; mark agents who were in the water for a prolonged period of time dead
   ask residents with [time_in_water > Tc][mark-dead]
   ask cars with [time_in_water > Tc][mark-dead]
@@ -1082,7 +1254,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-100.0
+0.0
 1
 0
 Number
@@ -1322,9 +1494,9 @@ NIL
 
 MONITOR
 1213
-55
+53
 1293
-100
+98
 Vertical Cap
 sum [evacuee_count] of intersections with [shelter? and shelter_type = \"Ver\"]
 17
@@ -1337,7 +1509,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-0.0
+25.0
 1
 0
 Number
@@ -1547,121 +1719,14 @@ Tc
 0
 Number
 
-BUTTON
-1318
-107
+PLOT
 1384
-150
-NIL
-iterate
-T
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-BUTTON
-1297
-55
-1372
-100
-NIL
-setup
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
-MONITOR
-1173
-105
-1241
-150
-NIL
-iteration
-17
-1
-11
-
-MONITOR
-1245
-106
-1312
-151
-time step
-current_step + 1
-17
-1
-11
-
-MONITOR
-1391
 10
-1808
-55
-Evacuated Improvement
-(item iteration last-evacuated) - (item (iteration - 1) last-evacuated)
-17
-1
-11
-
-PLOT
-1389
-74
-1804
-212
-Evacuated per Iteration
-NIL
-NIL
-0.0
-12.0
-0.0
-10.0
-true
-false
-"" ""
-PENS
-"default" 1.0 0 -16777216 true "" "clear-plot\nlet values (n-values iteration [i -> i])\n(foreach values last-evacuated [[x y] -> plotxy x y])"
-
-MONITOR
-1389
-227
-1810
-272
-NIL
-(item 0 [path] of cars with [id = 20800])
-17
-1
-11
-
-MONITOR
-1388
-286
-1810
-331
-NIL
-item 0 ([who] of roads)
-17
-1
-11
-
-PLOT
-1388
-342
-1837
-539
+1833
+162
 pedestrian density-speed
 p/m²
-m/s²
+m/s
 0.0
 8.0
 0.0
@@ -1670,14 +1735,14 @@ true
 true
 "" ""
 PENS
-"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif is-running? = 0 [set is-running? false]\nif ticks mod 200 = 0 or not is-running? [\n  ask pedestrians with [dead? = false ][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281)\n  ]\n]\n"
+"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif ticks mod 200 = 0 [\n  ask pedestrians with [dead? = false ][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281)\n  ]\n]\n"
 "expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 (4 / 3.281)\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v (4 / fd_to_ftps)\n\n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  \n  if x >= jam_density [\n     set v 0\n  ]\n  plotxy x v\n]" ""
 
 PLOT
-1386
-549
-1836
-727
+1384
+169
+1834
+318
 pedestrian density-flow
 p/m²
 p/s
@@ -1689,7 +1754,7 @@ true
 true
 "" ""
 PENS
-"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif is-running? = 0 [set is-running? false]\nif ticks mod 200 = 0 or not is-running? [\n  ask pedestrians with [dead? = false][; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281) * (density_ahead)\n  ]\n]\n"
+"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif ticks mod 200 = 0 [\n  ask pedestrians with [dead? = false][; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281) * (density_ahead)\n  ]\n]\n"
 "expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 0\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v 4 / fd_to_ftps\n  \n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  if x >= jam_density [\n    set v 0\n  ]\n  plotxy x v * x\n]" ""
 
 INPUTBOX
@@ -1709,7 +1774,7 @@ INPUTBOX
 216
 797
 side_width
-10.0
+5.0
 1
 0
 Number
@@ -1719,8 +1784,8 @@ INPUTBOX
 737
 106
 797
-travel_width
-24.0
+lane_width
+12.0
 1
 0
 Number
@@ -1735,6 +1800,64 @@ jam_density
 1
 0
 Number
+
+PLOT
+1384
+328
+1835
+478
+car density-speed
+car/km
+km/h
+0.0
+0.0
+0.0
+40.0
+true
+true
+"" ""
+PENS
+"empirical" 1.0 2 -13791810 true "" ";if ticks mod 200 = 0 [\n;  ask cars with [dead? = false][\n;    plotxy (density_ahead) (speed * fd_to_kmh)\n;  ]\n;]\n"
+"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01)]\n\nplotxy 0 40 ; km/h\n\nforeach densities [x ->\n   let v_cm 40 ; km/h\n   let p_cm 160 ; c/km\n   ;; v_cm from kmh to patch/tick\n   set v_cm v_cm / fd_to_kmh\n   let v v_cm * (1 - x / p_cm)\n   if x >= p_cm [set v 0]\n   plotxy x (v * fd_to_kmh)\n]" ""
+
+PLOT
+1384
+485
+1835
+635
+car density-flow
+car/km
+car/h
+0.0
+0.0
+0.0
+0.0
+true
+true
+"" ""
+PENS
+"empirical" 1.0 2 -13791810 true "" ";if ticks mod 200 = 0 [\n;  ask cars with [dead? = false][\n;    plotxy (density_ahead) (speed * fd_to_kmh * density_ahead)\n;  ]\n;]"
+"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01)]\n\nplotxy 0 40 ; km/h\n\nforeach densities [x ->\n   let v_cm 40 ; km/h\n   let p_cm 160 ; c/km\n   ;; v_cm from kmh to patch/tick\n   set v_cm v_cm / fd_to_kmh\n   let v v_cm * (1 - x / p_cm)\n   if x >= p_cm [set v 0]\n   plotxy x (v * fd_to_kmh * x)\n]" ""
+
+PLOT
+1382
+644
+1838
+764
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -13791810 true "" "ask road 499 152 [\n  plotxy density flow\n]"
+"pen-1" 1.0 0 -13840069 true "" "ask road 389 173 [\n  plotxy density flow\n]"
+"pen-2" 1.0 0 -2674135 true "" "ask road 519 373 [\n  plotxy density flow\n]"
 
 @#$#@#$#@
 @#$#@#$#@
@@ -2090,6 +2213,28 @@ true
 0
 Line -7500403 true 150 150 90 180
 Line -7500403 true 150 150 210 180
+
+prova
+0.0
+-0.2 1 1.0 0.0
+0.0 1 4.0 4.0
+0.2 1 1.0 0.0
+link direction
+true
+0
+Line -7500403 true 150 150 90 180
+Line -7500403 true 150 150 210 180
+
+road
+0.0
+-0.2 0 0.0 1.0
+0.0 1 1.0 0.0
+0.2 0 0.0 1.0
+link direction
+true
+0
+Line -7500403 true 150 150 135 165
+Line -7500403 true 150 150 165 165
 @#$#@#$#@
 0
 @#$#@#$#@
