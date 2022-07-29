@@ -1,4 +1,3 @@
-;;;;;************** TSUNAMI EVACUATION MODEL *********************;;;;
 ;;;;;                                                             ;;;;
 ;;;;; This model simulates a tsunami evacuation scenario with     ;;;;
 ;;;;; capability of adding vertical evaucation shelters and       ;;;;
@@ -68,8 +67,6 @@ roads-own [        ; the variables that roads own
   mid-y            ; ycor of the middle point of a link, in patches
   density
   flow
-  n_ped_left   ; number of pedestrian crossing a crossroad on the left side
-  n_ped_right  ; number of pedestrian crossing a crossroad on the right side
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -83,7 +80,7 @@ intersections-own [ ; the variables that intersections own
   ver-path          ; best path from an intersection to the vertical shelter (list of intersection 'who's)
   hor-path          ; best path from an intersection to the horizontal shelter (list of intersection 'who's)
   evacuee_count     ; the number of agents that are evacuated in an intersection, if there is a shelter in it
-  crossing_table    ; (a, b): [car1, car2], (b, a): [], (a, c): [car3]
+  crossing_counts   ; (a, b): [car1, car2], (b, a): [], (a, c): [car3]
   crossroad?        ;
 ]
 
@@ -106,8 +103,10 @@ pedestrians-own [; the variables that pedestrians own
   density_ahead  ; the density ahead of the agent in the current intersection
   side           ; either the left or right sidewalk of the road {Left = 0, Right = 1}
   crossing?
+  crossing_int
   next_int_updated?
-  next_int_direction
+  prev_int
+  moved?
 ]
 
 cars-own [       ; the variables that cars own
@@ -131,6 +130,8 @@ cars-own [       ; the variables that cars own
   density_ahead  ; the density ahead of the agent in the current intersection
   crossing?      ;
   prev_int       ; previous intersection of an agent in a crossroad
+  next_int_updated?
+  complete_path
 ]
 
 globals [        ; global variables
@@ -473,18 +474,28 @@ to update-density-flow
   set flow density * avg_vel
 end
 
+to-report get-sorted-intersections [prev curr]
+  ;;print (list prev curr next)
 
-to-report get-directions [dest_int]
-  let in_dir [link-heading] of road ([who] of current_int) ([who] of next_int)
+  let in_dir [link-heading] of road ([who] of prev) ([who] of curr)
   set in_dir (in_dir - 180) mod 360
 
   let curr_int current_int
   let directions []
 
-  ask next_int [
-    ask out-link-neighbors with [self != curr_int] [
+  ask curr [
+    ;; TODO: can be optimized
+    ask out-link-neighbors with [self != prev] [
       let angle [link-heading] of road ([who] of myself) ([who] of self)
       set angle (angle - in_dir) mod 360 ; substract the initial angle
+
+      set directions lput (list ([who] of self) angle) directions
+
+      ;;print (list ([who] of myself) ([who] of self))
+    ]
+    ask in-link-neighbors with [self != prev] [
+      let angle [link-heading] of road ([who] of self) ([who] of myself)
+      set angle ((angle - 180) mod 360 - in_dir) mod 360 ; substract the initial angle
 
       set directions lput (list ([who] of self) angle) directions
     ]
@@ -492,8 +503,15 @@ to-report get-directions [dest_int]
 
   set directions sort-by [[a b] -> (item 1 a) < (item 1 b)] directions ; sort by decreasing angle
   set directions map [ x -> item 0 x ] directions                      ; get sorted intersections
+  set directions remove-duplicates directions
 
-  let idx position [who] of dest_int directions                        ; get index of the destination
+  report directions
+end
+
+to-report get-next-direction [prev curr next]
+  let directions get-sorted-intersections prev curr
+
+  let idx position [who] of next directions                            ; get index of the destination
 
   if length directions = 3 [
     report item idx ["left" "straight" "right"]
@@ -506,8 +524,24 @@ to-report get-directions [dest_int]
 end
 
 
+to-report map-direction-intersection [prev curr next]
+  let dir-int table:make
 
+  let ints get-sorted-intersections prev curr
+  set ints lput ([who] of prev) ints
 
+  let dirs []
+  if length ints = 4 [
+    set dirs ["left" "straight" "right" "origin"]
+  ]
+  if length ints = 3 [
+    set dirs ["left" "right" "origin"]
+  ]
+
+  (foreach dirs ints [[x y] -> table:put dir-int x y])
+
+  report dir-int
+end
 
 ; TURTLE FUNCTION: marks an agent as evacuee
 to mark-evacuated
@@ -667,9 +701,10 @@ to load-network
     ]
   ]
 
-  ; assign crossroad? variable
+  ; assign crossroad? and crossing_counts variables
   ask intersections [
-    set crossroad? length remove-duplicates [who] of link-neighbors > 2
+    set crossroad? length remove-duplicates [who] of link-neighbors = 4 ; > 2
+    set crossing_counts table:make
   ]
 
   ; assign mid-x and mid-y variables to the roads that respresent the middle point of the link
@@ -680,8 +715,6 @@ to load-network
     set mid-y mean [ycor] of both-ends
     set traffic 0
     set crowd 0
-    set n_ped_left 0
-    set n_ped_right 0
     set shape "road"
   ]
   output-print "Network Loaded"
@@ -982,6 +1015,8 @@ to go
     let resident_id who
     if dcsn = 1 or dcsn = 3 [    ; horizontal (1) or vertical (3) evacuation - by FOOT
       ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
+        let in_nodes in-link-neighbors
+
         hatch-pedestrians 1 [
           set id resident_id
           set size 0.5 ; 2
@@ -994,8 +1029,10 @@ to go
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set density_ahead 0
           set crossing? false
+          set crossing_int -1
           set next_int_updated? false
-          set next_int_direction -1
+          set moved? false
+
 
           ifelse random-float 1 < 0.5 [
             set side 0
@@ -1023,13 +1060,26 @@ to go
             if decision = 3 and [shelter?] of current_int [set shelter -99]              ; if the decision is vertical evac and the list is empty since current_int is a shelter
                                                                                          ; basically if shelter = -99, we can mark the pedestrian as evacuated later
           ]
+
+          ;; set previous intersection by selecting a random intersection different from the next (just initialization)
+          ifelse [crossroad?] of current_int and not empty? path
+          [
+            let next_who [who] of intersection (item 0 path)
+            set in_nodes [who] of in_nodes with [who != next_who]
+            let prev_int_who item random (length in_nodes) in_nodes
+            set prev_int intersection prev_int_who
+          ]
+          [
+            set prev_int current_int
+          ]
+
           st
         ]
       ]
     ]
     if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
       ask current_int [         ; ask the current intersection of the resident to hatch a car
-        let in_nodes [who] of in-link-neighbors
+        let in_nodes in-link-neighbors
 
         hatch-cars 1 [
           set id resident_id
@@ -1040,20 +1090,13 @@ to go
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set density_ahead 0
           set crossing? false
-
-          ifelse [crossroad?] of current_int
-          [
-            let prev_int_who item random (length in_nodes) in_nodes
-            set prev_int intersection prev_int_who
-          ]
-          [
-            set prev_int -1
-          ]
+          set next_int_updated? false
 
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
             set path [hor-path] of myself ; myself = current_int of the resident
             set decision 2
+            set complete_path path
           ]
           if dcsn = 4 [          ; vertical evacuation by car
             set color magenta
@@ -1066,6 +1109,20 @@ to go
             if decision = 4 and [shelter?] of current_int [set shelter -99]             ; if the decision is vertical evac and the list is empty since current_int is a shelter
                                                                                         ; basically if shelter = -99, we can mark the car as evacuated later
           ]
+
+          ;; set previous intersection by selecting a random intersection different from the next (just initialization)
+          ifelse [crossroad?] of current_int and not empty? path
+          [
+            let next_who [who] of intersection (item 0 path)
+            set in_nodes [who] of in_nodes with [who != next_who]
+            let prev_int_who item random (length in_nodes) in_nodes
+            set prev_int intersection prev_int_who
+          ]
+          [
+            set prev_int current_int
+          ]
+
+
           st
         ]
       ]
@@ -1085,17 +1142,8 @@ to go
 
   ; set up the pedestrians that should move
   ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
-
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
-
-      ;; move to skip the crossing zone
-      if [crossroad?] of current_int [
-        set next_int_direction get-directions next_int
-        if (next_int_direction = "left" and side = 0) or (next_int_direction = "right" and side = 1) [
-          fd 5.18 / patch_to_meter
-        ]
-      ]
 
       set path remove-item 0 path             ; remove item 0 of path
       set heading towards next_int            ; set the heading towards the destination
@@ -1110,42 +1158,72 @@ to go
     update-density-ahead-pedestrians
     set speed klodek_formula
 
-    if (distance next_int < 5.18 / patch_to_meter and (not crossing?) and [crossroad?] of next_int) [
-      if not empty? path [
-        let dest_int intersection item 0 path
-        set next_int_direction get-directions dest_int
+    ;; the agent has entered the crosswalk
+    if distance next_int < 5.18 / patch_to_meter and not moved? and not crossing? and [crossroad?] of next_int and not empty? path [
+      let X intersection item 0 path
+      let next_dir get-next-direction current_int next_int X
+      let int-dir map-direction-intersection current_int next_int X
 
-        ;; if next direction is Left and the side is Left no incrementing the queue
-        ;; if next direction is Right and the side is Right no incrementing the queue
-        if not(next_int_direction = "left" and side = 0) and not(next_int_direction = "right" and side = 1) [
-          ;; add to the respective queue
-          let ped_side side
-          ask road ([who] of next_int) ([who] of dest_int) [
-            if ped_side = 0 [set n_ped_left n_ped_left + 1]
-            if ped_side = 1 [set n_ped_right n_ped_right + 1]
-          ] ;
-          set crossing? true
+      let key ""
+      let new_side 0
+
+      ;; if next direction is Left and the side is Left no incrementing the queue
+      ;; if next direction is Right and the side is Right no incrementing the queue
+
+      if next_dir = "left" and side = 1 [
+        set key table:get int-dir "origin"
+        set new_side 0
+      ]
+      if next_dir = "right" and side = 0 [
+        set key table:get int-dir "origin"
+        set new_side 1
+      ]
+      if next_dir = "straight" [
+        ifelse side = 0 [
+          set key table:get int-dir "left"
+        ][
+          set key table:get int-dir "right"
         ]
+      ]
+
+      if key != "" [
+        ask next_int [
+          table:put crossing_counts key (table:get-or-default crossing_counts key 0) + 1
+        ]
+
+        set crossing? true
+        set crossing_int key
+
+        ;; update side
+        set side new_side
       ]
     ]
 
-    ;; check that the next int has changed
-    if (distance current_int >= 5.18 / patch_to_meter and crossing? and [crossroad?] of current_int and next_int_updated?) [
-      ;; remove from the queue
-      let ped_side side
-      ask road ([who] of current_int) ([who] of next_int) [
-        if ped_side = 0 [set n_ped_left n_ped_left - 1]
-        if ped_side = 1 [set n_ped_right n_ped_right - 1]
-      ] ;
-      set crossing? false
-      set next_int_updated? false
+    ;; the agent has left the crosswalk
+    if distance current_int >= 5.18 / patch_to_meter and moved? and crossing? and [crossroad?] of current_int  [
+      let key crossing_int
+      if crossing_int != -1 [
+        ;; remove from the queue
+        ask current_int [
+          table:put crossing_counts key (table:get-or-default crossing_counts key 0) - 1
+        ]
+
+        set crossing? false
+        set crossing_int -1
+        set moved? false
+      ]
     ]
 
     ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
     if (distance next_int < 0.005 ) [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
-      set next_int_updated? true
       set moving? false
+
+      if [crossroad?] of next_int [
+        set moved? true
+      ]
+
       ask road ([who] of current_int) ([who] of next_int)[set crowd crowd - 1] ; decrease the crowd of the road the pedestrian was on
+      set prev_int current_int
       set current_int next_int                                                 ; update current intersection
       if [who] of current_int = shelter [mark-evacuated]
     ]
@@ -1166,48 +1244,75 @@ to go
     if not empty? path [
       set next_int intersection item 0 path   ; assign item 0 of path to next_int
 
+      set path remove-item 0 path             ; remove item 0 of path
+      set heading towards next_int            ; set the heading towards the destination
 
-      set next_int_direction get-directions next_int
+      ;; se ti fermi ad un incrocio non viene aggiornato prev_int and curr_int
+      if [crossroad?] of current_int [
+        let next_int_direction get-next-direction prev_int current_int next_int
+      ]
 
-      ;; or ([crossroad?] of current_int and [n_ped_crossing] of road ([who] of prev_int) ([who] of current_int) = 0 and [n_ped_crossing] of road ([who] of current_int) ([who] of next_int) = 0)
-      if not [crossroad?] of current_int or [crossroad?] of current_int
-      [
-        set path remove-item 0 path             ; remove item 0 of path
-        set heading towards next_int            ; set the heading towards the destination
 
-        set moving? true
-        set crossing? false
+      ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+      set moving? true
+    ]
+  ]
 
-        ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+  ; intersection cars-pedestrians interactions
+  ; cars wait for pedestrians crossing
+  ask cars with [crossing?] [
+
+    let car-speed speed
+    ifelse not next_int_updated? [
+      let key current_int
+      ask next_int [
+        let p_count (table:get-or-default crossing_counts key 0)
+        ifelse p_count > 0 [
+          set car-speed 0
+        ]
+        [
+          set car-speed 1
+        ]
+      ]
+    ]
+    [
+      let key next_int
+      ask current_int [
+        let p_count (table:get-or-default crossing_counts key 0)
+        ifelse p_count > 0 [
+          set car-speed 0
+        ]
+        [
+          set car-speed 1
+        ]
       ]
     ]
   ]
 
   ; move the cars that should move
   ask cars with [moving?][
-    if not crossing? [
-      move-gm                 ; set the speed with general motors car-following model
-      fd speed                ; move
+    move-gm                 ; set the speed with general motors car-following model
+    fd speed                ; move
+
+    ;; the car has entered the crossroad section
+    if (distance next_int < 5 / patch_to_meter and not crossing? and [crossroad?] of next_int and not next_int_updated?) [
+      ;; add car to the car-queues
+      set crossing? true
     ]
 
-    if (distance next_int < 40 / patch_to_meter and not crossing? and [crossroad?] of next_int) [
-      ;; add to in-queue and out-queue (based on the direction the want to go {Left, Forward, Right})
-
-      ;; crossing
-      set crossing? true
-
-      ;; decelerate
-      let mu 0.8
-
-      set speed speed ^ 2 / (2 * (deceleration / fd_to_ftps * tick_to_sec) * mu)
-
-      if speed > distance next_int [set speed distance next_int]
-
-      fd speed                ; move
+    ;; the car has left the crossroad section
+    if (distance current_int >= 5 / patch_to_meter and crossing? and [crossroad?] of current_int and next_int_updated?) [
+      set crossing? false
+      set speed max_speed / fd_to_mph
+      set next_int_updated? false
     ]
 
     if (distance next_int < 0.005) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
       set moving? false
+
+      if [crossroad?] of next_int [
+        set next_int_updated? true
+      ]
 
       ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
       set prev_int current_int           ; update previous intersection
@@ -1638,7 +1743,7 @@ INPUTBOX
 137
 400
 max_speed
-35.0
+10.0
 1
 0
 Number
