@@ -82,6 +82,8 @@ intersections-own [ ; the variables that intersections own
   evacuee_count     ; the number of agents that are evacuated in an intersection, if there is a shelter in it
   crossing_counts   ; (a, b): [car1, car2], (b, a): [], (a, c): [car3]
   crossroad?        ;
+  arrival-queue
+  crossing-cars    ; cars to be waited
 ]
 
 
@@ -104,9 +106,8 @@ pedestrians-own [; the variables that pedestrians own
   side           ; either the left or right sidewalk of the road {Left = 0, Right = 1}
   crossing?
   crossing_int
-  next_int_updated?
-  prev_int
   moved?
+  prev_int
 ]
 
 cars-own [       ; the variables that cars own
@@ -130,8 +131,11 @@ cars-own [       ; the variables that cars own
   density_ahead  ; the density ahead of the agent in the current intersection
   crossing?      ;
   prev_int       ; previous intersection of an agent in a crossroad
-  next_int_updated?
-  complete_path
+  moved?
+
+  waiting?       ; waiting for pedestrian crossing
+  rightofway?
+  arrival_time
 ]
 
 globals [        ; global variables
@@ -140,9 +144,9 @@ globals [        ; global variables
   mouse-was-down?; event-handler variable to capture mouse clicks accurately
   road_network   ; contains the road network gis information
   population_distribution
-                 ; contains population distribution gis information
+  ; contains population distribution gis information
   shelter_locations
-                 ; contains shelter locations gis information
+  ; contains shelter locations gis information
 
   tsunami_sample ; sample tsunami inundation wavefiled raster data
 
@@ -173,6 +177,14 @@ globals [        ; global variables
 
   min_lon        ; minimum longitude that is associated with min_xcor
   min_lat        ; minimum latitude that is associated with min_ycor
+
+  origin_straight
+  origin_left
+  origin_left_straight
+
+  side_width
+  lane_width
+  int_width
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -305,16 +317,21 @@ to move-gm
   set car_ahead car_ahead with [not dead?]                                                   ; that have not died yet
   set car_ahead car_ahead with [moving?]                                                     ; that are moving
   set car_ahead car_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
+  set car_ahead car_ahead with [
+    current_int = [current_int] of myself and next_int = [next_int] of myself
+  ] ; on the same road
   set car_ahead car_ahead with [distance myself > 0.0001]                                    ; not exteremely close to myself
   set car_ahead min-one-of car_ahead [distance myself]                                       ; and the closest car ahead
+
+
   ifelse is-turtle? car_ahead [                                                              ; if there IS a car ahead:
     set space_hw distance car_ahead                                                          ; the space headway with the leading car
     set speed_diff [speed] of car_ahead - speed                                              ; the speed difference with the leadning car
     ifelse space_hw < (6 / patch_to_feet) [set speed 0]                                      ; if the leading car is less than ~6ft away, stop
     [                                                                                        ; otherwise, find the acceleration based on the general motors car-following model
       set acc (alpha / fd_to_mph * 5280 / patch_to_feet) * ((speed) ^ 0) / ((space_hw) ^ 2) * speed_diff
-                                                                                             ; converting mi2/hr to patch2/tick = converting mph*mi to fd*patch
-                                                                                             ; m = speed componnent = 0 / l = space headway component = 2
+      ; converting mi2/hr to patch2/tick = converting mph*mi to fd*patch
+      ; m = speed componnent = 0 / l = space headway component = 2
       set speed speed + acc                                                                  ; update the speed
     ]
     if speed > (space_hw - (6 / patch_to_feet)) [                                            ; if the current speed will put the car less than 6ft away from the leading car in the next second,
@@ -325,7 +342,7 @@ to move-gm
   ]
   [                                                                                          ; if ther IS NOT a car ahead:
     if speed < (max_speed / fd_to_mph) [set speed speed + (acceleration / fd_to_ftps * tick_to_sec)]
-                                                                                             ; accelerate to get to the speed limit
+    ; accelerate to get to the speed limit
     if speed > max_speed / fd_to_mph [set speed max_speed / fd_to_mph]                       ; cap the speed to max speed if larger
   ]
 
@@ -402,27 +419,6 @@ to update-density-ahead-pedestrians
   ]
 end
 
-to update-density-ahead-cars
-  let phi 20
-  let search_length 150
-
-  ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
-  if search_length / patch_to_feet > distance next_int [
-    set search_length distance next_int * patch_to_feet
-  ]
-
-  let cars_ahead cars in-cone (search_length / patch_to_feet) phi                              ; get the cars ahead in search_length (almost half a block) and in field of view of phi degrees
-  set cars_ahead cars_ahead with [self != myself]                                              ; that are not myself
-  set cars_ahead cars_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
-  set cars_ahead cars_ahead with [not dead?]                                                   ; that have not died yet
-  set cars_ahead cars_ahead with [moving?]                                                     ; that are moving
-  set cars_ahead cars_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
-
-  ;; search_length from ft to km
-  let m_search_length search_length / 3281
-
-  set density_ahead (count cars_ahead) / (m_search_length) ; car/km
-end
 
 to-report klodek_formula
   let result speed
@@ -439,23 +435,6 @@ to-report klodek_formula
   report result
 end
 
-to-report greenshield_model
-  let v_cm 40 ; km/h
-  let p_cm 250 ; 160 car/km
-
-  ;; v_cm from kmh to patch/tick
-  set v_cm v_cm / fd_to_kmh
-
-  let result 0
-  if density_ahead < p_cm [
-    ;; speed in patch/tick
-    set result v_cm * (1 - density_ahead / p_cm)
-  ]
-
-  if result > distance next_int [set result distance next_int]
-
-  report result
-end
 
 to update-density-flow
   let moving_cars cars with [moving?]
@@ -538,6 +517,13 @@ to-report map-direction-intersection [prev curr next]
     set dirs ["left" "right" "origin"]
   ]
 
+  ;  print list length dirs length ints
+  ;
+  ;  if  length dirs != length ints [
+  ;    print (list dirs dirs)
+  ;    print (list prev curr next)
+  ;  ]
+
   (foreach dirs ints [[x y] -> table:put dir-int x y])
 
   report dir-int
@@ -601,8 +587,6 @@ to setup-init-val
   set Rsig2 1.65                  ; meaning that 99% of the agents evacuate within 5 minutes after the minimum milling time (between 10 to 15 mins in this case)
   set Rsig3 1.65
   set Rsig4 1.65
-  set side_width 5 ; feet
-  set lane_width 12 ; feet
   set gamma 1.913
   set jam_density 5.4; p/m²
 end
@@ -622,9 +606,9 @@ to read-gis-files
   set population_distribution gis:load-dataset "population_distribution/population_distribution.shp"  ; read population distribution
   set tsunami_sample gis:load-dataset "tsunami_inundation/sample.asc"                                 ; just a sample inunudation wavefield to get the envelope (TODO: can be fixed later)
   let world_envelope (gis:envelope-union-of (gis:envelope-of road_network)                                ; set the real world bounding box the union of all the read shapefiles
-                                            (gis:envelope-of shelter_locations)
-                                            (gis:envelope-of population_distribution)
-                                            (gis:envelope-of tsunami_sample))
+    (gis:envelope-of shelter_locations)
+    (gis:envelope-of population_distribution)
+    (gis:envelope-of tsunami_sample))
   let netlogo_envelope (list (min-pxcor + 1) (max-pxcor - 1) (min-pycor + 1) (max-pycor - 1))             ; read the size of netlogo world
   gis:set-transformation (world_envelope) (netlogo_envelope)                                              ; make the transformation from real world to netlogo world
   let world_width item 1 world_envelope - item 0 world_envelope                                           ; real world width in meters
@@ -633,16 +617,16 @@ to read-gis-files
   let netlogo_width (max-pxcor - 1) - ((min-pxcor + 1))                                                   ; netlogo width in patches (minus 1 patch padding from each side)
   let netlogo_height (max-pycor - 1) - ((min-pycor + 1))                                                  ; netlogo height in patches (minus 1 patch padding from each side)
   let netlogo_ratio netlogo_height / netlogo_width                                                        ; netlogo height to width ratio
-  ; calculating the conversion ratios
+                                                                                                          ; calculating the conversion ratios
   set patch_to_meter max (list (world_width / netlogo_width) (world_height / netlogo_height))             ; patch_to_meter conversion multiplier
   set patch_to_feet patch_to_meter * 3.281     ; 1 m = 3.281 ft                                           ; patch_to_feet conversion multiplier
   set tick_to_sec 1.0                                                                                     ; tick_to_sec ratio is set to 1.0 (preferred)
   set fd_to_ftps patch_to_feet / tick_to_sec                                                              ; patch/tick to ft/s speed conversion multipler
   set fd_to_mph fd_to_ftps * 0.682            ; 1ft/s = 0.682 mph                                        ; patch/tick to mph speed conversion multiplier
   set fd_to_kmh fd_to_ftps * 1.097                                                                       ; patch/tick to kmh speed conversion multiplier
-  ; to calculate the minimum longitude and latitude of the world associated with min_xcor and min_ycor
-  ; we need to check and see how the world envelope fits into that of netlogo's. This is why the "_ratio"s need to be compared againsts eachother
-  ; this is basically the missing "get-transformation" premitive in netlogo's GIS extension
+                                                                                                         ; to calculate the minimum longitude and latitude of the world associated with min_xcor and min_ycor
+                                                                                                         ; we need to check and see how the world envelope fits into that of netlogo's. This is why the "_ratio"s need to be compared againsts eachother
+                                                                                                         ; this is basically the missing "get-transformation" premitive in netlogo's GIS extension
   ifelse world_ratio < netlogo_ratio [
     set min_lon item 0 world_envelope - patch_to_meter
     set min_lat item 2 world_envelope - ((netlogo_ratio - world_ratio) / netlogo_ratio / 2) * netlogo_height * patch_to_meter - patch_to_meter
@@ -702,9 +686,12 @@ to load-network
   ]
 
   ; assign crossroad? and crossing_counts variables
+  ; init also arrival-queue
   ask intersections [
     set crossroad? length remove-duplicates [who] of link-neighbors = 4 ; > 2
     set crossing_counts table:make
+    set arrival-queue []
+    set crossing-cars []
   ]
 
   ; assign mid-x and mid-y variables to the roads that respresent the middle point of the link
@@ -745,6 +732,7 @@ to load-shelters
           let y item 1 gis:location-of k
           ask min-one-of intersections [distancexy x y][   ; turn the closest intersection to (x,y) to a shelter
             set shelter? true
+            set crossroad? false
             set shape "circle"
             set size 4
             if curr_shelter_type = "hor" [                 ; assign proper type based on "curr_shelter_type"
@@ -938,6 +926,10 @@ to load1
 
   set ev_times []
 
+  set side_width 5 ; feet
+  set lane_width 12 ; feet
+  set int_width (side_width + lane_width) * 2
+
   read-gis-files
   load-network
   load-shelters
@@ -955,6 +947,7 @@ end
 to load2
   load-population
   load-routes
+  init-right-of-way-rules
   reset-ticks
 end
 
@@ -966,11 +959,11 @@ end
 ;*************************************#
 ;######################################
 to go
-   if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [stop]  ; stop after simulation all the flow depths
+  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [stop]  ; stop after simulation all the flow depths
 
   ; update the tsunami depth every interval seconds
   if int(ticks * tick_to_sec) - tsunami_data_start >= 0 and
-     (int(ticks * tick_to_sec) - tsunami_data_start) mod tsunami_data_inc = 0 [
+  (int(ticks * tick_to_sec) - tsunami_data_start) mod tsunami_data_inc = 0 [
     if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) < tsunami_data_count [
       ask patches with [depths != 0][
         set depth item int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) depths   ; set the depth to the correct item of depths list (depending on the time)
@@ -1030,7 +1023,6 @@ to go
           set density_ahead 0
           set crossing? false
           set crossing_int -1
-          set next_int_updated? false
           set moved? false
 
 
@@ -1090,13 +1082,15 @@ to go
           set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
           set density_ahead 0
           set crossing? false
-          set next_int_updated? false
+          set moved? false
+          set waiting? false
+          set rightofway? true
+          set arrival_time 0
 
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
             set path [hor-path] of myself ; myself = current_int of the resident
             set decision 2
-            set complete_path path
           ]
           if dcsn = 4 [          ; vertical evacuation by car
             set color magenta
@@ -1159,16 +1153,13 @@ to go
     set speed klodek_formula
 
     ;; the agent has entered the crosswalk
-    if distance next_int < 5.18 / patch_to_meter and not moved? and not crossing? and [crossroad?] of next_int and not empty? path [
+    if distance next_int < int_width / patch_to_feet / 2 and not moved? and not crossing? and [crossroad?] of next_int and not empty? path [
       let X intersection item 0 path
       let next_dir get-next-direction current_int next_int X
       let int-dir map-direction-intersection current_int next_int X
 
       let key ""
       let new_side 0
-
-      ;; if next direction is Left and the side is Left no incrementing the queue
-      ;; if next direction is Right and the side is Right no incrementing the queue
 
       if next_dir = "left" and side = 1 [
         set key table:get int-dir "origin"
@@ -1200,7 +1191,7 @@ to go
     ]
 
     ;; the agent has left the crosswalk
-    if distance current_int >= 5.18 / patch_to_meter and moved? and crossing? and [crossroad?] of current_int  [
+    if distance current_int >= (int_width / 2) / patch_to_feet and moved? and crossing? and [crossroad?] of current_int  [
       let key crossing_int
       if crossing_int != -1 [
         ;; remove from the queue
@@ -1247,12 +1238,6 @@ to go
       set path remove-item 0 path             ; remove item 0 of path
       set heading towards next_int            ; set the heading towards the destination
 
-      ;; se ti fermi ad un incrocio non viene aggiornato prev_int and curr_int
-      if [crossroad?] of current_int [
-        let next_int_direction get-next-direction prev_int current_int next_int
-      ]
-
-
       ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
       set moving? true
     ]
@@ -1261,57 +1246,70 @@ to go
   ; intersection cars-pedestrians interactions
   ; cars wait for pedestrians crossing
   ask cars with [crossing?] [
+    let key -1
+    ifelse not moved? [
+      set key current_int
+    ][
+      set key next_int
+    ]
 
-    let car-speed speed
-    ifelse not next_int_updated? [
-      let key current_int
-      ask next_int [
-        let p_count (table:get-or-default crossing_counts key 0)
-        ifelse p_count > 0 [
-          set car-speed 0
-        ]
-        [
-          set car-speed 1
-        ]
-      ]
+    let p_count 0
+    ask next_int [
+      set p_count (table:get-or-default crossing_counts key 0)
     ]
-    [
-      let key next_int
-      ask current_int [
-        let p_count (table:get-or-default crossing_counts key 0)
-        ifelse p_count > 0 [
-          set car-speed 0
-        ]
-        [
-          set car-speed 1
-        ]
-      ]
-    ]
+    set waiting? p_count > 0
   ]
 
   ; move the cars that should move
-  ask cars with [moving?][
-    move-gm                 ; set the speed with general motors car-following model
-    fd speed                ; move
+  ask cars with [moving?] [
+
+    ifelse rightofway? [
+      if [crossroad?] of next_int and not moved? and not crossing? [
+        let lim_spd distance next_int - int_width / 2 / patch_to_feet
+        if speed > lim_spd [set speed lim_spd]
+      ]
+      move-gm                 ; set the speed with general motors car-following model
+      fd speed                ; move
+    ][
+      set speed 0
+    ]
 
     ;; the car has entered the crossroad section
-    if (distance next_int < 5 / patch_to_meter and not crossing? and [crossroad?] of next_int and not next_int_updated?) [
-      ;; add car to the car-queues
+    if (distance next_int <= (int_width / 2) / patch_to_feet and not crossing? and [crossroad?] of next_int and not moved?) [
+      ask next_int [
+        set arrival-queue (lput myself arrival-queue) ;; add car to the car-queues
+      ]
+
+      set arrival_time int(ticks)
       set crossing? true
+      set rightofway? false
+      set color orange
     ]
 
     ;; the car has left the crossroad section
-    if (distance current_int >= 5 / patch_to_meter and crossing? and [crossroad?] of current_int and next_int_updated?) [
+    if (distance current_int >= (int_width / 2) / patch_to_feet and crossing? and [crossroad?] of current_int and moved?) [
+      ask current_int [
+        let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
+        set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues
+
+        set index (position myself crossing-cars)
+        if index = false [
+          print list myself crossing-cars
+        ]
+        set crossing-cars (remove-item index crossing-cars)
+      ]
+
       set crossing? false
       set speed max_speed / fd_to_mph
-      set next_int_updated? false
+      set moved? false
+      set color sky
     ]
 
     if (distance next_int < 0.005) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
       set moving? false
 
       if [crossroad?] of next_int [
-        set next_int_updated? true
+        set moved? true
       ]
 
       ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
@@ -1321,6 +1319,83 @@ to go
     ]
   ]
 
+  ; cars coordination in interections
+  ask intersections with [crossroad?] [
+
+    if length arrival-queue > 0 [
+      if empty? crossing-cars [
+        let filtered-cars find-right-of-way
+
+        ;; se 4 auto arrivano nello stesso tempo VERAMENTE IMPROBABILE!!!!
+
+        let dir1 0
+        let dir2 0
+        let dir3 0
+
+        ;; se manca right -> origin, left, straight
+        let origin_car table:get filtered-cars "origin"
+        let left_car table:get filtered-cars "left"
+        let straight_car table:get filtered-cars "straight"
+
+        if origin_car != nobody [
+          ask origin_car [
+            if not moved? and not empty? path [
+              set dir1 get-next-direction current_int next_int (intersection item 0 path)
+            ]
+          ]
+
+          if [not waiting?] of origin_car [
+
+            ifelse left_car != nobody [
+              ask left_car [
+                if not moved? and not empty? path [
+                  set dir2 get-next-direction current_int next_int (intersection item 0 path)
+                ]
+              ]
+            ][
+              ;; origin - straight
+              if straight_car != nobody [
+                ask straight_car [
+                  if not moved? and not empty? path [
+                    set dir3 get-next-direction current_int next_int (intersection item 0 path)
+                  ]
+                ]
+              ]
+
+              ifelse dir3 != 0 and [not waiting?] of straight_car and member? (list dir1 dir3) origin_straight [
+                set crossing-cars (list origin_car straight_car)
+              ][
+                set crossing-cars (list origin_car)
+              ]
+            ]
+
+            ifelse dir2 != 0 and [not waiting?] of left_car and member? (list dir1 dir2) origin_left [
+              if straight_car != nobody [
+                ask straight_car [
+                  if not moved? and not empty? path [
+                    set dir3 get-next-direction current_int next_int (intersection item 0 path)
+                  ]
+                ]
+              ]
+
+              ifelse dir3 != 0 and [not waiting?] of straight_car and member? (list dir1 dir2 dir3) origin_left_straight [
+                set crossing-cars (list origin_car left_car straight_car)
+              ][
+                set crossing-cars (list origin_car left_car)
+              ]
+            ][
+              set crossing-cars (list origin_car)
+            ]
+          ]
+
+          ask turtle-set crossing-cars [set rightofway? true]
+        ]
+      ]
+    ]
+  ]
+
+
+
   ; mark agents who were in the water for a prolonged period of time dead
   ask residents with [time_in_water > Tc][mark-dead]
   ask cars with [time_in_water > Tc][mark-dead]
@@ -1329,6 +1404,99 @@ to go
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
 
   tick
+end
+
+to init-right-of-way-rules
+  set origin_left (list
+    (list "left" "right")
+    (list "right" "left")
+    (list "right" "right")
+    (list "straight" "right")
+  )
+
+  set origin_straight (list
+    (list "left" "left")
+    (list "right" "right")
+    (list "right" "straight")
+    (list "straight" "right")
+    (list "straight" "straight")
+  )
+
+  set origin_left_straight (list
+    (list "right" "left" "right")
+    (list "left" "right" "left")
+    (list "right" "right" "right")
+    (list "straight" "right" "right")
+  )
+end
+
+to-report find-right-of-way
+  let len length arrival-queue
+  let available-cars []
+  let car-dir table:from-list (list (list "origin" nobody) (list "left" nobody) (list "right" nobody) (list "straight" nobody))
+
+  if len > 0 [
+    let first-car min-one-of ((turtle-set arrival-queue) with-min [arrival_time]) [distance next_int]
+
+    if [not moved?] of first-car [
+
+      ; find cars with the same arrival time
+      let i 1
+      let stop? false
+      while [i < len and not stop?] [
+        let next-car item i arrival-queue
+
+        ifelse [arrival_time] of next-car = [arrival_time] of first-car [
+          set available-cars lput next-car available-cars
+          set i i + 1
+        ][
+          set stop? true
+        ]
+      ]
+
+      set available-cars fput first-car available-cars
+      set available-cars turtle-set available-cars
+
+      ; keep only the first one that comes from each intersection
+      ask first-car [
+        if not empty? path [
+          let int-dir map-direction-intersection current_int next_int (intersection item 0 path)
+          table:remove int-dir "origin"
+
+          foreach table:to-list int-dir [x ->
+            let key item 0 x
+            let val item 1 x
+
+            let next-car min-one-of (available-cars with [current_int = intersection val]) [distance next_int]
+            table:put car-dir key next-car
+          ]
+        ]
+      ]
+
+      table:put car-dir "origin" first-car
+
+
+      ; set right-of-way order
+      let r_car table:get car-dir "right"
+      let l_car table:get car-dir "left"
+      let s_car table:get car-dir "straight"
+
+      if r_car != 0 [
+        ifelse s_car = 0 and l_car = 0 [
+          set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" 0) (list "right" 0))
+        ][
+          if s_car = 0 [
+            set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" l_car) (list "right" 0))
+          ]
+          if l_car = 0 [
+            set car-dir table:from-list (list (list "origin" s_car) (list "left" 0) (list "straight" first-car) (list "right" l_car))
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  report car-dir
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1422,7 +1590,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-50.0
+0.0
 1
 0
 Number
@@ -1677,7 +1845,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-50.0
+25.0
 1
 0
 Number
@@ -1743,7 +1911,7 @@ INPUTBOX
 137
 400
 max_speed
-10.0
+90.0
 1
 0
 Number
@@ -1890,7 +2058,7 @@ Number
 PLOT
 1384
 10
-1833
+1793
 162
 pedestrian density-speed
 p/m²
@@ -1909,7 +2077,7 @@ PENS
 PLOT
 1384
 169
-1834
+1794
 318
 pedestrian density-flow
 p/m²
@@ -1932,28 +2100,6 @@ INPUTBOX
 733
 gamma
 1.913
-1
-0
-Number
-
-INPUTBOX
-113
-737
-216
-797
-side_width
-5.0
-1
-0
-Number
-
-INPUTBOX
-8
-737
-106
-797
-lane_width
-12.0
 1
 0
 Number
