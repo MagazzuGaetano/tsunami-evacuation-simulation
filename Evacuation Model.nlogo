@@ -84,6 +84,8 @@ intersections-own [ ; the variables that intersections own
   crossroad?        ;
   arrival-queue
   crossing-cars    ; cars to be waited
+  tot-cars
+  avg-vehicle-delay
 ]
 
 
@@ -660,6 +662,8 @@ to load-network
     set crossing_counts table:make
     set arrival-queue []
     set crossing-cars []
+    set avg-vehicle-delay 0
+    set tot-cars 0
   ]
 
   ; assign mid-x and mid-y variables to the roads that respresent the middle point of the link
@@ -935,7 +939,18 @@ end
 ;*************************************#
 ;######################################
 to go
-  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [stop]  ; stop after simulation all the flow depths
+  if int(((ticks * tick_to_sec) - tsunami_data_start) / tsunami_data_inc) = tsunami_data_count - 1 [
+    ask intersections [
+      ; compute the average vehicle delay
+      ifelse tot-cars = 0 [
+        set avg-vehicle-delay 0
+      ]
+      [
+        set avg-vehicle-delay avg-vehicle-delay / tot-cars
+      ]
+    ]
+    stop ; stop after simulation all the flow depths
+  ]
 
   ; update the tsunami depth every interval seconds
   if int(ticks * tick_to_sec) - tsunami_data_start >= 0 and
@@ -1351,7 +1366,6 @@ to cars-behaviour
 
   ; move the cars that should move
   ask cars with [moving?] [
-
     ifelse rightofway? and not waiting? [
       ;; check on speed to not go over!
       if [crossroad?] of next_int and not moved? and not crossing? [
@@ -1445,7 +1459,7 @@ to handle-crossing-cars
 
             ifelse left_car != nobody [
               ask left_car [
-                if not moved? and not empty? path [
+                if not empty? path [
                   set dir2 get-next-direction current_int next_int (intersection item 0 path)
                 ]
               ]
@@ -1453,7 +1467,7 @@ to handle-crossing-cars
               ;; origin - straight
               if straight_car != nobody [
                 ask straight_car [
-                  if not moved? and not empty? path [
+                  if not empty? path [
                     set dir3 get-next-direction current_int next_int (intersection item 0 path)
                   ]
                 ]
@@ -1469,7 +1483,7 @@ to handle-crossing-cars
             ifelse dir2 != 0 and [not waiting?] of left_car and member? (list dir1 dir2) origin_left [
               if straight_car != nobody [
                 ask straight_car [
-                  if not moved? and not empty? path [
+                  if not empty? path [
                     set dir3 get-next-direction current_int next_int (intersection item 0 path)
                   ]
                 ]
@@ -1485,13 +1499,18 @@ to handle-crossing-cars
             ]
           ]
 
-          ask turtle-set crossing-cars [set rightofway? true]
+          ask turtle-set crossing-cars [
+            set rightofway? true
+            ask next_int [
+              set avg-vehicle-delay avg-vehicle-delay + (int(ticks) - [arrival_time] of myself) ;; update the cumulative sum of veichle delay
+              set tot-cars tot-cars + 1
+            ]
+          ]
         ]
       ]
     ]
   ]
-]
-
+end
 
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1585,7 +1604,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-0.0
+50.0
 1
 0
 Number
@@ -1808,7 +1827,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-25.0
+50.0
 1
 0
 Number
@@ -2081,10 +2100,10 @@ jam_density
 Number
 
 PLOT
-1381
-342
-1795
-492
+1384
+326
+1798
+476
 plot 1
 Min
 %
