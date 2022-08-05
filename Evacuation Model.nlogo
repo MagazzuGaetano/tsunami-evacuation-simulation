@@ -355,14 +355,14 @@ to update-density-ahead-pedestrians
 
   ;; select the patch in-front of myself
   let phi 180
-  let search_length 10
-  let tmp_search_length search_length
+  let search_length 13.1234 ;; 4 meters
 
   ;; select the patch ahead of myself
   ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
-  if search_length / patch_to_feet > distance next_int [
+  if search_length / patch_to_feet > distance next_int  [
     set search_length distance next_int * patch_to_feet
   ]
+
   let peds_ahead pedestrians in-cone (search_length / patch_to_feet) phi                       ; get the pedestrians ahead in search_length (almost half a block) and in field of view of phi degrees
   set peds_ahead peds_ahead with [self != myself]                                              ; that are not myself
   set peds_ahead peds_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
@@ -370,92 +370,71 @@ to update-density-ahead-pedestrians
   set peds_ahead peds_ahead with [moving?]                                                     ; that are moving
   set peds_ahead peds_ahead with [side = [side] of myself]                                     ; that have are on the same side of the sidewalk
 
-  let peds_forward count peds_ahead with [next_int = [next_int] of myself and current_int = [current_int] of myself] ; with relatively the same general heading as mine (not going the opposite direction)
-  let peds_backward count peds_ahead with [next_int = [current_int] of myself and current_int = [next_int] of myself]
-  let peds_total peds_forward + peds_backward
-
-  ;; select the patch behind of myself
-  if tmp_search_length / patch_to_feet > distance current_int [
-    set tmp_search_length distance current_int * patch_to_feet
-  ]
-
-  rt 180
-  let peds_behind pedestrians in-cone (tmp_search_length / patch_to_feet) phi
-  rt 180
-
-  set peds_behind peds_behind with [not evacuated?]
-  set peds_behind peds_behind with [not dead?]
-  set peds_behind peds_behind with [moving?]
-  set peds_behind peds_behind with [side = [side] of myself]
-
-  let peds_behind_forward count peds_behind with [next_int = [next_int] of myself and current_int = [current_int] of myself]
-  let peds_behind_backward count peds_behind with [next_int = [current_int] of myself and current_int = [next_int] of myself]
-  let peds_behind_total peds_behind_forward + peds_behind_backward ;; this will never be zero at least myself is included!
-  let forward_ratio_behind peds_behind_forward / peds_behind_total
-
-  ifelse peds_total != 0 [
-    ;; side_width from ft to m
-    let m_side_width side_width / 3.281
-
-    ;; side_width updated considering the two-way flow
-    let forward_ratio peds_forward / peds_total
-
-    ;; handle limit cases
-    if forward_ratio_behind = 1 and forward_ratio = 0 [
-      set forward_ratio 0.5
-    ]
-    if forward_ratio_behind < 1 and forward_ratio = 0 [
-      set forward_ratio 0.75 ; valore da definire meglio 0.5 < T < 1
-    ]
-
-    set m_side_width m_side_width * forward_ratio
-
+  ifelse count peds_ahead != 0 [
     ;; search_length from ft to m
     let m_search_length search_length / 3.281
 
-    set density_ahead (peds_forward) / (m_side_width * m_search_length) ; ped/m²
+    ;; side_width from ft to m
+    let m_side_width side_width / 3.281
+
+    ;; lane_width from ft to m
+    let m_lane_width lane_width / 3.281
+
+    ;; if the evacuation does not include cars, pedestrians occupy the whole street
+    let p_area_ahead m_side_width
+    if R2_HorEvac_Car = 0 and R4_VerEvac_Car = 0 [set p_area_ahead (m_side_width * 2  + m_lane_width * 2)]
+
+    set density_ahead (count peds_ahead) / (p_area_ahead * m_search_length) ; ped/m²
   ][
     set density_ahead 0
   ]
 end
 
 
-to-report klodek_formula
-  let result speed
-  ifelse (density_ahead = 0) [
-    set result free_speed
-  ][
-    ifelse (density_ahead >= jam_density) [
-      set result 0
-    ][
-      let k gamma * ((1 / density_ahead) - (1 / jam_density))
-      set result free_speed * (1 - e ^ (- k))
+to-report update-pedestrian-speed [fs d]
+
+  if pedestrian-model = "Weidmann" [
+    let s fs
+
+    if d != 0 [
+      ifelse (d >= jam_density) [
+        set s 0
+      ][
+        let k gamma * ((1 / d) - (1 / jam_density))
+        set s fs * (1 - e ^ (- k))
+      ]
     ]
-  ]
-  report result
-end
 
-
-to update-density-flow
-  let moving_cars cars with [moving?]
-
-  let area link-length * (lane_width / patch_to_feet)
-  let n count moving_cars
-
-  set density  n / area
-
-  let avg_vel 0
-
-  if n > 0 [
-    set avg_vel mean [speed] of moving_cars
+    report s
   ]
 
-  set flow density * avg_vel
+  if pedestrian-model = "Wang" [
+    let m1 (3.83 - 1.5) / (0.2 - 1)
+    let m2 (0.75 - 1.5) / (1.7 - 1)
+    let m3 (0.75) / (1.7 - 6)
+
+    let s 0
+
+    ifelse d > 6 [
+      set s 0
+    ][
+      ifelse d <= 1 [
+        set s m1 * (d - 0.2) + 3.83
+      ][
+        ifelse d <= 1.7 [
+          set s m2 * (d - 1.7) + 0.75
+        ][
+          set s m3 * (d - 1.7) + 0.75
+        ]
+      ]
+    ]
+
+    report min list (s / patch_to_meter) fs
+  ]
 end
+
 
 to-report get-sorted-intersections [prev curr]
-  ;;print (list prev curr next)
-
   let in_dir [link-heading] of road ([who] of prev) ([who] of curr)
   set in_dir (in_dir - 180) mod 360
 
@@ -467,10 +446,8 @@ to-report get-sorted-intersections [prev curr]
     ask out-link-neighbors with [self != prev] [
       let angle [link-heading] of road ([who] of myself) ([who] of self)
       set angle (angle - in_dir) mod 360 ; substract the initial angle
-
       set directions lput (list ([who] of self) angle) directions
 
-      ;;print (list ([who] of myself) ([who] of self))
     ]
     ask in-link-neighbors with [self != prev] [
       let angle [link-heading] of road ([who] of self) ([who] of myself)
@@ -516,13 +493,6 @@ to-report map-direction-intersection [prev curr next]
   if length ints = 3 [
     set dirs ["left" "right" "origin"]
   ]
-
-  ;  print list length dirs length ints
-  ;
-  ;  if  length dirs != length ints [
-  ;    print (list dirs dirs)
-  ;    print (list prev curr next)
-  ;  ]
 
   (foreach dirs ints [[x y] -> table:put dir-int x y])
 
@@ -573,8 +543,6 @@ to setup-init-val
   set R4_VerEvac_Car 25           ; 25% of the agents evacuate with their car and are open to vertical evaucation if it is closer to them compared to a shelter outside the inundation zone
   set Hc 1.0                      ; the critical wave height that marks the threshold of casualties is set to 1.0 meter
   set Tc 120                      ; the time it takes for the inundation above Hc to kill an agent (seconds)
-  set Ped_Speed 4                 ; the mean of the normal dist. that the walking speed of the agents are drawn from is set to 4 ft/s
-  set Ped_Sigma 0.65              ; the standard deviation of the normal dist. that the walking speed of the agents are drawn from is set to 0.65 ft/s
   set max_speed 35                ; maximum driving speed is set to 35 mph
   set acceleration 5              ; acceleration of the vehicles is set to 5 ft/s2
   set deceleration 25             ; deceleration of the vehicles is set to 25 ft/s2
@@ -877,8 +845,16 @@ to load-population
             set moving? false                                          ; they agents are staionary at the beginning, before they start the evacuation
             set init_dest min-one-of intersections [ distance myself ] ; the first intersection an agent moves toward to
                                                                        ; to get to the transpotation network
-            set speed random-normal Ped_Speed Ped_Sigma                ; walking speed is randomly drawn from a normal distribution
-            set speed speed / fd_to_ftps                               ; turning ft/s to patch/tick
+            let speed_mu random-float 1 * (2 - 1.4) + 1.4
+            let speed_sigma random-float 1 * (0.6 - 0.1) + 0.1
+
+            set speed random-normal speed_mu speed_sigma                ; walking speed is randomly drawn from a normal distribution
+
+            set speed min list 3.83 speed                               ; limit in range (0.75 - 3.83)
+            set speed max list 0.75 speed
+
+            set speed speed / patch_to_meter                               ; turning ft/s to patch/tick
+
             if speed < 0.001 [set speed 0.001]                         ; if speed is too low, set it to very small non-zero value
             set evacuated? false                                       ; initialized as not evacuated
             set dead? false                                            ; initialized as not dead
@@ -921,7 +897,7 @@ end
 to load1
   ca
 
-  print (word "Foot %: " R1_HorEvac_Foot " - Speed ft/s: " Ped_Speed " - Miltime min: " Rtau1)
+  print (word "Foot %: " R1_HorEvac_Foot  " - Miltime min: " Rtau1)
   ask patches [set pcolor white]
 
   set ev_times []
@@ -981,8 +957,7 @@ to go
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;; RESIDENTS ;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-  ; ask residents, if they milling time has passed, to start moving
+    ; ask residents, if they milling time has passed, to start moving
   ask residents with [not moving? and not dead? and miltime <= ticks][
     set heading towards init_dest
     set moving? true
@@ -1053,9 +1028,9 @@ to go
                                                                                          ; basically if shelter = -99, we can mark the pedestrian as evacuated later
           ]
 
-          ;; set previous intersection by selecting a random intersection different from the next (just initialization)
           ifelse [crossroad?] of current_int and not empty? path
           [
+            ;; set previous intersection by selecting a random intersection different from the next (init prev_int)
             let next_who [who] of intersection (item 0 path)
             set in_nodes [who] of in_nodes with [who != next_who]
             let prev_int_who item random (length in_nodes) in_nodes
@@ -1104,9 +1079,9 @@ to go
                                                                                         ; basically if shelter = -99, we can mark the car as evacuated later
           ]
 
-          ;; set previous intersection by selecting a random intersection different from the next (just initialization)
           ifelse [crossroad?] of current_int and not empty? path
           [
+            ;; set previous intersection by selecting a random intersection different from the next (just initialization)
             let next_who [who] of intersection (item 0 path)
             set in_nodes [who] of in_nodes with [who != next_who]
             let prev_int_who item random (length in_nodes) in_nodes
@@ -1124,10 +1099,10 @@ to go
     die
   ]
 
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;; PEDESTRIANS ;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
   ; check the pedestrians if they have evacuated already or died
   ask pedestrians with [not evacuated? and not dead?][
     if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
@@ -1146,11 +1121,10 @@ to go
     ]
   ]
 
-
   ; move the pedestrians that should move
   ask pedestrians with [moving?][
     update-density-ahead-pedestrians
-    set speed klodek_formula
+    set speed update-pedestrian-speed free_speed density_ahead
 
     ;; the agent has entered the crosswalk
     if distance next_int < int_width / patch_to_feet / 2 and not moved? and not crossing? and [crossroad?] of next_int and not empty? path [
@@ -1220,10 +1194,10 @@ to go
     ]
   ]
 
+
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
   ;;;;;;;;;;; CARS ;;;;;;;;;;;
   ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
   ; check the cars if they have evacuated already or died
   ask cars with [not evacuated? and not dead?][
     if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
@@ -1246,33 +1220,39 @@ to go
   ; intersection cars-pedestrians interactions
   ; cars wait for pedestrians crossing
   ask cars with [crossing?] [
-    let key -1
+    let p_count 0
+    let key [who] of current_int
+
     ifelse not moved? [
-      set key current_int
+      ask next_int [
+        set p_count (table:get-or-default crossing_counts key 0)
+      ]
     ][
-      set key next_int
+      set key [who] of next_int
+      ask current_int [
+        set p_count (table:get-or-default crossing_counts key 0)
+      ]
     ]
 
-    let p_count 0
-    ask next_int [
-      set p_count (table:get-or-default crossing_counts key 0)
-    ]
     set waiting? p_count > 0
   ]
 
   ; move the cars that should move
   ask cars with [moving?] [
 
-    ifelse rightofway? [
+    ifelse rightofway? and not waiting? [
+      ;; check on speed to not go over!
       if [crossroad?] of next_int and not moved? and not crossing? [
-        let lim_spd distance next_int - int_width / 2 / patch_to_feet
+        let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
         if speed > lim_spd [set speed lim_spd]
       ]
+
       move-gm                 ; set the speed with general motors car-following model
       fd speed                ; move
     ][
       set speed 0
     ]
+
 
     ;; the car has entered the crossroad section
     if (distance next_int <= (int_width / 2) / patch_to_feet and not crossing? and [crossroad?] of next_int and not moved?) [
@@ -1283,29 +1263,31 @@ to go
       set arrival_time int(ticks)
       set crossing? true
       set rightofway? false
-      set color orange
     ]
 
     ;; the car has left the crossroad section
     if (distance current_int >= (int_width / 2) / patch_to_feet and crossing? and [crossroad?] of current_int and moved?) [
       ask current_int [
         let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
-        set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues
+        if index != false [
+          set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues]
 
-        set index (position myself crossing-cars)
-        if index = false [
-          print list myself crossing-cars
+          set index (position myself crossing-cars)
+
+          if index != false [
+            set crossing-cars (remove-item index crossing-cars)
+          ]
+
         ]
-        set crossing-cars (remove-item index crossing-cars)
       ]
 
       set crossing? false
       set speed max_speed / fd_to_mph
       set moved? false
-      set color sky
     ]
 
-    if (distance next_int < 0.005) [    ; if close enough check if evacuated? dead? if neither, get ready for the next step
+    ;; if close enough check if evacuated? dead? if neither, get ready for the next step
+    if (distance next_int < 0.005) [
       set moving? false
 
       if [crossroad?] of next_int [
@@ -1394,8 +1376,6 @@ to go
     ]
   ]
 
-
-
   ; mark agents who were in the water for a prolonged period of time dead
   ask residents with [time_in_water > Tc][mark-dead]
   ask cars with [time_in_water > Tc][mark-dead]
@@ -1405,6 +1385,8 @@ to go
 
   tick
 end
+
+
 
 to init-right-of-way-rules
   set origin_left (list
@@ -1429,6 +1411,7 @@ to init-right-of-way-rules
     (list "straight" "right" "right")
   )
 end
+
 
 to-report find-right-of-way
   let len length arrival-queue
@@ -1498,6 +1481,9 @@ to-report find-right-of-way
 
   report car-dir
 end
+
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 228
@@ -1676,10 +1662,10 @@ Critical Depth and Time: (Meters and Seconds)
 1
 
 INPUTBOX
-8
-539
-58
-599
+6
+484
+56
+544
 Rtau1
 10.0
 1
@@ -1687,10 +1673,10 @@ Rtau1
 Number
 
 INPUTBOX
-58
-539
-108
-599
+56
+484
+106
+544
 Rsig1
 1.65
 1
@@ -1698,10 +1684,10 @@ Rsig1
 Number
 
 INPUTBOX
-8
-603
-58
-663
+6
+548
+56
+608
 Rtau3
 10.0
 1
@@ -1709,10 +1695,10 @@ Rtau3
 Number
 
 INPUTBOX
-58
-603
-108
-663
+56
+548
+106
+608
 Rsig3
 1.65
 1
@@ -1720,46 +1706,14 @@ Rsig3
 Number
 
 TEXTBOX
-10
-523
-210
-551
+8
+468
+208
+496
 Evacuation Decsion Making Times:
 11
 0.0
 1
-
-TEXTBOX
-18
-274
-67
-302
-On foot: (ft/s)
-11
-0.0
-1
-
-INPUTBOX
-66
-276
-136
-336
-Ped_Speed
-4.0
-1
-0
-Number
-
-INPUTBOX
-144
-276
-215
-336
-Ped_Sigma
-0.65
-1
-0
-Number
 
 MONITOR
 1037
@@ -1862,10 +1816,10 @@ R4_VerEvac_Car
 Number
 
 INPUTBOX
-114
-539
-164
-599
+112
+484
+162
+544
 Rtau2
 10.0
 1
@@ -1873,10 +1827,10 @@ Rtau2
 Number
 
 INPUTBOX
-164
-539
-214
-599
+162
+484
+212
+544
 Rsig2
 1.65
 1
@@ -1884,10 +1838,10 @@ Rsig2
 Number
 
 INPUTBOX
-116
-604
-166
-664
+114
+549
+164
+609
 Rtau4
 10.0
 1
@@ -1895,10 +1849,10 @@ Rtau4
 Number
 
 INPUTBOX
-163
-604
-213
-664
+161
+549
+211
+609
 Rsig4
 1.65
 1
@@ -1906,31 +1860,31 @@ Rsig4
 Number
 
 INPUTBOX
-66
-340
-137
-400
+64
+285
+135
+345
 max_speed
-90.0
+35.0
 1
 0
 Number
 
 TEXTBOX
-13
-340
-53
-368
+11
+285
+51
+313
 by car:\n(mph)
 11
 0.0
 1
 
 INPUTBOX
-66
-401
-139
-461
+64
+346
+137
+406
 acceleration
 5.0
 1
@@ -1938,10 +1892,10 @@ acceleration
 Number
 
 INPUTBOX
-143
-401
-218
-461
+141
+346
+216
+406
 deceleration
 25.0
 1
@@ -1949,20 +1903,20 @@ deceleration
 Number
 
 TEXTBOX
-8
-413
-57
-447
+6
+358
+55
+392
 (ft/s^2)
 11
 0.0
 1
 
 INPUTBOX
-66
-462
-139
-522
+64
+407
+137
+467
 alpha
 0.14
 1
@@ -1970,10 +1924,10 @@ alpha
 Number
 
 TEXTBOX
-5
-476
-65
-517
+3
+421
+63
+462
 (mi^2/hr)
 11
 0.0
@@ -2066,13 +2020,14 @@ m/s
 0.0
 8.0
 0.0
-0.0
+3.83
 true
 true
 "" ""
 PENS
-"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif ticks mod 200 = 0 [\n  ask pedestrians with [dead? = false ][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281)\n  ]\n]\n"
-"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 (4 / 3.281)\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v (4 / fd_to_ftps)\n\n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  \n  if x >= jam_density [\n     set v 0\n  ]\n  plotxy x v\n]" ""
+"empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif ticks mod 200 = 0 [\n  ask pedestrians with [dead? = false][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * patch_to_meter)\n  ]\n]\n"
+"fast walker" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nlet max_s 12.56623\n\nplotxy 0 (max_s / 3.281)\n\nforeach densities [x ->\n  ;; free speed in [fd] (forward)\n  let free_v (max_s / fd_to_ftps)\n\n  let v update-pedestrian-speed free_v x\n  \n  set v v * patch_to_meter\n  \n  plotxy x v\n]" ""
+"slow walker" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nlet max_s 2.460752\n\nplotxy 0 (max_s / 3.281)\n\nforeach densities [x ->\n  ;; free speed in [fd] (forward)\n  let free_v (max_s / fd_to_ftps)\n  \n  let v update-pedestrian-speed free_v x\n  \n  set v v * patch_to_meter\n  \n  plotxy x v\n]" ""
 
 PLOT
 1384
@@ -2091,13 +2046,14 @@ true
 "" ""
 PENS
 "empirical" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\nif ticks mod 200 = 0 [\n  ask pedestrians with [dead? = false][; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [\n    plotxy (density_ahead) (speed * fd_to_ftps / 3.281) * (density_ahead)\n  ]\n]\n"
-"expected" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nplotxy 0 0\n\nforeach densities [x ->\n  ;; x in [p/m²], jam_density in [p/m²]\n  let k gamma * ((1 / x) - (1 / jam_density))\n  \n  ;; free speed in [fd] (forward)\n  let free_v 4 / fd_to_ftps\n  \n  ;; from [fd] to [ft/s]\n  set free_v free_v * fd_to_ftps\n  \n  ;; from [ft/s] to [m/s]\n  set free_v free_v / 3.281\n  \n  ;; updated speed [m/s]\n  let v free_v * (1 - e ^ (- k))\n  if x >= jam_density [\n    set v 0\n  ]\n  plotxy x v * x\n]" ""
+"fast walker" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nlet max_s 12.56623\n\nplotxy 0 0\n\nforeach densities [x ->\n  ;; free speed in [fd] (forward)\n  let free_v (max_s / fd_to_ftps)\n  \n  let v update-pedestrian-speed free_v x\n  \n  set v v * patch_to_meter\n  \n  plotxy x v * x\n]" ""
+"slow walker" 1.0 0 -2674135 true "let densities n-values 600 [i -> (i + 0.01) / 100]\n\nlet max_s 2.460752\n\nplotxy 0 0\n\nforeach densities [x ->\n  ;; free speed in [fd] (forward)\n  let free_v (max_s / fd_to_ftps)\n\n  let v update-pedestrian-speed free_v x\n  \n  set v v * patch_to_meter\n  \n  plotxy x v * x\n]" ""
 
 INPUTBOX
-8
-673
-105
-733
+4
+614
+101
+674
 gamma
 1.913
 1
@@ -2105,15 +2061,44 @@ gamma
 Number
 
 INPUTBOX
-113
-673
-216
-733
+109
+614
+212
+674
 jam_density
 5.4
 1
 0
 Number
+
+PLOT
+1381
+342
+1795
+492
+plot 1
+Min
+%
+0.0
+60.0
+0.0
+0.0
+true
+true
+"" ""
+PENS
+"crossing ped" 1.0 0 -955883 true "" "let total count pedestrians with [not evacuated? and not dead?]\nifelse total = 0 [ \n   plotxy int(ticks) 0\n][\n  plotxy int(ticks) count pedestrians with [crossing?] / total * 100\n]"
+"waiting cars" 1.0 0 -13791810 true "" "let total count cars with [not evacuated? and not dead?]\nifelse total = 0 [ \n   plotxy int(ticks) 0\n][\n  plotxy int(ticks) count cars with [waiting?] / total  * 100\n]"
+
+CHOOSER
+7
+681
+214
+726
+pedestrian-model
+pedestrian-model
+"Weidmann" "Wang"
+0
 
 @#$#@#$#@
 @#$#@#$#@
