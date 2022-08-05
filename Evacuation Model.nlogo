@@ -954,10 +954,124 @@ to go
     ]
   ]
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;; RESIDENTS ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-    ; ask residents, if they milling time has passed, to start moving
+  residents-behaviour
+
+  pedestrians-behaviour
+
+  cars-behaviour
+
+  ; cars coordination in interections
+  handle-crossing-cars
+
+  ; mark agents who were in the water for a prolonged period of time dead
+  ask residents with [time_in_water > Tc][mark-dead]
+  ask cars with [time_in_water > Tc][mark-dead]
+  ask pedestrians with [time_in_water > Tc][mark-dead]
+  ; update mortality rate
+  set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
+
+  tick
+end
+
+
+
+to init-right-of-way-rules
+  set origin_left (list
+    (list "left" "right")
+    (list "right" "left")
+    (list "right" "right")
+    (list "straight" "right")
+  )
+
+  set origin_straight (list
+    (list "left" "left")
+    (list "right" "right")
+    (list "right" "straight")
+    (list "straight" "right")
+    (list "straight" "straight")
+  )
+
+  set origin_left_straight (list
+    (list "right" "left" "right")
+    (list "left" "right" "left")
+    (list "right" "right" "right")
+    (list "straight" "right" "right")
+  )
+end
+
+
+to-report find-right-of-way
+  let len length arrival-queue
+  let available-cars []
+  let car-dir table:from-list (list (list "origin" nobody) (list "left" nobody) (list "right" nobody) (list "straight" nobody))
+
+  if len > 0 [
+    let first-car min-one-of ((turtle-set arrival-queue) with-min [arrival_time]) [distance next_int]
+
+    if [not moved?] of first-car [
+
+      ; find cars with the same arrival time
+      let i 1
+      let stop? false
+      while [i < len and not stop?] [
+        let next-car item i arrival-queue
+
+        ifelse [arrival_time] of next-car = [arrival_time] of first-car [
+          set available-cars lput next-car available-cars
+          set i i + 1
+        ][
+          set stop? true
+        ]
+      ]
+
+      set available-cars fput first-car available-cars
+      set available-cars turtle-set available-cars
+
+      ; keep only the first one that comes from each intersection
+      ask first-car [
+        if not empty? path [
+          let int-dir map-direction-intersection current_int next_int (intersection item 0 path)
+          table:remove int-dir "origin"
+
+          foreach table:to-list int-dir [x ->
+            let key item 0 x
+            let val item 1 x
+
+            let next-car min-one-of (available-cars with [current_int = intersection val]) [distance next_int]
+            table:put car-dir key next-car
+          ]
+        ]
+      ]
+
+      table:put car-dir "origin" first-car
+
+
+      ; set right-of-way order
+      let r_car table:get car-dir "right"
+      let l_car table:get car-dir "left"
+      let s_car table:get car-dir "straight"
+
+      if r_car != 0 [
+        ifelse s_car = 0 and l_car = 0 [
+          set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" 0) (list "right" 0))
+        ][
+          if s_car = 0 [
+            set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" l_car) (list "right" 0))
+          ]
+          if l_car = 0 [
+            set car-dir table:from-list (list (list "origin" s_car) (list "left" 0) (list "straight" first-car) (list "right" l_car))
+          ]
+        ]
+      ]
+    ]
+  ]
+
+  report car-dir
+end
+
+
+to residents-behaviour
+  ; ask residents, if they milling time has passed, to start moving
   ask residents with [not moving? and not dead? and miltime <= ticks][
     set heading towards init_dest
     set moving? true
@@ -1098,11 +1212,10 @@ to go
     ]
     die
   ]
+end
 
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;; PEDESTRIANS ;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to pedestrians-behaviour
   ; check the pedestrians if they have evacuated already or died
   ask pedestrians with [not evacuated? and not dead?][
     if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
@@ -1193,11 +1306,10 @@ to go
       if [who] of current_int = shelter [mark-evacuated]
     ]
   ]
+end
 
 
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-  ;;;;;;;;;;; CARS ;;;;;;;;;;;
-  ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+to cars-behaviour
   ; check the cars if they have evacuated already or died
   ask cars with [not evacuated? and not dead?][
     if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
@@ -1301,7 +1413,10 @@ to go
     ]
   ]
 
-  ; cars coordination in interections
+end
+
+
+to handle-crossing-cars
   ask intersections with [crossroad?] [
 
     if length arrival-queue > 0 [
@@ -1375,113 +1490,7 @@ to go
       ]
     ]
   ]
-
-  ; mark agents who were in the water for a prolonged period of time dead
-  ask residents with [time_in_water > Tc][mark-dead]
-  ask cars with [time_in_water > Tc][mark-dead]
-  ask pedestrians with [time_in_water > Tc][mark-dead]
-  ; update mortality rate
-  set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
-
-  tick
-end
-
-
-
-to init-right-of-way-rules
-  set origin_left (list
-    (list "left" "right")
-    (list "right" "left")
-    (list "right" "right")
-    (list "straight" "right")
-  )
-
-  set origin_straight (list
-    (list "left" "left")
-    (list "right" "right")
-    (list "right" "straight")
-    (list "straight" "right")
-    (list "straight" "straight")
-  )
-
-  set origin_left_straight (list
-    (list "right" "left" "right")
-    (list "left" "right" "left")
-    (list "right" "right" "right")
-    (list "straight" "right" "right")
-  )
-end
-
-
-to-report find-right-of-way
-  let len length arrival-queue
-  let available-cars []
-  let car-dir table:from-list (list (list "origin" nobody) (list "left" nobody) (list "right" nobody) (list "straight" nobody))
-
-  if len > 0 [
-    let first-car min-one-of ((turtle-set arrival-queue) with-min [arrival_time]) [distance next_int]
-
-    if [not moved?] of first-car [
-
-      ; find cars with the same arrival time
-      let i 1
-      let stop? false
-      while [i < len and not stop?] [
-        let next-car item i arrival-queue
-
-        ifelse [arrival_time] of next-car = [arrival_time] of first-car [
-          set available-cars lput next-car available-cars
-          set i i + 1
-        ][
-          set stop? true
-        ]
-      ]
-
-      set available-cars fput first-car available-cars
-      set available-cars turtle-set available-cars
-
-      ; keep only the first one that comes from each intersection
-      ask first-car [
-        if not empty? path [
-          let int-dir map-direction-intersection current_int next_int (intersection item 0 path)
-          table:remove int-dir "origin"
-
-          foreach table:to-list int-dir [x ->
-            let key item 0 x
-            let val item 1 x
-
-            let next-car min-one-of (available-cars with [current_int = intersection val]) [distance next_int]
-            table:put car-dir key next-car
-          ]
-        ]
-      ]
-
-      table:put car-dir "origin" first-car
-
-
-      ; set right-of-way order
-      let r_car table:get car-dir "right"
-      let l_car table:get car-dir "left"
-      let s_car table:get car-dir "straight"
-
-      if r_car != 0 [
-        ifelse s_car = 0 and l_car = 0 [
-          set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" 0) (list "right" 0))
-        ][
-          if s_car = 0 [
-            set car-dir table:from-list (list (list "origin" r_car) (list "left" first-car) (list "straight" l_car) (list "right" 0))
-          ]
-          if l_car = 0 [
-            set car-dir table:from-list (list (list "origin" s_car) (list "left" 0) (list "straight" first-car) (list "right" l_car))
-          ]
-        ]
-      ]
-    ]
-  ]
-
-  report car-dir
-end
-
+]
 
 
 @#$#@#$#@
