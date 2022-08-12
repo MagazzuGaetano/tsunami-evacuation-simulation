@@ -1,20 +1,42 @@
 \section{Background}
-\# TODO: descrivere le componenti di un modello generico di simulazione di evacuazione in caso di tsunami..
+% MODELLO GENERICO
+% \# TODO: descrivere le componenti di un modello generico di simulazione di evacuazione in caso di tsunami..
+Il sistema di evacuazione in caso di tsunami e' composto da diversi elementi.
 
 \subsection{Elementi del Modello}
 
-\subsubsection{Popolazione}
-Distribuzione... 
+\subsubsection{Distribuzione della Popolazione}
+La distribuzione della popolazione al momento dell'evacuazione varia in base a diversi fattori: 
+l'ora del giorno, la stagione, eventi. Inoltre la popolazione può essere composta da residenti e 
+turisti che si comporteranno diversamente al pericolo. 
 
-\subsubsection{Rete stradale}
+Genere, età, ....
+
+? Questa può avere un grosso impatto sull'evacuazione (se i  turisti sono lontani dagli shelter) ?
+
+\subsubsection{Rete stradale (Solo network based però)}
 
 \subsubsection{Rifugi}
-luoghi sicuri dove evacuare. possono essere orizzontali o verticali
+I rifugi sono dei luoghi sicuri dove evacuare.
+Si distinguono in luoghi al di fuori della zona a rischio o 
+luoghi all'interno ad una certa altezza che lo tsunami non raggiunge.
 
-\subsubsection{Inondazione dello tsunami}
-(time-dependent) scenarios, casualties (wave height Hc) 
+Solitamente si assume che resistano a terremoti e tsunami e che abbiano una capacità illimitata.
+
+\subsubsection{Inondazione da Tsunami}
+Le inondazioni da tsunami vengono simulate utilizzando un modello di inondazione 
+che fornisce una serie temporale di altezza e velocità delle onde in una determinata area.
+
+\subsubsection{Casualty Model}
+Un casualty model defisce quando un individuo viene considerato una vittima. 
+Spesso si utilizza semplicemente l'altezza dello tsunami.
+In alcuni studi vengono considerati altri fattori come la velocità 
+e la temperatura dello tsunami o anche l'età e il genere dell'individuo \cite{yeh2010gender}.
 
 \subsection{Evacuazione}
+
+% QUESTO SOTTO PERÒ VA NELLA DESCRIZIONE DEL NOSTRO MODELLO BASE
+
 Milling Time....
 
 L'evacuazione può avvenire in due modi: a piedi e in auto. Una volta che ogni agente decide

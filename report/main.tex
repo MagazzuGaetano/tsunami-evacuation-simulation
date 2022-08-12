@@ -4,24 +4,11 @@
 \usepackage{cmbright}
 \usepackage{amsmath}
 \usepackage{fancyhdr}
-\usepackage{parskip}
 \usepackage{amssymb}
 \usepackage{tikz}
 \usepackage{subcaption}
 \usepackage{amsthm}
 \usepackage{biblatex}
-
-
-% fancyhdr ----------------------------
-
-\pagestyle{fancy}
-\setlength{\headheight}{13pt}
-\cfoot{\thepage}
-\lhead{}
-\rhead{\leftmark}
-
-\renewcommand{\headrulewidth}{0.1pt}
-\renewcommand{\footrulewidth}{0pt}
 
 % document ----------------------------
 
@@ -41,15 +28,15 @@
 \pagenumbering{arabic}
 
 
-\include{chapters/01_introduzione}
-\include{chapters/02_background}
-\include{chapters/03_stato_arte}
-\include{chapters/04_modello}
-\include{chapters/05_simulazione}
-\include{chapters/06_analisi}
-\include{chapters/07_conclusione}
+\input{chapters/01_introduzione}
+\input{chapters/02_background}
+\input{chapters/03_stato_arte}
+\input{chapters/04_modello}
+\input{chapters/05_simulazione}
+\input{chapters/06_analisi}
+\input{chapters/07_conclusione}
 
-
+\pagebreak
 \printbibliography
 
 \end{document}
