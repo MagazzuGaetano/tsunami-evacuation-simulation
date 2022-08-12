@@ -3,3 +3,7 @@ report/build/
 
 # Netlogo
 *.tmp.nlogo
+
+venv/
+.ipynb_checkpoints
+data/
