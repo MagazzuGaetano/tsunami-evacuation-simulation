@@ -105,12 +105,80 @@ m è un esponente di velocità con valori tra -2 a +2, $\alpha$ è un coefficien
 
 
 \section{Estensione del Modello}
-Il modello é stato esteso andando a gestire le interazioni tra gli agenti nelle intersezioni.
+In questa sezione verrano descritte le modifiche e le aggiunte effettuate da noi al modello base,
+ma prima verrano evidenziate le limitazioni e mancanze del modello anche rispetto allo stato dell'arte.
+
+La prima limitazione che si può notare del modello base è la gestione delle interazioni tra i vari agenti,
+sia prima della partenza che durante l'evacuazione,
+tale modello infatti considera esclusivamente le interazzioni auto-auto tramite il modello Car Following General Motor's,
+ma non prevede nessuna interazione pedone-pedone o pedone-auto.
+Nella letteratura sono molti i lavori anche network-based,
+che considerano una velocità che cambia in base alla congestione sulla strada mentre il nostro modello considera pedoni con una velocità costante per tutta l'evacuazione.
+Inoltre come anche visto nella letteratura nessun tipo di interazione viene gestita alle intersezioni cosa abbastanza irrealistica.
+Un'ulteriore limitazione è la scelta dei percorsi sebbene la maggior parte dei lavori in letteratura utilizzino l'algoritmo di A*star, esistono altri metodi esempio Nash Equilibrium.
+La rete stradale viene considerata con strade tutte one-way cosa non problematica se tutti gli agenti seguono sempre 
+il percorso più breve per il rifugio più vicino a loro, ma che per altri algoritmi di routing potrebbe essere limitante.
+Infine nessun tipo di considerazione viene effettivamente applicata sul comportamento dei turisti durante l'evacuazione,
+che come visto in vari lavori risultà avere un peso notevole specialmente in periodi con tanti visitatori.
+
+Come è stato appena descritto abbiamo visto come le interazioni tra gli agenti
+abbiano ampio margine per essere rappresentate, in particolare ci si concentrerà sulle interazioni alle intersezioni
+introducendo meccanismi di cooperazione tra i vari tipi di agente, ed aggiustando la velocità dei pedoni in base alla congestione
+in modo da poter rappresentare uno scenario più realistico.
+
+
+\subsection*{Modifiche alla rete stradale}
+Prima di descrivere le varie aggiunte in questa sezione verrannò elencate le varie modifiche che sono state effettuate alla rete stradale.
+Tutte le strade della rete sono state considerate come strade locali, ai link della rete è stata aggiunta la larghezza della strada,
+inoltre la strada viene considerata a two-way per le auto ed sono presenti dei marciapiedi che sono bidirezionali.
+In accordo con il Transportation System Plan del 2011 della città di Seaside, le stradi locali sono composte da due corsie per le auto
+con una larghezza 34-40' di per una singola corsia, per tale lavoro la larghezza minima di 34' è stata considerato.
+Inoltre due marciapiedi sono presenti per ambi i lati della strada con una larghezza 5' per ogniuno di essi.
 
 \subsection{Comportamento dei Pedoni}
-E' stata aggiunta una variabilità nella velocità di camminata
+I pedoni se non è presente alcuna auto nell'evacuazione allora percorrono il tragitto in strada, altrimenti procedono esclusivamente sui marciapiedi.
 
-Marciapiedi
-Striscie pedonali
+Una variabilità nella velocità di camminata è stata introdotta per i pedoni utilizzando il modello di weidman con una free-flow-speed di 1.34 m/s,
+ed una jam-density di 5.4 p/m², il calcolo della densità è stato effettuato mediante la density ahead con una search length di 3m, come anche nei seguenti lavori GOTO, Tizio 2021.
+
+Spiegare modello di weidmann.
+
+Infine come verrà successivamente spiegato nella sezione apposita sulle intersezioni, i pedoni agli incroci hanno sempre la precedenza.
 
 \subsection{Gestione degli Intersezioni}
+Per la gestione delle intersezioni esclusivamente gli incroci a 4 strade sono stati considerati è trattati come intersezioni di tipo AWSC(All Way Stop Controlled) o TWSC(Two Way Stop controlled).
+Tramite l'utilizzo di OpenStreetMap e GoogleMaps, sono state estratte manualmente le informazioni circa la posizione e nel case dei TWSC la direzione
+di precedenza di tali tipi di incroci per la citta di Seaside, ottenendo la seguente immagine \ref{fig:intersections_map}.
+
+\subsubsection{Regole generali delle intersezioni AWSC e TWSC} 
+Le intersezioni di tipo AWSC funzionano secondo le seguenti regole i pedoni hanno sempre la precedenza, dopodichè il primo che arrivà ha precedenza.
+Nel caso in cui pi auto arrivano contemporaneamente la destra a precedenza, se possono passare contemporaneamente vanno insieme.
+Mentre nel caso di intersezioni di tipo TWSC, vale la stessa regola per i pedoni, coloro che viaggiano nella strada con precedenza hanno il via libera,
+il verso opposto aspetta finchè non ci sono più auto con precedenza.
+
+\subsubsection{Zona di crossing}
+Per la gestione delle intersezioni viene introdotta la gestione di zone di attraversamento agli incroci sia per le auto 
+che per i pedoni,  per quest'ultimi rappresentano delle vere è proprie striscie di attraversamento pedonale che sono rappresentate
+da delle code, ed i pedoni hanno la precedenza sulle auto.
+Le intersezioni rappresentano il punto di collegamento tra due link,
+nel caso di incroci un certa porzione di strada prima e dopo l'intersezione rappresenta la zona di attraversamento.
+
+\noindent
+immagine per zona di crossing tra due link di esempio con diverse misure per auto e pedoni.
+
+\noindent
+(dettagli stato dell'intersezione e link dell'incrocio)
+
+
+\subsubsection{Interazioni auto-auto}
+risoluzione di conflitti e precedenze (spiegare dettagli)
+
+
+\subsubsection{Interazioni pedoni-pedoni}
+non cambia nulla sostanzialmente nel tratto definito come zona di crossing i pedoni stanno attraversando
+le striscie è vengono aggiunti alle relative code quando iniziano l'attraversamento e rimossi quando lasciano l'incrocio. (spiegare dettagli)
+
+
+\subsubsection{Interazioni pedoni-auto}
+in qualsiasi momento attraversando l'incrocio,
+se nelle relative striscie pedonali è presente un pedone l'auto si ferma subito. (spiegare dettagli)
