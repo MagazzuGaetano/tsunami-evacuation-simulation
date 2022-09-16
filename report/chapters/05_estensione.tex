@@ -90,7 +90,7 @@ vengono definite:
     \item magari anche $x_{side}, x_{dir}$, ...
 \end{itemize}
 
-\subsubsection*{Pedoni}
+\subsubsection{Pedoni}
 % Dato un pedone $x$ si definiscono $x_{prev}$ l'intersezione precendente, $x_{curr}$ l'intersezione corrente e $x_{next}$ la prossima intersezione.
 
 Data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) viene associata ad ogni intersezione collegata a $x_{curr}$ la direzione per raggiungerla seguendo il senso orario a partire da $x_{prev}$,
@@ -122,21 +122,25 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
 \end{figure}
 
 
-\subsubsection*{Auto}
+\subsubsection{Auto}
 
-La schedulazione e la gestione delle precedenze tra auto verrà descritta successivamente,
-mentre qui verrà presentato il funzionamento generale della gestione di un incrocio cosi come già visto per i pedoni.
+% La schedulazione e la gestione delle precedenze tra auto verrà descritta successivamente,
+% mentre qui verrà presentato il funzionamento generale della gestione di un incrocio cosi come già visto per i pedoni.
 
 Le auto quando raggiungono la zona di attraversamento vengono aggiunte alla coda $\textit{Arrival}_i$ e schedulate
-in base al tipo d'intersezione (AWSC, TWSC), una volta avuto il via libera le auto sono aggiunte alla coda $\textit{Crossing}_i$.
+in base al tipo d'intersezione (Sec. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte $\textit{Crossing}_i$ 
+e rimosse una volta lasciato l'incrocio.
 %
-Una volta lasciato l'incrocio vengono rimosse dalle code.
-
 Inoltre, data un auto x che entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$,
-l'agente deve dare la precedenza a possibili pedoni, nello specifico potrà passare se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0
+l'agente deve dare la precedenza ai pedoni, nello specifico potrà passare
+ se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
+
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.45\textwidth]{images/crossing_auto_ped_crossing}
+    \caption{Esempio degli attraversamenti pedonali (in rosso) che vanno controllati 
+    per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un auto $x$.}
+    \label{fig:auto-ped-crossing}
 \end{figure}
 
 
@@ -144,7 +148,8 @@ l'agente deve dare la precedenza a possibili pedoni, nello specifico potrà pass
 
 
 
-\subsubsection*{Precedenze}
+\subsubsection{Precedenze}
+\label{subsubsec:precedenze}
 In questa sotto sezione verrano presentate le casistiche in cui hanno il via libera oppure si presentano dei conflitti tra 2 o 3 auto contemporaneamente ad un incrocio.
 Inoltre in questo lavoro è stata esclusa la possibilità che 4 auto arrivino contemporaneamente allo stesso incrocio nello stesso momento.
 
