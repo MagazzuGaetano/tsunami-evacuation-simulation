@@ -51,27 +51,36 @@ Per la gestione delle intersezioni sono stati considerati esclusivamente gli inc
 Tramite l'utilizzo di OpenStreetMap e GoogleMaps, sono state estratte manualmente le informazioni circa la posizione e nel case dei TWSC la direzione
 di precedenza di tali tipi di incroci per la citta di Seaside, ottenendo la seguente (Fig. \ref{fig:intersections}).
 
-\begin{figure}[ht]
+\begin{figure}
     \centering
-    \includegraphics[width=0.7\textwidth]{images/intersections}
-    \caption{intersezioni classificate per numero di strade: rosse a 4 strade (98 nodi) e blu a 3 strade (206 nodi).}
-    \label{fig:intersections}
+    \begin{subfigure}{0.475\textwidth}
+        \includegraphics[width=\textwidth]{images/intersections}
+        \caption{intersezioni classificate per numero di strade: verde a 4 strade (98 nodi) e grigio a 3 strade (206 nodi).}
+        \label{fig:intersections}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \includegraphics[width=\textwidth]{images/int_type}
+        \caption{intersezioni a 4 strade classificate in base al tipo: AWSC in blu (20 nodi) e TWSC in rosso (78 nodi).}
+        \label{fig:intersections_types}
+    \end{subfigure}
+    \caption{Tipi di intersezioni.}
 \end{figure}
 
 Inoltre nelle intersezioni è stata introdotta una zona di attraversamento per la gestione delle interazioni tra auto e pedoni.
 È stato assunto che gli incroci abbiano lunghezza e larghezza pari alla larghezza della strada (10.3 m).
-Dal momento che la rappresentazione della strada è network-based è stato deciso che 
+Dal momento che la rappresentazione della strada è network-based è stato deciso che
 la zona iniza prima dell'incrocio e finisce dopo dell'incrocio a una distanza pari alla metà della larghezza (5.15 m) (Fig. \ref{fig:crossing-area}).
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.5\textwidth]{images/crossing_area}
-    \caption{Zona di attraversamento di un'intersezione.}    
+    \caption{Zona di attraversamento di un'intersezione.}
     \label{fig:crossing-area}
 \end{figure}
 
 \newpage
-Per rappresentare l'attraversamento dei pedoni e delle auto sono state aggiunte le seguenti informazioni ad ogni intersezione a 4 strade $i$:
+Per rappresentare l'attraversamento dei pedoni e delle auto sono state aggiunte le seguenti informazioni ad ogni intersezione $i$ a 4 strade:
 \begin{itemize}
     \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'incrocio $i$ all'incrocio $j$.
     \item $\textit{Arrival}_i$ = coda delle auto nella zona di attraversamento ordinate per tempo di arrivo.
@@ -81,15 +90,17 @@ Per rappresentare l'attraversamento dei pedoni e delle auto sono state aggiunte 
 
 % Inoltre per i TWSC nelle intersezioni la presenza degli stop viene segnata, mediante una lista con il numero dell'intersezioni interessate.
 
-Per stabilire la posizione all'interno della rete stradale, le precedenze e la direzione della prossima intersezione per ogni agente $x$ 
+Per stabilire la posizione all'interno della rete stradale, le precedenze e la direzione della prossima intersezione per ogni agente $x$
 vengono definite:
 \begin{itemize}
     \item $x_{prev}$ l'intersezione precendente
     \item $x_{curr}$ l'intersezione corrente
     \item $x_{next}$ la prossima intersezione
-    \item magari anche $x_{side}, x_{dir}$, ...
+    \item $x_{side} \in \{ \textit{left}, \textit{right} \}$  il lato di marciapiede (solo pedoni)
+    \item $x_{xdir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
 \end{itemize}
 
+\newpage
 \subsubsection{Pedoni}
 % Dato un pedone $x$ si definiscono $x_{prev}$ l'intersezione precendente, $x_{curr}$ l'intersezione corrente e $x_{next}$ la prossima intersezione.
 
@@ -98,7 +109,7 @@ per cui $I_d$ indica l'intersezione nella direzione $d \in \{\textit{origin}, \t
 %
 La direzione associata all'intersezione $x_{next}$ è quella dove è diretto il pedone e viene identificata da $x_{dir}$.
 
-Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede $x_{side} \in \{ \textit{left}, \textit{right} \}$ 
+Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede $x_{side}$
 ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{right} (Fig. \ref{fig:pedestria-crossing}):
 \begin{itemize}
     \item Se $x_{dir} = \textit{straight}$ e $x_{side} = \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{side}}}$ di 1.
@@ -123,85 +134,93 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
 
 
 \subsubsection{Auto}
-
-% La schedulazione e la gestione delle precedenze tra auto verrà descritta successivamente,
-% mentre qui verrà presentato il funzionamento generale della gestione di un incrocio cosi come già visto per i pedoni.
+Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
+determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata e una volta avuto il via libera
+viene aggiunta a $\textit{Crossing}_i$ e rimossa una volta lasciato l'incrocio.
 
 Le auto quando raggiungono la zona di attraversamento vengono aggiunte alla coda $\textit{Arrival}_i$ e schedulate
-in base al tipo d'intersezione (Sec. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte $\textit{Crossing}_i$ 
+in base al tipo d'intersezione (Sec. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte a $\textit{Crossing}_i$
 e rimosse una volta lasciato l'incrocio.
 %
-Inoltre, data un auto x che entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$,
-l'agente deve dare la precedenza ai pedoni, nello specifico potrà passare
- se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
+Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere,
+quindi potrà passare se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.45\textwidth]{images/crossing_auto_ped_crossing}
-    \caption{Esempio degli attraversamenti pedonali (in rosso) che vanno controllati 
-    per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un auto $x$.}
+    \caption{Esempio degli attraversamenti pedonali (in rosso) che vanno controllati
+        per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un auto $x$.}
     \label{fig:auto-ped-crossing}
 \end{figure}
 
-
-\newpage
-
-
-
-\subsubsection{Precedenze}
+\subsubsection{AWSC}
 \label{subsubsec:precedenze}
-In questa sotto sezione verrano presentate le casistiche in cui hanno il via libera oppure si presentano dei conflitti tra 2 o 3 auto contemporaneamente ad un incrocio.
-Inoltre in questo lavoro è stata esclusa la possibilità che 4 auto arrivino contemporaneamente allo stesso incrocio nello stesso momento.
+Nelle intersezioni di tipo AWSC la prima auto che arriva ha la precedenza sulle altre auto e deve aspettare eventuali pedoni come spiegato in precedenza.
+Inoltre lo scenario in cui 4 auto arrivano contemporaneamente non è stato considerato poiché poco probabile.
 
-La risoluzione delle precedenze avviene tra le auto che arrivano ad un'intersezione allo stesso tempo. 
+La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo.
 L'auto che ha la destra libera viene considerata provenire da \textit{origin} e dal suo punto di riferimento
-vengono identificate le direzioni di provenienza delle altre auto. 
+vengono identificate le direzioni di provenienza delle altre auto.
 
-Nel caso in cui l'intersezione è di tipo TWSC viene scelta casualmente come riferimento una delle due auto che si trovano 
-sulla via principale. Nello stesso modo una volta che la via principale è libera viene gestita l'interazione tra le due auto con stop.
-
-Nelle seguenti tabelle (Tab. \ref{tab:Origin-Left}, Tab. \ref{Origin-Straight}) sono riportati i casi in cui tutte le auto possono passare contemporaneamente o meno.
-La risoluzione avviene dall'auto più a destra, che può passare sicuramente, in senso orario. 
-Se anche la seconda può passare allora si passa alla terza REF.
-
-\begin{table}[ht]
-    \centering
-    \begin{tabular}{|c|c|c|c|}
-        \hline
-        \textbf{Origin-Left} & \textbf{Left} & \textbf{Right} & \textbf{Straight} \\ \hline
-        \textbf{Left}        & 0             & 1              & 0                 \\ \hline
-        \textbf{Right}       & 1             & 1              & 0                 \\ \hline
-        \textbf{Straight}    & 0             & 1              & 0                 \\ \hline
-    \end{tabular}
-    \caption{Tabella che mostra per il caso Origin-Left le casistiche di conflitto in base a tutte le possibili direzioni prese dalle auto all'incrocio, i casi in cui le auto possono passare contemporaneamente sono segnati con valore 1, 0 altrimenti.
-    }
-    \label{tab:Origin-Left}
-\end{table}
+Basandosi sulle direzioni di provenienza delle auto e sulle rispettive destinazioni viene verificato
+in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \textit{straight})
+quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}, Tab. \ref{tab:origin-straight}, Tab. \ref{tab:origin-left-straight}).
 
 
 \begin{table}[ht]
     \centering
-    \begin{tabular}{|c|c|c|c|}
+    \begin{tabular}{|c|c|c|}
         \hline
-        \textbf{Origin-Straight} & \textbf{Left} & \textbf{Right} & \textbf{Straight} \\ \hline
-        \textbf{Left}            & 1             & 0              & 0                 \\ \hline
-        \textbf{Right}           & 0             & 1              & 1                 \\ \hline
-        \textbf{Straight}        & 0             & 1              & 1                 \\ \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Left} \\ \hline
+        Left                  & Left                \\ \hline
+        Right                 & Right               \\ \hline
+        Right                 & Straight            \\ \hline
+        Straight              & Right               \\ \hline
     \end{tabular}
-    \caption{Tabella che mostra per il caso Origin-Straight le casistiche di conflitto in base a tutte le possibili direzioni prese dalle auto all'incrocio, i casi in cui le auto possono passare contemporaneamente sono segnati con valore 1, 0 altrimenti.}
-    \label{Origin-Straight}
+    \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{left}.}
+    \label{tab:origin-left}
 \end{table}
 
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Straight} \\ \hline
+        Left                  & Right                   \\ \hline
+        Right                 & Left                    \\ \hline
+        Right                 & Right                   \\ \hline
+        Straight              & Right                   \\ \hline
+    \end{tabular}
+    \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{straight}.}
+    \label{tab:origin-straight}
+\end{table}
 
-Per il confronto a tre Origin-Left-Straight soltanto le casistiche
-che permettono il passaggio contemporaneo di tutte le auto verrannò elencate:
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Left} & \textbf{Car3: Straight} \\ \hline
+        Right                 & Left                & Right                   \\ \hline
+        Left                  & Right               & Left                    \\ \hline
+        Right                 & Right               & Right                   \\ \hline
+        Straight              & Right               & Right                   \\ \hline
+    \end{tabular}
+    \caption{Tutte le possibili combinazioni di destinazione delle tre auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin}, \textit{left} e \textit{straight}.}
+    \label{tab:origin-left-straight}
+\end{table}
 
-\begin{itemize}
-    \item Origin-Left-Straight: Right, Left, Right
-    \item Origin-Left-Straight: Left, Right, Left
-    \item Origin-Left-Straight: Right, Right, Right
-    \item Origin-Left-Straight: Straight, Right, Right
-\end{itemize}
+\subsubsection{TWSC}
+Nel caso in cui l'intersezione è di tipo TWSC vengono identificate due vie: quella principale che ha la precedenza e quella
+secondaria in cui sono presenti gli stop.
 
+A differenza dell'intersezioni AWSC, l'ordine di precedenza non importa poiché possono passare al più due auto alla volta
+che si trovano l'una di fronte all'altra.
+Quindi viene scelta casualmente come riferimento una delle due auto che viene considerata provenire da \textit{origin}, mentre
+l'altra da \textit{straight}.
+%
+Una volta che la via principale è libera viene gestita nello stesso modo quella secondaria.
 
-
+Per verificare se le due auto possono passare contemporaneamente si procede come già visto per il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
