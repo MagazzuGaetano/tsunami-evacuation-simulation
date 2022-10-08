@@ -70,10 +70,15 @@ roads-own [        ; the variables that roads own
   ped_mean_speed
 
   ;; flow analysis
-  in-crowd
-  out-crowd
-  in-traffic
-  out-traffic
+  car-in-h             ; headways list
+  car-out-h            ; headways list
+  car-in-t             ; elapsed time for headway
+  car-out-t
+
+  ped-in-h
+  ped-out-h
+  ped-in-t
+  ped-out-t
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -689,6 +694,16 @@ to load-network
     set traffic 0
     set crowd 0
     set shape "road"
+
+    set ped-in-h []
+    set ped-out-h []
+    set car-in-h []
+    set car-out-h []
+
+    set ped-in-t 0
+    set ped-out-t 0
+    set car-in-t 0
+    set car-out-t 0
   ]
 
   output-print "Network Loaded"
@@ -995,6 +1010,7 @@ to go
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
 
   tick
+  ; tick-advance 0.5
 end
 
 
@@ -1137,7 +1153,6 @@ to residents-behaviour
           set crossing_int -1
           set moved? false
           set arrival_time 0
-          set in_flow_zone? false
 
 
           ifelse random-float 1 < 0.9999 [
@@ -1200,7 +1215,6 @@ to residents-behaviour
           set waiting? false
           set rightofway? true
           set arrival_time 0
-          set in_flow_zone? false
 
           if dcsn = 2 [          ; horizontal evacuation by car
             set color sky
@@ -1304,6 +1318,14 @@ to pedestrians-behaviour
         set side new_side
       ]
 
+      ask road ([who] of current_int) ([who] of next_int)[
+        if ped-in-t != 0 [
+          set ped-in-h lput (ticks - ped-in-t) ped-in-h
+        ]
+
+        set ped-in-t ticks
+      ]
+
     ]
 
     ;; the agent has left the crosswalk
@@ -1320,6 +1342,14 @@ to pedestrians-behaviour
         ]
 
         set crossing_int -1
+      ]
+
+      ask road ([who] of current_int) ([who] of next_int)[
+        if ped-out-t != 0 [
+          set ped-out-h lput (ticks - ped-out-t) ped-out-h
+        ]
+
+        set ped-out-t ticks
       ]
     ]
 
@@ -1407,13 +1437,6 @@ to cars-behaviour
       set speed 0
     ]
 
-    ;; flow analysis
-    if (distance next_int <= int_width / patch_to_feet and not in_flow_zone? and [crossroad?] of next_int and not moved? and not crossing?) [
-      set in_flow_zone? true
-      ;set color green
-      ask road ([who] of current_int) ([who] of next_int)[set in-traffic in-traffic + 1]
-    ]
-
     ;; the car has entered the crossroad section
     if (distance next_int <= (int_width / 2) / patch_to_feet and not crossing? and [crossroad?] of next_int and not moved?) [
       ask next_int [
@@ -1424,10 +1447,13 @@ to cars-behaviour
       set crossing? true
       set rightofway? false
 
-      ;; flow analysis
-      set in_flow_zone? false
-      ;set color sky
-      ask road ([who] of current_int) ([who] of next_int)[set in-traffic in-traffic - 1] ;; decrease in flow
+      ask road ([who] of current_int) ([who] of next_int)[
+        if car-in-t != 0 [
+          set car-in-h lput (ticks - car-in-t) car-in-h
+        ]
+
+        set car-in-t ticks
+      ]
     ]
 
     ;; if close enough check if evacuated? dead? if neither, get ready for the next step
@@ -1446,7 +1472,7 @@ to cars-behaviour
 
 
     ;; the car has left the crossroad section
-    if (distance current_int >= (int_width / 2) / patch_to_feet and crossing? and [crossroad?] of current_int and moved? and not in_flow_zone?) [
+    if (distance current_int >= (int_width / 2) / patch_to_feet and crossing? and [crossroad?] of current_int and moved?) [
       ask current_int [
         let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
         if index != false [
@@ -1462,20 +1488,15 @@ to cars-behaviour
 
       set crossing? false
       set speed max_speed / fd_to_mph
-      ;; set moved? false
-
-      ;; flow analysis
-      set in_flow_zone? true
-      ;set color red
-      ask road ([who] of current_int) ([who] of next_int)[set out-traffic out-traffic + 1] ;; increment out flow
-    ]
-
-    ;; flow analysis
-    if (distance current_int >= int_width / patch_to_feet and in_flow_zone? and [crossroad?] of current_int and not moved? and not crossing?) [
-      set in_flow_zone? false
       set moved? false
-      ;set color sky
-      ask road ([who] of current_int) ([who] of next_int)[set out-traffic out-traffic - 1] ;; decrease out flow
+
+      ask road ([who] of current_int) ([who] of next_int)[
+        if car-out-t != 0 [
+          set car-out-h lput (ticks - car-out-t) car-out-h
+        ]
+
+        set car-out-t ticks
+      ]
     ]
   ]
 
@@ -1489,13 +1510,13 @@ to handle-crossing-cars
     let out-roads link-set map [x -> road who x] ([who] of out-link-neighbors)
 
     if count pedestrians != 0 [
-      set p-in-flow lput (sum [in-crowd] of in-roads) p-in-flow
-      set p-out-flow lput (sum [out-crowd] of out-roads) p-out-flow
+      set p-in-flow table:from-list [list [who] of end1 ifelse-value not empty? ped-in-h [1 / mean ped-in-h][0]] of in-roads
+      set p-out-flow table:from-list [list [who] of end2 ifelse-value not empty? ped-out-h [1 / mean ped-out-h][0]] of out-roads
     ]
 
     if count cars != 0 [
-      set car-in-flow lput (sum [in-traffic] of in-roads) car-in-flow
-      set car-out-flow lput (sum [out-traffic] of out-roads) car-out-flow
+      set car-in-flow table:from-list [ list [who] of end1 ifelse-value not empty? car-in-h [1 / mean car-in-h][0] ] of in-roads
+      set car-out-flow table:from-list [ list [who] of end2 ifelse-value not empty? car-out-h [1 / mean car-out-h][0]] of out-roads
     ]
 
     ifelse length stops = 2 [
@@ -1905,10 +1926,12 @@ end
 to view-intersection-car-in-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let max-n max [(max car-in-flow)] of intersections with [crossroad?]
+
+  let tmp list max [(sum table:values car-in-flow)] of intersections with [crossroad?] max [(sum table:values car-out-flow)] of intersections with [crossroad?]
+  let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (max car-in-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum table:values car-in-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -1923,10 +1946,12 @@ end
 to view-intersection-car-out-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let max-n max [(max car-out-flow)] of intersections with [crossroad?]
+
+  let tmp list max [(sum table:values car-in-flow)] of intersections with [crossroad?] max [(sum table:values car-out-flow)] of intersections with [crossroad?]
+  let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (max car-out-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum table:values car-out-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -1942,10 +1967,11 @@ end
 to view-intersection-p-in-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let max-n max [(max p-in-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum table:values p-in-flow)] of intersections with [crossroad?] max [(sum table:values p-out-flow)] of intersections with [crossroad?]
+  let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (max p-in-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum table:values p-in-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -1953,15 +1979,17 @@ to view-intersection-p-in-flow
   ask residents [set size 0]
   ask cars [set size 0]
   ask pedestrians [set size 0]
+  print max-n
 end
 
 to view-intersection-p-out-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let max-n max [(max p-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum table:values p-in-flow)] of intersections with [crossroad?] max [(sum table:values p-out-flow)] of intersections with [crossroad?]
+  let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (max p-out-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum table:values p-out-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -1969,6 +1997,7 @@ to view-intersection-p-out-flow
   ask residents [set size 0]
   ask cars [set size 0]
   ask pedestrians [set size 0]
+  print max-n
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -2613,10 +2642,10 @@ NIL
 1
 
 SWITCH
-1526
-620
-1656
-653
+1518
+623
+1648
+656
 enable-plots
 enable-plots
 1
@@ -2624,10 +2653,10 @@ enable-plots
 -1000
 
 BUTTON
-1526
-675
-1655
-721
+1517
+670
+1646
+716
 Reset
 reset-ticks\nset iteration 1
 NIL
