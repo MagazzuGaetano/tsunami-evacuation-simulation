@@ -936,7 +936,7 @@ to load1
   set road_data []
   set road_data lput (list "end1" "end2" "traffic" "crowd" "minute" "mean speed car" "mean speed ped") road_data
   set intersection_data []
-  set intersection_data lput (list "who" "mean crossing time ped" "mean crossing time car" "minute") intersection_data
+  set intersection_data lput (list "who" "car-delay" "car-in-flow" "car-out-flow" "p-in-flow" "p-out-flow" "minute") intersection_data
 
   set side_width 5 ; feet
   set lane_width 12 ; feet
@@ -1738,14 +1738,17 @@ to export-network-data
     set road_data lput row road_data
   ]
 
-  ask intersections [
-
+  ask intersections with [crossroad?] [
     let car-times 0
     if not empty? car-delay [
       set car-times mean car-delay
     ]
 
-    let row (list who car-times int(ticks / 60))
+    let carinflow (table:to-list car-in-flow)
+    let caroutflow (table:to-list car-out-flow)
+    let pinflow (map [x -> replace-item 1 x (mean (item 1 x))] table:to-list p-in-flow)
+    let poutflow (map [x -> replace-item 1 x (mean (item 1 x))] table:to-list p-out-flow)
+    let row (list who car-times carinflow caroutflow pinflow poutflow int(ticks / 60))
     set intersection_data lput row intersection_data
   ]
 end
@@ -2113,7 +2116,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-70.0
+50.0
 1
 0
 Number
@@ -2336,7 +2339,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-20.0
+50.0
 1
 0
 Number
