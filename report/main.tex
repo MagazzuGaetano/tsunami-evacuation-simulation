@@ -1,14 +1,17 @@
 \documentclass[titlepage]{article}
-\usepackage[utf8]{inputenc}
+
+\usepackage[italian]{babel}
 \usepackage[OT1]{fontenc}
 \usepackage{cmbright}
+\usepackage{csquotes}
 \usepackage{amsmath}
 \usepackage{fancyhdr}
 \usepackage{amssymb}
 \usepackage{tikz}
 \usepackage{subcaption}
 \usepackage{amsthm}
-\usepackage{biblatex}
+\usepackage[hidelinks]{hyperref}
+\usepackage[backend=biber, style=authoryear-comp, maxcitenames=2]{biblatex}
 
 % document ----------------------------
 
@@ -32,9 +35,10 @@
 \input{chapters/02_background}
 \input{chapters/03_stato_arte}
 \input{chapters/04_modello}
-\input{chapters/05_simulazione}
-\input{chapters/06_analisi}
-\input{chapters/07_conclusione}
+\input{chapters/05_estensione}
+\input{chapters/06_simulazione}
+\input{chapters/07_analisi}
+\input{chapters/08_conclusione}
 
 \pagebreak
 \printbibliography

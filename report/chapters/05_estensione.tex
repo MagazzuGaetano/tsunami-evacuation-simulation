@@ -1,0 +1,312 @@
+\section{Estensione del Modello}
+\label{sec:estensione}
+In questa sezione verrano descritte le modifiche e le aggiunte effettuate al modello base,
+ma prima verrano evidenziate le limitazioni e le mancanze del modello anche rispetto allo stato dell'arte.
+
+Molte assunzioni sono poco realistiche come la velocità costante dei pedoni, tutte le strade a senso unico e l'assenza di interazioni nelle
+intersezioni.
+%
+Inoltre viene assunto che tutti gli agenti conoscano il percorso più breve per il rifugio.
+%
+Un'altra limitazione riguarda le interazioni tra i vari tipi di agenti.
+Questo modello considera esclusivamente le interazioni auto-auto
+tramite il modello General Motors, ma non prevede nessuna interazione pedone-pedone o pedone-auto.
+
+Quindi ci si concentrerà sulle interazioni nelle intersezioni introducendo meccanismi di coordinazione tra i vari tipi di agente.
+Inoltre la velocità dei pedoni verrà modificata in base alla congestione in modo da poter rappresentare uno scenario più realistico.
+
+\subsection{Rete Stradale}
+Prima di descrivere le varie aggiunte in questa sezione verrannò elencate le varie modifiche che sono state effettuate alla rete stradale.
+
+Tutte le strade della rete sono state considerate come strade locali secondo il \textcite{seaside2010tsp},
+ovvero strade a doppio senso e a una corsia con una larghezza variabile da 7.3 m a 9 m e opzionalmente
+un marciapiedie per ogni lato della strada con una larghezza fissa di 1.5 m.
+%
+È stato assunto che tutte le strade abbiano marciapiedi su entrambi i lati e che la larghezza sia fissata al valore minimo.
+
+\newpage
+\subsection{Speed Variability dei Pedoni}
+Nello stato dell'arte solitamente la velocità dei pedoni viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
+espresse tramite un diagramma fondamentale [survey].
+Per estrarre queste relazioni sono richiesti dei dati sperimentali che non sempre disponibili soprattutto nei casi di emergenza.
+
+Perciò analizzeremo come questo problema viene trattato da metodi allo stato dell'arte
+per la simulazione di evacuazione di tsunami.
+
+Alcuni lavori distinguono i pedoni in gruppi in base alla loro velocità sulla base di questionari o altri lavori riguardanti il comportamento dei pedoni.
+\textcite{takabatake2017simulated} hanno effettuato una distinzione sull'età con una velocità massima di 1.19 m/s (Under 65) e 0.96 m/s (Over 65).
+Basandosi su \textcite[]{older1968movement} hanno assunto che una decrescità lineare della velocità da un livello di densità di 0.3 p/m² a 3.0 p/m² (Fig. \ref{fig:speed-linear}).
+\textcite{goto2012tsunami} hanno raggruppato i pedoni in famiglie che sono distinte in \textit{normal walkers} con velocità massima di 1.5 m/s e
+\textit{slow walkers} (famiglie con disabili o anziani) con velocità massima di 0.75 m/s (Fig. \ref{fig:speed-goto}).
+
+Altri lavori hanno assunto che la velocità sia distribuita normalmente.
+\textcite{wang2021novel} considera una distribuzione normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
+con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
+
+
+\begin{figure}[ht]
+    \centering
+    \begin{subfigure}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{images/speed_lammel.png}
+        \caption{}
+        \label{fig:speed-lammel}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{images/speed_Linear.png}
+        \caption{}
+        \label{fig:speed-linear}
+    \end{subfigure}
+    \begin{subfigure}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{images/speed_GOTO.png}
+        \caption{}
+        \label{fig:speed-goto}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
+        \includegraphics[width=\textwidth]{images/speed_WANG.png}
+        \caption{}
+        \label{fig:speed-wang}
+    \end{subfigure}
+    \caption{Esempi di relazione velocità-densità.
+        a) \textcite[]{lammel2010emergency},
+        b) \textcite[]{takabatake2017simulated},
+        c) \textcite[]{goto2012tsunami},
+        d) \textcite[]{wang2021novel}.
+    }
+    \label{fig:speeds}
+\end{figure}
+
+In questi lavori la velocità viene aggiustata in base alla densità in un'area davanti ai pedoni (Fig. \ref{fig:speeds}), tramite la seguente formula
+$\rho = n /(L \times W)$, dove n è il numero di persone nell'area $L \times W$, $L$ è la lunghezza di ricerca e $W$ la larghezza della strada.
+%
+La lunghezza solitamente assume valori tra 3 e 5 m.
+
+\textcite{lammel2010emergency} invece ha introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO.
+La velocità viene aggiornata tramite la relazione $v = \min[v_{max}, FC / D]$ (Fig. \ref{fig:speed-lammel}),
+dove $D$ la densità e $FC$ è la \textit{flow capacity}, ovvero il flusso di pedoni in uscita in un link della rete.
+La \textit{flow capacity} è un parametro che è stato scelto approssimando la curva velocità-densità del modello a code a quella
+del diagramma fondamentale di \textcite{weidmann1993transporttechnik}. Inoltre è stata considerata una velocità massima di 1.66 m/s poichè i valori considerati da Weidmann sono relativi
+al flusso dei pedoni in condizioni normali e non in caso di emergenza.
+
+% \vspace*{5mm}
+% [Lammel 2010] modello a code FIFO(ﬁrst-in ﬁrst-out) con tre restrizioni:
+% Primo ogni agente deve restare su un link per un determinato tempo ovvero il free flow speed travel time.
+% Secondo una Flow capacity capacità sul flusso del link è definita che ne limita il flusso in uscita.
+% Infine una Storage capacity che limità il numero di pedoni che possono stare sul link viene definità.
+
+% \begin{equation}
+%     v = min [v_{max}, FC / D]
+% \end{equation}
+
+% La seguente equazione mostra il diagramma velocità densità prodotto dal modello, dove FC (Flow capacity) 
+% è stato scelto in modo da approssimare il diagramma fondamentale di Weidmann (Weidmann, 1993).
+% Inoltre $v_{max}$ è più alta.
+
+% La densità è calcolata ad ogni step considerando gli agenti a 5m di distanza e la larghezza della strada. 
+% La densità viene definità come density ahead $\rho_w = n/(Lw x W )$, dove n: numero di persone in Lw x W area,
+% Lw : search length (3 m), W : road width.
+
+% Basato sulla speed-density relationship in Goto et al (2012), introduce un modello di aggiustamento della velocità dei pedoni
+% come mostrato in figura \ref*{fig:speed-WANG}, dove vp0 rappresenta la free flow speed e $\rho_p$ la density ahead dei pedoni con search length di 4m.
+
+Come appena descritto i lavori analizzati, apparte avere informazioni sull'eta e sulle velocità massime dei pedoni, non hanno dati a loro disposizione per fittare i modelli.
+Di conseguenza non avendo dati empirici per questo lavoro si è deciso di usare il diagramma fondamentale di \textcite{weidmann1993transporttechnik},
+il quale descrive la relazione tra densità e velocità tramite la Kladek-formula (Eq. \ref{eq:kladek-formula}),
+dove $v_{f}$ è la free flow speed mentre $\rho$ è la densità e $\rho_{max}$ è la jam density.
+%
+\begin{equation}
+    v = v_{f} \times (1 - e^{-\gamma \times (\frac{1}{\rho} - \frac{1}{\rho_{max}})})
+    \label{eq:kladek-formula}
+\end{equation}
+
+I parametri scelti sono $\gamma = 1.913$, $v_f = 1.34$ m/s and $\rho_{max} = 5.4$ p/m² che secondo studi empirici hanno mostrato i risultati migliori.
+
+Il calcolo della densità è stato effettuato considerando un'area di ricerca di 4 m x 1.5 m di fronte al pedone
+come in \textcite{goto2012tsunami, wang2021novel}.
+
+I pedoni nel caso in cui sono presenti anche auto, procedono esclusivamente sui marciapiedi, altrimenti occupano tutta la strada.
+
+
+\newpage
+
+\subsection{Gestione degli Intersezioni}
+Per la gestione delle intersezioni sono stati considerati esclusivamente gli incroci a 4 strade e trattati come intersezioni di tipo AWSC (All Way Stop Controlled) o TWSC (Two Way Stop controlled).
+
+% TODO: riscrivere, un po' confuso
+Tramite l'utilizzo di OpenStreetMap e GoogleMaps, sono state estratte manualmente le informazioni circa la posizione e nel case dei TWSC la direzione
+di precedenza di tali tipi di incroci per la citta di Seaside, ottenendo la seguente (Fig. \ref{fig:intersections}).
+
+\begin{figure}
+    \centering
+    \begin{subfigure}{0.475\textwidth}
+        \includegraphics[width=\textwidth]{images/intersections}
+        \caption{intersezioni classificate per numero di strade: verde a 4 strade (98 nodi) e grigio a 3 strade (206 nodi).}
+        \label{fig:intersections}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \includegraphics[width=\textwidth]{images/int_type}
+        \caption{intersezioni a 4 strade classificate in base al tipo: AWSC in blu (20 nodi) e TWSC in rosso (78 nodi).}
+        \label{fig:intersections_types}
+    \end{subfigure}
+    \caption{Tipi di intersezioni.}
+\end{figure}
+
+Inoltre nelle intersezioni è stata introdotta una zona di attraversamento per la gestione delle interazioni tra auto e pedoni.
+È stato assunto che gli incroci abbiano lunghezza e larghezza pari alla larghezza della strada (10.3 m).
+Dal momento che la rappresentazione della strada è network-based è stato deciso che
+la zona iniza prima dell'incrocio e finisce dopo dell'incrocio a una distanza pari alla metà della larghezza (5.15 m) (Fig. \ref{fig:crossing-area}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\textwidth]{images/crossing_area}
+    \caption{Zona di attraversamento di un'intersezione.}
+    \label{fig:crossing-area}
+\end{figure}
+
+\newpage
+Per rappresentare l'attraversamento dei pedoni e delle auto sono state aggiunte le seguenti informazioni ad ogni intersezione $i$ a 4 strade:
+\begin{itemize}
+    \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'incrocio $i$ all'incrocio $j$.
+    \item $\textit{Arrival}_i$ = coda delle auto nella zona di attraversamento ordinate per tempo di arrivo.
+    \item $\textit{Crossing}_i$ = insieme delle auto che possono passare contemporaneamente.
+    \item $\textit{Stops}_i$ = insieme delle intersezioni $j$ collegate a $i$ in cui è presente uno stop nella strada $(i, j)$.
+\end{itemize}
+
+% Inoltre per i TWSC nelle intersezioni la presenza degli stop viene segnata, mediante una lista con il numero dell'intersezioni interessate.
+
+Per stabilire la posizione all'interno della rete stradale, le precedenze e la direzione della prossima intersezione per ogni agente $x$
+vengono definite:
+\begin{itemize}
+    \item $x_{prev}$ l'intersezione precendente
+    \item $x_{curr}$ l'intersezione corrente
+    \item $x_{next}$ la prossima intersezione
+    \item $x_{side} \in \{ \textit{left}, \textit{right} \}$  il lato di marciapiede (solo pedoni)
+    \item $x_{xdir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
+\end{itemize}
+
+\newpage
+\subsubsection{Pedoni}
+% Dato un pedone $x$ si definiscono $x_{prev}$ l'intersezione precendente, $x_{curr}$ l'intersezione corrente e $x_{next}$ la prossima intersezione.
+
+Data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) viene associata ad ogni intersezione collegata a $x_{curr}$ la direzione per raggiungerla seguendo il senso orario a partire da $x_{prev}$,
+per cui $I_d$ indica l'intersezione nella direzione $d \in \{\textit{origin}, \textit{left}, \textit{straight}, \textit{right}\}$.
+%
+La direzione associata all'intersezione $x_{next}$ è quella dove è diretto il pedone e viene identificata da $x_{dir}$.
+
+Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede $x_{side}$
+ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{right} (Fig. \ref{fig:pedestria-crossing}):
+\begin{itemize}
+    \item Se $x_{dir} = \textit{straight}$ e $x_{side} = \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{side}}}$ di 1.
+    \item Se $x_{dir} = \textit{side}$ e $x_{side} \neq \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{origin}}}$ di 1.
+    \item Se  $x_{dir} = \textit{side}$ e $x_{side} = \textit{side}$ non viene alterato nessun contatore.
+\end{itemize}
+
+Quando il pedone finisce di attraversare il contatore corrispondente viene decrementato di 1.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/pedestrian_crossing}
+    \caption{
+        Esempio dei tre casi di attraversamento dal punto di vista del pedone che si trova sul marciapiede sinistro
+        a) il pedone si trova sul lato sinistro e attraversa sul link collegato a origin.
+        b) il pedone attraverso sul lato sinistro dell'incrocio, quindi sul link collegato a left.
+        c) il pedone segue il marciapiede sulla sinistra senza attraversare.
+    }
+    \label{fig:pedestria-crossing}
+\end{figure}
+
+
+\subsubsection{Auto}
+Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
+determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata e una volta avuto il via libera
+viene aggiunta a $\textit{Crossing}_i$ e rimossa una volta lasciato l'incrocio.
+
+Le auto quando raggiungono la zona di attraversamento vengono aggiunte alla coda $\textit{Arrival}_i$ e schedulate
+in base al tipo d'intersezione (Sec. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte a $\textit{Crossing}_i$
+e rimosse una volta lasciato l'incrocio.
+%
+Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere,
+quindi potrà passare se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.45\textwidth]{images/crossing_auto_ped_crossing}
+    \caption{Esempio degli attraversamenti pedonali (in rosso) che vanno controllati
+        per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un auto $x$.}
+    \label{fig:auto-ped-crossing}
+\end{figure}
+
+\subsubsection{AWSC}
+\label{subsubsec:precedenze}
+Nelle intersezioni di tipo AWSC la prima auto che arriva ha la precedenza sulle altre auto e deve aspettare eventuali pedoni come spiegato in precedenza.
+Inoltre lo scenario in cui 4 auto arrivano contemporaneamente non è stato considerato poiché poco probabile.
+
+La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo.
+L'auto che ha la destra libera viene considerata provenire da \textit{origin} e dal suo punto di riferimento
+vengono identificate le direzioni di provenienza delle altre auto.
+
+Basandosi sulle direzioni di provenienza delle auto e sulle rispettive destinazioni viene verificato
+in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \textit{straight})
+quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}, Tab. \ref{tab:origin-straight}, Tab. \ref{tab:origin-left-straight}).
+
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Left} \\ \hline
+        Left                  & Left                \\ \hline
+        Right                 & Right               \\ \hline
+        Right                 & Straight            \\ \hline
+        Straight              & Right               \\ \hline
+    \end{tabular}
+    \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{left}.}
+    \label{tab:origin-left}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Straight} \\ \hline
+        Left                  & Right                   \\ \hline
+        Right                 & Left                    \\ \hline
+        Right                 & Right                   \\ \hline
+        Straight              & Right                   \\ \hline
+    \end{tabular}
+    \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{straight}.}
+    \label{tab:origin-straight}
+\end{table}
+
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        \textbf{Car1: Origin} & \textbf{Car2: Left} & \textbf{Car3: Straight} \\ \hline
+        Right                 & Left                & Right                   \\ \hline
+        Left                  & Right               & Left                    \\ \hline
+        Right                 & Right               & Right                   \\ \hline
+        Straight              & Right               & Right                   \\ \hline
+    \end{tabular}
+    \caption{Tutte le possibili combinazioni di destinazione delle tre auto che permettono
+        di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin}, \textit{left} e \textit{straight}.}
+    \label{tab:origin-left-straight}
+\end{table}
+
+\subsubsection{TWSC}
+Nel caso in cui l'intersezione è di tipo TWSC vengono identificate due vie: quella principale che ha la precedenza e quella
+secondaria in cui sono presenti gli stop.
+
+A differenza dell'intersezioni AWSC, l'ordine di precedenza non importa poiché possono passare al più due auto alla volta
+che si trovano l'una di fronte all'altra.
+Quindi viene scelta casualmente come riferimento una delle due auto che viene considerata provenire da \textit{origin}, mentre
+l'altra da \textit{straight}.
+%
+Una volta che la via principale è libera viene gestita nello stesso modo quella secondaria.
+
+Per verificare se le due auto possono passare contemporaneamente si procede come già visto per il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
