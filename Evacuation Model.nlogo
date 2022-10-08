@@ -664,12 +664,12 @@ to load-network
     set crossing-cars []
     set stops []
 
-    set p-in-flow []
-    set p-out-flow []
+    set p-in-flow  table:make
+    set p-out-flow  table:make
 
     set car-delay []
-    set car-in-flow []
-    set car-out-flow []
+    set car-in-flow  table:make
+    set car-out-flow  table:make
   ]
 
   ; mark two-way stops
@@ -1318,14 +1318,6 @@ to pedestrians-behaviour
         set side new_side
       ]
 
-      ask road ([who] of current_int) ([who] of next_int)[
-        if ped-in-t != 0 [
-          set ped-in-h lput (ticks - ped-in-t) ped-in-h
-        ]
-
-        set ped-in-t ticks
-      ]
-
     ]
 
     ;; the agent has left the crosswalk
@@ -1342,14 +1334,6 @@ to pedestrians-behaviour
         ]
 
         set crossing_int -1
-      ]
-
-      ask road ([who] of current_int) ([who] of next_int)[
-        if ped-out-t != 0 [
-          set ped-out-h lput (ticks - ped-out-t) ped-out-h
-        ]
-
-        set ped-out-t ticks
       ]
     ]
 
@@ -1503,15 +1487,53 @@ to cars-behaviour
 end
 
 
+to-report ped-flow [flow-dir]
+  let extra_length int_width / 2
+  let ped nobody
+
+  let current_crossroads myself
+  ifelse flow-dir = "in" [
+    set ped pedestrians with [not crossing? and not moved? and next_int = current_crossroads]
+
+    if [crossroad?] of end1 [
+      set extra_length extra_length * 2
+    ]
+  ][
+    set ped pedestrians with [not crossing? and not moved? and current_int = current_crossroads]
+
+    if [crossroad?] of end2 [
+      set extra_length extra_length * 2
+    ]
+  ]
+
+  let area (link-length * patch_to_meter - extra_length / 3.281) * side_width * 2 / 3.281
+
+  if count ped = 0 [
+    report 0
+  ]
+
+  report count ped / area * (mean [speed * fd_to_ftps / 3.281] of ped)
+end
+
+to add-to-dict [dict values]
+  foreach values [x ->
+    let prev-list table:get-or-default dict (item 0 x) []
+
+    set prev-list lput (item 1 x) prev-list
+
+    table:put dict (item 0 x) prev-list
+  ]
+end
+
 to handle-crossing-cars
   ask intersections with [crossroad?] [
-
     let in-roads link-set map [x -> road x who] ([who] of in-link-neighbors)
     let out-roads link-set map [x -> road who x] ([who] of out-link-neighbors)
 
     if count pedestrians != 0 [
-      set p-in-flow table:from-list [list [who] of end1 ifelse-value not empty? ped-in-h [1 / mean ped-in-h][0]] of in-roads
-      set p-out-flow table:from-list [list [who] of end2 ifelse-value not empty? ped-out-h [1 / mean ped-out-h][0]] of out-roads
+      add-to-dict p-in-flow [list ([who] of end1) ped-flow "in"] of in-roads
+      add-to-dict p-out-flow [list ([who] of end2) ped-flow "out"] of out-roads
+
     ]
 
     if count cars != 0 [
@@ -1967,11 +1989,11 @@ end
 to view-intersection-p-in-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum table:values p-in-flow)] of intersections with [crossroad?] max [(sum table:values p-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of intersections with [crossroad?] max [(sum map [x -> mean x] table:values p-out-flow)] of intersections with [crossroad?]
   let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (sum table:values p-in-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-in-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -1985,11 +2007,11 @@ end
 to view-intersection-p-out-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum table:values p-in-flow)] of intersections with [crossroad?] max [(sum table:values p-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of intersections with [crossroad?] max [(sum map [x -> mean x] table:values p-out-flow)] of intersections with [crossroad?]
   let max-n max tmp
 
   ask intersections with [crossroad?] [
-    let col palette:scale-gradient-hsb color-list (sum table:values p-out-flow) 0 max-n
+    let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-out-flow) 0 max-n
     set color col
     set size 4
   ]
@@ -2091,7 +2113,7 @@ INPUTBOX
 109
 147
 R1_HorEvac_Foot
-50.0
+70.0
 1
 0
 Number
@@ -2314,7 +2336,7 @@ INPUTBOX
 217
 147
 R2_HorEvac_Car
-50.0
+20.0
 1
 0
 Number
