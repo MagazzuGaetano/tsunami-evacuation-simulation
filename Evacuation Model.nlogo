@@ -22,6 +22,7 @@ extensions [
   csv   ; the CSV extension is required to read the tsunami inundation file
   table
   palette
+  profiler
 ]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;; BREEDS ;;;;;;;;;;;;;;
@@ -75,10 +76,7 @@ roads-own [        ; the variables that roads own
   car-in-t             ; elapsed time for headway
   car-out-t
 
-  ped-in-h
-  ped-out-h
-  ped-in-t
-  ped-out-t
+  ped-flow
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -209,6 +207,10 @@ globals [        ; global variables
 
   road_data
   intersection_data
+
+  ;; global agentsets
+  crossroads
+  int-roads
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -335,18 +337,19 @@ end
 ; TURTLE FUNCTION: calculates the speed of the car based on general motors car-following model
 ;                  it incorporates the speed of the leading car as well as the space headway
 to move-gm
-  set car_ahead cars in-cone (150 / patch_to_feet) 20                                        ; get the cars ahead in 150ft (almost half a block) and in field of view of 20 degrees
-  set car_ahead car_ahead with [self != myself]                                              ; that are not myself
-  set car_ahead car_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
-  set car_ahead car_ahead with [not dead?]                                                   ; that have not died yet
-  set car_ahead car_ahead with [moving?]                                                     ; that are moving
-  set car_ahead car_ahead with [abs(subtract-headings heading [heading] of myself) < 160]    ; with relatively the same general heading as mine (not going the opposite direction)
+  set car_ahead cars in-cone (150 / patch_to_feet) 20                    ; get the cars ahead in 150ft (almost half a block) and in field of view of 20 degrees
   set car_ahead car_ahead with [
-    current_int = [current_int] of myself and next_int = [next_int] of myself
-  ] ; on the same road
-  set car_ahead car_ahead with [distance myself > 0.0001]                                    ; not exteremely close to myself
-  set car_ahead min-one-of car_ahead [distance myself]                                       ; and the closest car ahead
+    self != myself and                                                   ; that are not myself
+    moving? and                                                          ; that are moving
+    not evacuated? and                                                   ; that have not made it to the shelter yet (no congestion at the shelter)
+    not dead? and                                                        ; that have not died yet
+    current_int = [current_int] of myself and                            ; on the same road
+    next_int = [next_int] of myself and
+    abs(subtract-headings heading [heading] of myself) < 160 and         ; with relatively the same general heading as mine (not going the opposite direction)
+    distance myself > 0.0001                                             ; not exteremely close to myself
+  ]
 
+  set car_ahead min-one-of car_ahead [distance myself]                                       ; and the closest car ahead
 
   ifelse is-turtle? car_ahead [                                                              ; if there IS a car ahead:
     set space_hw distance car_ahead                                                          ; the space headway with the leading car
@@ -388,11 +391,13 @@ to update-density-ahead-pedestrians
   ]
 
   let peds_ahead pedestrians in-cone (search_length / patch_to_feet) phi                       ; get the pedestrians ahead in search_length (almost half a block) and in field of view of phi degrees
-  set peds_ahead peds_ahead with [self != myself]                                              ; that are not myself
-  set peds_ahead peds_ahead with [not evacuated?]                                              ; that have not made it to the shelter yet (no congestion at the shelter)
-  set peds_ahead peds_ahead with [not dead?]                                                   ; that have not died yet
-                                                                                               ;set peds_ahead peds_ahead with [moving?]                                                     ; that are moving
-  set peds_ahead peds_ahead with [side = [side] of myself]                                     ; that have are on the same side of the sidewalk
+
+  set peds_ahead peds_ahead with [
+    self != myself and                                             ; that are not myself
+    not evacuated? and                                             ; that have not made it to the shelter yet (no congestion at the shelter)
+    not dead? and                                                  ; that have not died yet
+    side = [side] of myself                                        ; that have are on the same side of the sidewalk
+  ]
 
   ifelse count peds_ahead != 0 [
     ;; search_length from ft to m
@@ -469,14 +474,17 @@ to-report get-next-direction [prev curr next]
 
   let idx position [who] of next directions                            ; get index of the destination
 
-  if length directions = 3 [
-    report item idx ["left" "straight" "right"]
-  ]
-  ifelse length directions = 2 [
-    report item idx ["left" "right"]
-  ] [
-    error "the crossroad has not three or four out roads"
-  ]
+  (ifelse
+    length directions = 3 [
+      report item idx ["left" "straight" "right"]
+    ]
+    length directions = 2 [
+      report item idx ["left" "right"]
+    ]
+    [
+      error "the crossroad has not three or four out roads"
+    ]
+  )
 end
 
 
@@ -487,6 +495,7 @@ to-report map-direction-intersection [prev curr next]
   set ints lput ([who] of prev) ints
 
   let dirs []
+
   if length ints = 4 [
     set dirs ["left" "straight" "right" "origin"]
   ]
@@ -627,8 +636,10 @@ to load-network
           let x item 0 gis:location-of k                                               ; get x and y values for the intersection
           let y item 1 gis:location-of k
           let curr 0
-          ifelse any? intersections with [xcor = x and ycor = y][                      ; check if there is an intersection here, if not, make one, and if it is, use it
-            set curr [who] of one-of intersections with [xcor = x and ycor = y]
+
+          let ints intersections with [xcor = x and ycor = y]
+          ifelse any? ints [                                                           ; check if there is an intersection here, if not, make one, and if it is, use it
+            set curr [who] of one-of ints
           ][
             create-intersections 1 [
               set xcor x
@@ -654,6 +665,17 @@ to load-network
       ]
     ]
   ]
+
+  ; remove too close intersections
+  ask intersection 432 [ die ]
+  ask intersection 396 [
+    create-road-to intersection 433
+    create-road-to intersection 59
+  ]
+  ask intersection 59 [
+    create-road-to intersection 396
+  ]
+
 
   ; assign crossroad? and crossing_counts variables
   ; init also arrival-queue
@@ -695,15 +717,12 @@ to load-network
     set crowd 0
     set shape "road"
 
-    set ped-in-h []
-    set ped-out-h []
     set car-in-h []
     set car-out-h []
-
-    set ped-in-t 0
-    set ped-out-t 0
     set car-in-t 0
     set car-out-t 0
+
+    set ped-flow []
   ]
 
   output-print "Network Loaded"
@@ -947,6 +966,9 @@ to load1
   load-shelters
   load-tsunami
 
+  set crossroads intersections with [crossroad?]
+  set int-roads roads with [[crossroad?] of end1 or [crossroad?] of end2]
+
   reset-timer
 end
 
@@ -1006,11 +1028,11 @@ to go
   ask residents with [time_in_water > Tc][mark-dead]
   ask cars with [time_in_water > Tc][mark-dead]
   ask pedestrians with [time_in_water > Tc][mark-dead]
+
   ; update mortality rate
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
 
   tick
-  ; tick-advance 0.5
 end
 
 
@@ -1046,25 +1068,19 @@ to-report find-right-of-way
   let car-dir table:from-list (list (list "origin" nobody) (list "left" nobody) (list "right" nobody) (list "straight" nobody))
 
   if len > 0 [
-    let first-car min-one-of ((turtle-set arrival-queue) with-min [arrival_time]) [distance next_int]
+    set available-cars (turtle-set arrival-queue) with-min [arrival_time]
+    set available-cars sort-on [distance next_int] available-cars
+
+    let first-car item 0 available-cars
 
     if [not moved?] of first-car [
 
-      ; find cars with the same arrival time
-      let i 1
-      let stop? false
-      while [i < len and not stop?] [
-        let next-car item i arrival-queue
-
-        ifelse [arrival_time] of next-car = [arrival_time] of first-car [
-          set available-cars lput next-car available-cars
-          set i i + 1
-        ][
-          set stop? true
-        ]
+      ;; if only one car is present return immediately
+      if length available-cars = 1 [
+        table:put car-dir "origin" first-car
+        report car-dir
       ]
 
-      set available-cars fput first-car available-cars
       set available-cars turtle-set available-cars
 
       ; keep only the first one that comes from each intersection
@@ -1110,249 +1126,256 @@ end
 
 
 to residents-behaviour
-  ; ask residents, if they milling time has passed, to start moving
-  ask residents with [not moving? and not dead? and miltime <= ticks][
-    set heading towards init_dest
-    set moving? true
-  ]
-  ; ask residents that should be moving to move
-  ask residents with [moving?][
-    ifelse (distance init_dest < (speed) ) [fd distance init_dest][fd speed]
-    if distance init_dest < 0.005 [   ; if close enough to the next intersection, move the agent to it
-      move-to init_dest
-      set moving? false
-      set reached? true
-      set current_int init_dest
+  ask residents [
+    ; ask residents, if they milling time has passed, to start moving
+    if not moving? and not dead? and miltime <= ticks [
+      set heading towards init_dest
+      set moving? true
     ]
-  ]
-  ; check the residnet that are on the way if they have been caught by the tsunami
-  ask residents with [not reached?][
-    if [depth] of patch-here > Hc [ set time_in_water time_in_water + tick_to_sec ]
-  ]
-  ; ask residets who have reached the network to hatch into a pedestrian or a car depending on their decision
-  ask residents with [reached?][
-    let spd speed                ; to pass on the spd from resident to the hatched pedestrian
-    let dcsn decision            ; to pass on the decision from the resident to either car or pedestrian
-    let resident_id who
-    if dcsn = 1 or dcsn = 3 [    ; horizontal (1) or vertical (3) evacuation - by FOOT
-      ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
-        let in_nodes in-link-neighbors
 
-        hatch-pedestrians 1 [
-          set id resident_id
-          set size 0.5 ; 2
-          set shape "dot"
-          set current_int myself ; myself = current_int of the resident
-          set free_speed spd     ; the speed of the resident is passed on to the pedestrian as free_speed
-          set speed free_speed   ; the actual speed of the pedestrian is set to the free_speed
-          set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
-          set dead? false        ; initialized as not dead, will be checked immediately after being born
-          set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
-          set density_ahead 0
-          set crossing? false
-          set crossing_int -1
-          set moved? false
-          set arrival_time 0
-
-
-          ifelse random-float 1 < 0.9999 [
-            set side 0
-          ][
-            set side 1
-          ]
-
-          if dcsn = 1 [          ; horizontal evacuation on foot
-            set color orange
-            set path [hor-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
-                                          ; which passed to the pedestrians and cars
-            set decision 1
-          ]
-          if dcsn = 3 [          ; vertical evacuation on foot
-            set color turquoise
-            set path [ver-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
-                                          ; which passed to the pedestrians and cars
-            set decision 3
-          ]
-          ifelse empty? path [set shelter -1][set shelter last path] ; if path list is not empty the who of the shelter is the last item of the path
-                                                                     ; otherwise, there is no shelter destination, either the current_int is the shelter
-                                                                     ; or due to network disconnectivity, there were no path available to any of the shelters
-          if shelter = -1 [
-            if decision = 1 and [shelter_type] of current_int = "Hor" [set shelter -99]  ; if the decision is horizontal evac and the list is empty since current_int is a horizontal shelter
-            if decision = 3 and [shelter?] of current_int [set shelter -99]              ; if the decision is vertical evac and the list is empty since current_int is a shelter
-                                                                                         ; basically if shelter = -99, we can mark the pedestrian as evacuated later
-          ]
-
-          ifelse [crossroad?] of current_int and not empty? path
-          [
-            ;; set previous intersection by selecting a random intersection different from the next (init prev_int)
-            let next_who [who] of intersection (item 0 path)
-            set in_nodes [who] of in_nodes with [who != next_who]
-            let prev_int_who item random (length in_nodes) in_nodes
-            set prev_int intersection prev_int_who
-          ]
-          [
-            set prev_int current_int
-          ]
-
-          st
-        ]
+    ; ask residents that should be moving to move
+    if moving? [
+      ifelse (distance init_dest < (speed) ) [fd distance init_dest][fd speed]
+      if distance init_dest < 0.005 [   ; if close enough to the next intersection, move the agent to it
+        move-to init_dest
+        set moving? false
+        set reached? true
+        set current_int init_dest
       ]
     ]
-    if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
-      ask current_int [         ; ask the current intersection of the resident to hatch a car
-        let in_nodes in-link-neighbors
 
-        hatch-cars 1 [
-          set id resident_id
-          set size 0.5 ; 2
-          set current_int myself ; myself = current_int of the resident
-          set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
-          set dead? false        ; initialized as not dead, will be checked immediately after being born
-          set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
-          set density_ahead 0
-          set crossing? false
-          set moved? false
-          set waiting? false
-          set rightofway? true
-          set arrival_time 0
+    ifelse reached? [
+      ; ask residets who have reached the network to hatch into a pedestrian or a car depending on their decision
+      let spd speed                ; to pass on the spd from resident to the hatched pedestrian
+      let dcsn decision            ; to pass on the decision from the resident to either car or pedestrian
+      let resident_id who
 
-          if dcsn = 2 [          ; horizontal evacuation by car
-            set color sky
-            set path [hor-path] of myself ; myself = current_int of the resident
-            set decision 2
-          ]
-          if dcsn = 4 [          ; vertical evacuation by car
-            set color magenta
-            set path [ver-path] of myself ; myself = current_int of the resident
-            set decision 4
-          ]
-          ifelse empty? path [set shelter -1][set shelter last path]       ; if path list is not empty the who of the shelter is the last item of the path
-          if shelter = -1 [
-            if decision = 2 and [shelter_type] of current_int = "Hor" [set shelter -99] ; if the decision is horizontal evac and the list is empty since current_int is a horizontal shelter
-            if decision = 4 and [shelter?] of current_int [set shelter -99]             ; if the decision is vertical evac and the list is empty since current_int is a shelter
-                                                                                        ; basically if shelter = -99, we can mark the car as evacuated later
-          ]
+      if dcsn = 1 or dcsn = 3 [    ; horizontal (1) or vertical (3) evacuation - by FOOT
+        ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
+          let in_nodes in-link-neighbors
 
-          ifelse [crossroad?] of current_int and not empty? path
-          [
-            ;; set previous intersection by selecting a random intersection different from the next (just initialization)
-            let next_who [who] of intersection (item 0 path)
-            set in_nodes [who] of in_nodes with [who != next_who]
-            let prev_int_who item random (length in_nodes) in_nodes
-            set prev_int intersection prev_int_who
-          ]
-          [
-            set prev_int current_int
-          ]
+          hatch-pedestrians 1 [
+            set id resident_id
+            set size 0.5 ; 2
+            set shape "dot"
+            set current_int myself ; myself = current_int of the resident
+            set free_speed spd     ; the speed of the resident is passed on to the pedestrian as free_speed
+            set speed free_speed   ; the actual speed of the pedestrian is set to the free_speed
+            set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
+            set dead? false        ; initialized as not dead, will be checked immediately after being born
+            set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
+            set density_ahead 0
+            set crossing? false
+            set crossing_int -1
+            set moved? false
+            set arrival_time 0
 
 
-          st
+            ifelse random-float 1 < 0.9999 [
+              set side 0
+            ][
+              set side 1
+            ]
+
+            if dcsn = 1 [          ; horizontal evacuation on foot
+              set color orange
+              set path [hor-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
+                                            ; which passed to the pedestrians and cars
+              set decision 1
+            ]
+            if dcsn = 3 [          ; vertical evacuation on foot
+              set color turquoise
+              set path [ver-path] of myself ; myself = current_int of the resident - Note that intersection hold the path infomration
+                                            ; which passed to the pedestrians and cars
+              set decision 3
+            ]
+            ifelse empty? path [set shelter -1][set shelter last path] ; if path list is not empty the who of the shelter is the last item of the path
+                                                                       ; otherwise, there is no shelter destination, either the current_int is the shelter
+                                                                       ; or due to network disconnectivity, there were no path available to any of the shelters
+            if shelter = -1 [
+              if decision = 1 and [shelter_type] of current_int = "Hor" [set shelter -99]  ; if the decision is horizontal evac and the list is empty since current_int is a horizontal shelter
+              if decision = 3 and [shelter?] of current_int [set shelter -99]              ; if the decision is vertical evac and the list is empty since current_int is a shelter
+                                                                                           ; basically if shelter = -99, we can mark the pedestrian as evacuated later
+            ]
+
+            ifelse [crossroad?] of current_int and not empty? path
+            [
+              ;; set previous intersection by selecting a random intersection different from the next (init prev_int)
+              let next_who [who] of intersection (item 0 path)
+              set in_nodes [who] of in_nodes with [who != next_who]
+              let prev_int_who item random (length in_nodes) in_nodes
+              set prev_int intersection prev_int_who
+            ]
+            [
+              set prev_int current_int
+            ]
+
+            st
+          ]
         ]
       ]
+      if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
+        ask current_int [         ; ask the current intersection of the resident to hatch a car
+          let in_nodes in-link-neighbors
+
+          hatch-cars 1 [
+            set id resident_id
+            set size 0.5 ; 2
+            set current_int myself ; myself = current_int of the resident
+            set evacuated? false   ; initialized as not evacuated, will be checked immediately after being born
+            set dead? false        ; initialized as not dead, will be checked immediately after being born
+            set moving? false      ; initialized as not moving, will start moving immediately after if not evacuated and not dead
+            set density_ahead 0
+            set crossing? false
+            set moved? false
+            set waiting? false
+            set rightofway? true
+            set arrival_time 0
+
+            if dcsn = 2 [          ; horizontal evacuation by car
+              set color sky
+              set path [hor-path] of myself ; myself = current_int of the resident
+              set decision 2
+            ]
+            if dcsn = 4 [          ; vertical evacuation by car
+              set color magenta
+              set path [ver-path] of myself ; myself = current_int of the resident
+              set decision 4
+            ]
+            ifelse empty? path [set shelter -1][set shelter last path]       ; if path list is not empty the who of the shelter is the last item of the path
+            if shelter = -1 [
+              if decision = 2 and [shelter_type] of current_int = "Hor" [set shelter -99] ; if the decision is horizontal evac and the list is empty since current_int is a horizontal shelter
+              if decision = 4 and [shelter?] of current_int [set shelter -99]             ; if the decision is vertical evac and the list is empty since current_int is a shelter
+                                                                                          ; basically if shelter = -99, we can mark the car as evacuated later
+            ]
+
+            ifelse [crossroad?] of current_int and not empty? path
+            [
+              ;; set previous intersection by selecting a random intersection different from the next (just initialization)
+              let next_who [who] of intersection (item 0 path)
+              set in_nodes [who] of in_nodes with [who != next_who]
+              let prev_int_who item random (length in_nodes) in_nodes
+              set prev_int intersection prev_int_who
+            ]
+            [
+              set prev_int current_int
+            ]
+
+
+            st
+          ]
+        ]
+      ]
+      die
+    ][
+      ; check the residnet that are on the way if they have been caught by the tsunami
+      if [depth] of patch-here > Hc [ set time_in_water time_in_water + tick_to_sec ]
     ]
-    die
   ]
 end
 
 
 to pedestrians-behaviour
-  ; check the pedestrians if they have evacuated already or died
-  ask pedestrians with [not evacuated? and not dead?][
-    if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
-    if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec mark-dead]
-  ]
+  ask pedestrians [
+    ; check the pedestrians if they have evacuated already or died
+    if not evacuated? and not dead? [
+      if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
+      if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec mark-dead]
 
-  ; set up the pedestrians that should move
-  ask pedestrians with [not moving? and not empty? path and not evacuated? and not dead?][
-    if not empty? path [
-      set next_int intersection item 0 path   ; assign item 0 of path to next_int
+      ; set up the pedestrians that should move
+      if not moving? and not empty? path [
+        if not empty? path [
+          set next_int intersection item 0 path   ; assign item 0 of path to next_int
 
-      set path remove-item 0 path             ; remove item 0 of path
-      set heading towards next_int            ; set the heading towards the destination
-      set moving? true
-      ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
-    ]
-  ]
+          set path remove-item 0 path             ; remove item 0 of path
+          set heading towards next_int            ; set the heading towards the destination
+          set moving? true
 
-  ; move the pedestrians that should move
-  ask pedestrians with [moving?][
-    update-density-ahead-pedestrians
-    set speed update-pedestrian-speed free_speed density_ahead
-
-    ;; the agent has entered the crosswalk
-    if distance next_int < int_width / patch_to_feet / 2 and not moved? and not crossing? and [crossroad?] of next_int and not empty? path [
-
-      set crossing? true
-      set arrival_time int(ticks)
-
-      let X intersection item 0 path
-      let next_dir get-next-direction current_int next_int X
-      let int-dir map-direction-intersection current_int next_int X
-
-      let key ""
-      let new_side 0
-
-      if next_dir = "left" and side = 1 [
-        set key table:get int-dir "origin"
-        set new_side 0
-      ]
-      if next_dir = "right" and side = 0 [
-        set key table:get int-dir "origin"
-        set new_side 1
-      ]
-      if next_dir = "straight" [
-        ifelse side = 0 [
-          set key table:get int-dir "left"
-        ][
-          set key table:get int-dir "right"
+          ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
         ]
-      ]
-
-      if key != "" [
-        ask next_int [
-          table:put crossing_counts key (table:get-or-default crossing_counts key 0) + 1
-        ]
-        set crossing_int key
-
-        ;; update side
-        set side new_side
-      ]
-
-    ]
-
-    ;; the agent has left the crosswalk
-    if distance current_int >= (int_width / 2) / patch_to_feet and moved? and crossing? and [crossroad?] of current_int  [
-
-      set crossing? false
-      set moved? false
-
-      let key crossing_int
-      if crossing_int != -1 [
-        ;; remove from the queue
-        ask current_int [
-          table:put crossing_counts key (table:get-or-default crossing_counts key 0) - 1
-        ]
-
-        set crossing_int -1
       ]
     ]
 
-    ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
-    if (distance next_int < 0.005 ) [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
-      set moving? false
+    ; move the pedestrians that should move
+    if moving? [
+      update-density-ahead-pedestrians
+      set speed update-pedestrian-speed free_speed density_ahead
 
-      if [crossroad?] of next_int [
-        set moved? true
+      ;; the agent has entered the crosswalk
+      if not moved? and not crossing? and not empty? path and [crossroad?] of next_int and distance next_int < int_width / patch_to_feet / 2 [
+        set crossing? true
+        set arrival_time int(ticks)
+
+        let X intersection item 0 path
+        let next_dir get-next-direction current_int next_int X
+        let int-dir map-direction-intersection current_int next_int X
+
+        let key ""
+        let new_side 0
+
+        (ifelse
+          next_dir = "left" and side = 1 [
+            set key table:get int-dir "origin"
+            set new_side 0
+          ]
+          next_dir = "right" and side = 0 [
+            set key table:get int-dir "origin"
+            set new_side 1
+          ]
+          next_dir = "straight" [
+            ifelse side = 0 [
+              set key table:get int-dir "left"
+            ][
+              set key table:get int-dir "right"
+            ]
+          ]
+        )
+
+        if key != "" [
+          ask next_int [
+            table:put crossing_counts key (table:get-or-default crossing_counts key 0) + 1
+          ]
+          set crossing_int key
+
+          ;; update side
+          set side new_side
+        ]
+
       ]
 
-      ask road ([who] of current_int) ([who] of next_int)[set crowd crowd - 1] ; decrease the crowd of the road the pedestrian was on
-      set prev_int current_int
-      set current_int next_int                                                 ; update current intersection
-      if [who] of current_int = shelter [mark-evacuated]
+      ;; the agent has left the crosswalk
+      if moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet [
+        set crossing? false
+        set moved? false
+
+        let key crossing_int
+        if crossing_int != -1 [
+          ;; remove from the queue
+          ask current_int [
+            table:put crossing_counts key (table:get-or-default crossing_counts key 0) - 1
+          ]
+
+          set crossing_int -1
+        ]
+      ]
+
+      ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the pedestrian towards the next intersection
+
+      if distance next_int < 0.005 [                                 ; if close enough check if evacuated? dead? if neither, get ready for the next step
+        set moving? false
+
+        if [crossroad?] of next_int [
+          set moved? true
+        ]
+
+        ask road ([who] of current_int) ([who] of next_int)[set crowd crowd - 1] ; decrease the crowd of the road the pedestrian was on
+        set prev_int current_int
+        set current_int next_int                                                 ; update current intersection
+        if [who] of current_int = shelter [mark-evacuated]
+      ]
     ]
   ]
 end
-
 
 
 to update-counter [dict key value]
@@ -1367,143 +1390,133 @@ to update-counter [dict key value]
 end
 
 to cars-behaviour
-  ; check the cars if they have evacuated already or died
-  ask cars with [not evacuated? and not dead?][
-    if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
-    if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec]
-  ]
-  ; set up the cars that should move
-  ask cars with [not moving? and not empty? path and not evacuated? and not dead?][
+  ask cars [
+    ; check the cars if they have evacuated already or died
+    if not evacuated? and not dead? [
+      if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
+      if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec]
 
-    if not empty? path [
-      set next_int intersection item 0 path   ; assign item 0 of path to next_int
+      ; set up the cars that should move
+      if not moving? and not empty? path [
 
-      set path remove-item 0 path             ; remove item 0 of path
-      set heading towards next_int            ; set the heading towards the destination
+        if not empty? path [
+          set next_int intersection item 0 path   ; assign item 0 of path to next_int
 
-      ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
-      set moving? true
-    ]
-  ]
+          set path remove-item 0 path             ; remove item 0 of path
+          set heading towards next_int            ; set the heading towards the destination
 
-  ; intersection cars-pedestrians interactions
-  ; cars wait for pedestrians crossing
-  ask cars with [crossing?] [
-    let p_count 0
-    let key [who] of current_int
-
-    ifelse not moved? [
-      ask next_int [
-        set p_count (table:get-or-default crossing_counts key 0)
-      ]
-    ][
-      set key [who] of next_int
-      ask current_int [
-        set p_count (table:get-or-default crossing_counts key 0)
-      ]
-    ]
-
-    set waiting? p_count > 0
-  ]
-
-  ; move the cars that should move
-  ask cars with [moving?] [
-    ifelse rightofway? and not waiting? [
-      ;; check on speed to not go over!
-      if [crossroad?] of next_int and not moved? and not crossing? [
-        let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
-        if speed > lim_spd [set speed lim_spd]
-      ]
-
-      move-gm                 ; set the speed with general motors car-following model
-      fd speed                ; move
-    ][
-      set speed 0
-    ]
-
-    ;; the car has entered the crossroad section
-    if (distance next_int <= (int_width / 2) / patch_to_feet and not crossing? and [crossroad?] of next_int and not moved?) [
-      ask next_int [
-        set arrival-queue (lput myself arrival-queue) ;; add car to the car-queues
-      ]
-
-      set arrival_time int(ticks)
-      set crossing? true
-      set rightofway? false
-
-      ask road ([who] of current_int) ([who] of next_int)[
-        if car-in-t != 0 [
-          set car-in-h lput (ticks - car-in-t) car-in-h
+          ask road ([who] of current_int) ([who] of next_int)[set traffic traffic + 1] ; add the traffic of the road the car will be on
+          set moving? true
         ]
-
-        set car-in-t ticks
-      ]
-    ]
-
-    ;; if close enough check if evacuated? dead? if neither, get ready for the next step
-    if (distance next_int < 0.005) [
-      set moving? false
-
-      if [crossroad?] of next_int [
-        set moved? true;
       ]
 
-      ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
-      set prev_int current_int           ; update previous intersection
-      set current_int next_int           ; update current intersection
-      if [who] of current_int = shelter [mark-evacuated]
-    ]
+      ; intersection cars-pedestrians interactions
+      ; cars wait for pedestrians crossing
+      if crossing? [
+        let p_count 0
+        let key [who] of current_int
 
-
-    ;; the car has left the crossroad section
-    if (distance current_int >= (int_width / 2) / patch_to_feet and crossing? and [crossroad?] of current_int and moved?) [
-      ask current_int [
-        let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
-        if index != false [
-          set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues]
-
-          set index (position myself crossing-cars)
-
-          if index != false [
-            set crossing-cars (remove-item index crossing-cars)
+        ifelse not moved? [
+          ask next_int [
+            set p_count (table:get-or-default crossing_counts key 0)
+          ]
+        ][
+          set key [who] of next_int
+          ask current_int [
+            set p_count (table:get-or-default crossing_counts key 0)
           ]
         ]
+
+        set waiting? p_count > 0
       ]
+    ]
 
-      set crossing? false
-      set speed max_speed / fd_to_mph
-      set moved? false
-
-      ask road ([who] of current_int) ([who] of next_int)[
-        if car-out-t != 0 [
-          set car-out-h lput (ticks - car-out-t) car-out-h
+    ; move the cars that should move
+    if moving? [
+      ifelse rightofway? and not waiting? [
+        ;; check on speed to not go over!
+        if [crossroad?] of next_int and not moved? and not crossing? [
+          let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
+          if speed > lim_spd [set speed lim_spd]
         ]
 
-        set car-out-t ticks
+        move-gm                 ; set the speed with general motors car-following model
+        fd speed                ; move
+      ][
+        set speed 0
+      ]
+
+      ;; the car has entered the crossroad section
+      if not moved? and not crossing? and [crossroad?] of next_int and distance next_int <= (int_width / 2) / patch_to_feet [
+        ask next_int [
+          set arrival-queue (lput myself arrival-queue) ;; add car to the car-queues
+        ]
+
+        set arrival_time int(ticks)
+        set crossing? true
+        set rightofway? false
+
+        ask road ([who] of current_int) ([who] of next_int)[
+          if car-in-t != 0 [
+            set car-in-h lput (ticks - car-in-t) car-in-h
+          ]
+
+          set car-in-t ticks
+        ]
+      ]
+
+      ;; if close enough check if evacuated? dead? if neither, get ready for the next step
+      if distance next_int < 0.005 [
+        set moving? false
+
+        if [crossroad?] of next_int [
+          set moved? true;
+        ]
+
+        ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
+        set prev_int current_int           ; update previous intersection
+        set current_int next_int           ; update current intersection
+        if [who] of current_int = shelter [mark-evacuated]
+      ]
+
+      ;; the car has left the crossroad section
+      if (moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet) [
+        ask current_int [
+          let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
+          if index != false [
+            set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues]
+
+            set index (position myself crossing-cars)
+
+            if index != false [
+              set crossing-cars (remove-item index crossing-cars)
+            ]
+          ]
+        ]
+
+        set crossing? false
+        set speed max_speed / fd_to_mph
+        set moved? false
+
+        ask road ([who] of current_int) ([who] of next_int)[
+          if car-out-t != 0 [
+            set car-out-h lput (ticks - car-out-t) car-out-h
+          ]
+
+          set car-out-t ticks
+        ]
       ]
     ]
   ]
-
 end
 
 
-to-report ped-flow [flow-dir]
+to-report get-ped-flow
   let extra_length int_width / 2
-  let ped nobody
+  let ped pedestrians with [not crossing? and current_int = [end1] of myself and next_int = [end2] of myself]
 
-  let current_crossroads myself
-  ifelse flow-dir = "in" [
-    set ped pedestrians with [not crossing? and not moved? and next_int = current_crossroads]
-
-    if [crossroad?] of end1 [
-      set extra_length extra_length * 2
-    ]
-  ][
-    set ped pedestrians with [not crossing? and not moved? and current_int = current_crossroads]
-
-    if [crossroad?] of end2 [
-      set extra_length extra_length * 2
-    ]
+  if [crossroad?] of end1 and [crossroad?] of end2 [
+    set extra_length extra_length * 2
   ]
 
   let area (link-length * patch_to_meter - extra_length / 3.281) * side_width * 2 / 3.281
@@ -1515,44 +1528,34 @@ to-report ped-flow [flow-dir]
   report count ped / area * (mean [speed * fd_to_ftps / 3.281] of ped)
 end
 
-to add-to-dict [dict values]
-  foreach values [x ->
-    let prev-list table:get-or-default dict (item 0 x) []
-
-    set prev-list lput (item 1 x) prev-list
-
-    table:put dict (item 0 x) prev-list
-  ]
-end
-
 to handle-crossing-cars
-  ask intersections with [crossroad?] [
-    let in-roads link-set map [x -> road x who] ([who] of in-link-neighbors)
-    let out-roads link-set map [x -> road who x] ([who] of out-link-neighbors)
-
-    if count pedestrians != 0 [
-      add-to-dict p-in-flow [list ([who] of end1) ped-flow "in"] of in-roads
-      add-to-dict p-out-flow [list ([who] of end2) ped-flow "out"] of out-roads
-
+  if count pedestrians != 0 [
+    ask int-roads [
+      let flow ifelse-value crowd = 0 [0][get-ped-flow]
+      set ped-flow lput flow ped-flow
     ]
+  ]
 
-    if count cars != 0 [
-      set car-in-flow table:from-list [ list [who] of end1 ifelse-value not empty? car-in-h [1 / mean car-in-h][0] ] of in-roads
-      set car-out-flow table:from-list [ list [who] of end2 ifelse-value not empty? car-out-h [1 / mean car-out-h][0]] of out-roads
-    ]
-
-    ifelse length stops = 2 [
-      handle-two-way
-    ][
-      handle-four-way
+  if count pedestrians != 0 or count cars != 0 [
+    ask crossroads [
+      ifelse length stops = 2 [
+        handle-two-way
+      ][
+        handle-four-way
+      ]
     ]
   ]
 end
+
 
 to handle-opposite-crossing [ints cars-queue]
   let filtered-cars []
+
+  ; let available-cars turtle-set cars-queue with-min [arrival_time]
+
   ask ints [
-    let first-car min-one-of turtle-set cars-queue with-min [arrival_time] with [current_int = myself] [distance next_int]
+    let first-car min-one-of (cars-queue with [current_int = myself]) [distance next_int]
+
     if first-car != nobody and [not waiting?] of first-car [
       set filtered-cars lput first-car filtered-cars
     ]
@@ -1618,7 +1621,7 @@ to handle-two-way
       set rightofway? true
 
       ask next_int [
-        let exit-time (int(ticks) - [arrival_time] of myself)
+        let exit-time (ticks - [arrival_time] of myself)
         set car-delay (lput exit-time car-delay)
       ]
     ]
@@ -1738,16 +1741,18 @@ to export-network-data
     set road_data lput row road_data
   ]
 
-  ask intersections with [crossroad?] [
-    let car-times 0
-    if not empty? car-delay [
-      set car-times mean car-delay
-    ]
+  ask crossroads [
+    let car-times ifelse-value not empty? car-delay [mean car-delay][0]
 
-    let carinflow (table:to-list car-in-flow)
-    let caroutflow (table:to-list car-out-flow)
-    let pinflow (map [x -> replace-item 1 x (mean (item 1 x))] table:to-list p-in-flow)
-    let poutflow (map [x -> replace-item 1 x (mean (item 1 x))] table:to-list p-out-flow)
+    let in-roads link-set map [x -> road x who] ([who] of in-link-neighbors)
+    let out-roads link-set map [x -> road who x] ([who] of out-link-neighbors)
+
+    let pinflow [list ([who] of end1) (ifelse-value not empty? ped-flow [mean ped-flow][0])] of in-roads
+    let poutflow [list ([who] of end2) (ifelse-value not empty? ped-flow [mean ped-flow][0])] of out-roads
+
+    let carinflow [list ([who] of end1) (ifelse-value not empty? car-in-h [1 / mean car-in-h][0])] of in-roads
+    let caroutflow [list ([who] of end2) (ifelse-value not empty? car-out-h [1 / mean car-out-h][0])] of out-roads
+
     let row (list who car-times carinflow caroutflow pinflow poutflow int(ticks / 60))
     set intersection_data lput row intersection_data
   ]
@@ -1920,9 +1925,6 @@ to view-road-speed [ped? car?]
 end
 
 
-
-
-
 ;;; intersections analysis
 
 to view-intersection-car-delay
@@ -1952,10 +1954,10 @@ to view-intersection-car-in-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
 
-  let tmp list max [(sum table:values car-in-flow)] of intersections with [crossroad?] max [(sum table:values car-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum table:values car-in-flow)] of crossroads max [(sum table:values car-out-flow)] of crossroads
   let max-n max tmp
 
-  ask intersections with [crossroad?] [
+  ask crossroads [
     let col palette:scale-gradient-hsb color-list (sum table:values car-in-flow) 0 max-n
     set color col
     set size 4
@@ -1972,10 +1974,10 @@ to view-intersection-car-out-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
 
-  let tmp list max [(sum table:values car-in-flow)] of intersections with [crossroad?] max [(sum table:values car-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum table:values car-in-flow)] of crossroads max [(sum table:values car-out-flow)] of crossroads
   let max-n max tmp
 
-  ask intersections with [crossroad?] [
+  ask crossroads [
     let col palette:scale-gradient-hsb color-list (sum table:values car-out-flow) 0 max-n
     set color col
     set size 4
@@ -1992,10 +1994,10 @@ end
 to view-intersection-p-in-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of intersections with [crossroad?] max [(sum map [x -> mean x] table:values p-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of crossroads max [(sum map [x -> mean x] table:values p-out-flow)] of crossroads
   let max-n max tmp
 
-  ask intersections with [crossroad?] [
+  ask crossroads [
     let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-in-flow) 0 max-n
     set color col
     set size 4
@@ -2010,10 +2012,10 @@ end
 to view-intersection-p-out-flow
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of intersections with [crossroad?] max [(sum map [x -> mean x] table:values p-out-flow)] of intersections with [crossroad?]
+  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of crossroads max [(sum map [x -> mean x] table:values p-out-flow)] of crossroads
   let max-n max tmp
 
-  ask intersections with [crossroad?] [
+  ask crossroads [
     let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-out-flow) 0 max-n
     set color col
     set size 4
@@ -2023,6 +2025,18 @@ to view-intersection-p-out-flow
   ask cars [set size 0]
   ask pedestrians [set size 0]
   print max-n
+end
+
+
+to profile
+  reset-ticks
+  load1
+  load2                                          ;; set up the model
+  profiler:start                                 ;; start profiling
+  repeat 60 * 60 [ go ]                          ;; run something you want to measure
+  profiler:stop                                  ;; stop profiling
+  csv:to-file "profiler_data.csv" profiler:data  ;; save the results
+  profiler:reset                                 ;; clear the data
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -2644,7 +2658,7 @@ INPUTBOX
 1509
 669
 iteration
-1.0
+2.0
 1
 0
 Number
