@@ -77,6 +77,8 @@ roads-own [        ; the variables that roads own
   car-out-t
 
   ped-flow
+
+  casualties
 ]
 
 intersections-own [ ; the variables that intersections own
@@ -95,11 +97,13 @@ intersections-own [ ; the variables that intersections own
   arrival-queue
   crossing-cars    ; cars to be waited
   stops
+
+  ; analysis
   car-delay
+  ped-in-flow
+  ped-out-flow
   car-in-flow
   car-out-flow
-  p-in-flow
-  p-out-flow
 ]
 
 
@@ -125,7 +129,6 @@ pedestrians-own [; the variables that pedestrians own
   moved?
   prev_int
   arrival_time
-  in_flow_zone?
 ]
 
 cars-own [       ; the variables that cars own
@@ -154,7 +157,6 @@ cars-own [       ; the variables that cars own
   waiting?       ; waiting for pedestrian crossing
   rightofway?
   arrival_time
-  in_flow_zone?
 ]
 
 globals [        ; global variables
@@ -526,6 +528,7 @@ to mark-dead                                                     ; mark the agen
   set moving? false
   set evacuated? false
   set dead? true
+  set-casualties
 end
 
 ; returns true if the general direction (north, east, south, west) and the heading (0 <= h < 360) are alligned
@@ -685,13 +688,7 @@ to load-network
     set arrival-queue []
     set crossing-cars []
     set stops []
-
-    set p-in-flow  table:make
-    set p-out-flow  table:make
-
     set car-delay []
-    set car-in-flow  table:make
-    set car-out-flow  table:make
   ]
 
   ; mark two-way stops
@@ -723,6 +720,7 @@ to load-network
     set car-out-t 0
 
     set ped-flow []
+    set casualties 0
   ]
 
   output-print "Network Loaded"
@@ -953,7 +951,7 @@ to load1
   set ev_times []
 
   set road_data []
-  set road_data lput (list "end1" "end2" "traffic" "crowd" "minute" "mean speed car" "mean speed ped") road_data
+  set road_data lput (list "end1" "end2" "traffic" "crowd" "minute" "mean speed car" "mean speed ped" "casualties") road_data
   set intersection_data []
   set intersection_data lput (list "who" "car-delay" "car-in-flow" "car-out-flow" "p-in-flow" "p-out-flow" "minute") intersection_data
 
@@ -1025,9 +1023,9 @@ to go
   handle-crossing-cars
 
   ; mark agents who were in the water for a prolonged period of time dead
-  ask residents with [time_in_water > Tc][mark-dead]
-  ask cars with [time_in_water > Tc][mark-dead]
-  ask pedestrians with [time_in_water > Tc][mark-dead]
+  ask residents with [time_in_water > Tc and not dead?][mark-dead]
+  ask cars with [time_in_water > Tc and not dead?][mark-dead]
+  ask pedestrians with [time_in_water > Tc and not dead?][mark-dead]
 
   ; update mortality rate
   set mortality_rate count turtles with [color = red] / (count residents + count pedestrians + count cars) * 100
@@ -1171,7 +1169,7 @@ to residents-behaviour
             set arrival_time 0
 
 
-            ifelse random-float 1 < 0.9999 [
+            ifelse random-float 1 < 0.5 [
               set side 0
             ][
               set side 1
@@ -1281,18 +1279,18 @@ to pedestrians-behaviour
     if not evacuated? and not dead? [
       if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
       if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec mark-dead]
+    ]
 
-      ; set up the pedestrians that should move
-      if not moving? and not empty? path [
-        if not empty? path [
-          set next_int intersection item 0 path   ; assign item 0 of path to next_int
+    ; set up the pedestrians that should move
+    if not moving? and not empty? path and not evacuated? and not dead?[
+      if not empty? path [
+        set next_int intersection item 0 path   ; assign item 0 of path to next_int
 
-          set path remove-item 0 path             ; remove item 0 of path
-          set heading towards next_int            ; set the heading towards the destination
-          set moving? true
+        set path remove-item 0 path             ; remove item 0 of path
+        set heading towards next_int            ; set the heading towards the destination
+        set moving? true
 
-          ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
-        ]
+        ask road ([who] of current_int) ([who] of next_int)[set crowd crowd + 1] ; add the crowd of the road the pedestrian will be on
       ]
     ]
 
@@ -1395,10 +1393,13 @@ to cars-behaviour
     if not evacuated? and not dead? [
       if [who] of current_int = shelter or shelter = -99 [mark-evacuated]
       if [depth] of patch-here >= Hc [set time_in_water time_in_water + tick_to_sec]
+    ]
+
+    ; check again
+    if not evacuated? and not dead? [
 
       ; set up the cars that should move
       if not moving? and not empty? path [
-
         if not empty? path [
           set next_int intersection item 0 path   ; assign item 0 of path to next_int
 
@@ -1709,6 +1710,19 @@ to handle-four-way
 end
 
 
+to set-casualties
+  let who_1 [who] of current_int
+  let who_2 [who] of next_int
+
+  if who_1 = who_2 [
+    set who_2 who_1
+    set who_1 [who] of prev_int
+  ]
+
+  ask road who_1 who_2 [ set casualties casualties + 1 ]
+end
+
+
 ;######################################
 ;*************************************#
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;*#
@@ -1737,7 +1751,7 @@ to export-network-data
       set mean_ped_speed mean ped_speeds_list
     ]
 
-    let row (list w1 w2 traffic crowd int(ticks / 60) mean_car_speed mean_ped_speed)
+    let row (list w1 w2 traffic crowd int(ticks / 60) mean_car_speed mean_ped_speed casualties)
     set road_data lput row road_data
   ]
 
@@ -1769,14 +1783,44 @@ to import-network-data
   ; read csv
   let suffix (word R1_HorEvac_Foot "-" R2_HorEvac_Car "-" iteration ".csv")
   let rows csv:from-file (word "./plot_results/data/roads/roads-" suffix)
+  set rows remove-item 0 rows
 
   foreach rows [x ->
-    if item 4 x = 20 [
+    if item 4 x = 60 [
       ask road item 0 x item 1 x [
         set traffic item 2 x
         set crowd item 3 x
         set car_mean_speed item 5 x
         set ped_mean_speed item 6 x
+        set casualties item 7 x
+      ]
+    ]
+  ]
+
+  set rows csv:from-file (word "./plot_results/data/intersections/intersections-" suffix)
+  set rows remove-item 0 rows
+
+  ask crossroads [
+    set car-in-flow table:make
+    set car-out-flow table:make
+    set ped-in-flow table:make
+    set ped-out-flow table:make
+  ]
+
+  foreach rows [x ->
+    if item 6 x = 60 [
+
+      let carinflow read-from-string (item 2 x)
+      let caroutflow read-from-string (item 3 x)
+      let pinflow read-from-string (item 4 x)
+      let poutflow read-from-string (item 5 x)
+
+      ask intersection item 0 x [
+        set car-delay item 1 x
+        set car-in-flow table:from-list carinflow
+        set car-out-flow table:from-list caroutflow
+        set ped-in-flow table:from-list pinflow
+        set ped-out-flow table:from-list poutflow
       ]
     ]
   ]
@@ -1924,6 +1968,56 @@ to view-road-speed [ped? car?]
 
 end
 
+to view-road-flow [agent-type]
+  ask turtles [set size 0]
+
+  ask roads [set car-in-h 0]
+
+  ask crossroads [
+    foreach table:keys car-in-flow [key ->
+      let r road key who
+      if r != nobody [
+        ask r [
+          set ped-flow table:get [car-in-flow] of myself key
+        ]
+      ]
+    ]
+  ]
+
+  let color-list [[0 100 100] [100 100 100]] ;[0 100 100]
+  let max-n max [car-in-h] of roads
+
+  ask int-roads [
+    let col palette:scale-gradient-hsb color-list car-in-h 0 max-n
+    set color col
+  ]
+end
+
+to view-critical-links
+  ask int-roads [
+    set color black
+    set thickness 0.5
+  ]
+
+  let total sum [casualties] of int-roads
+
+  ask int-roads [
+    let perc casualties / total * 100
+
+    if perc >= 5 [
+      set color red
+      set thickness 2
+    ]
+  ]
+
+  ask int-roads with [casualties = 0] [
+    let inverse road ([who] of end2) ([who] of end1)
+    if inverse != nobody [
+      set color [color] of inverse
+    ]
+  ]
+end
+
 
 ;;; intersections analysis
 
@@ -1933,14 +2027,13 @@ to view-intersection-car-delay
 
   let color-list [[100 100 100] [0 100 100]]
 
-  let ints intersections with [crossroad? and not empty? car-delay]
-  let max-n max [(mean car-delay)] of ints
+  let max-n max [car-delay] of crossroads
 
-  ask ints with [not empty? stops] [set shape "circle" set size 3]
-  ask ints with [empty? stops] [set shape "x" set size 6]
+  ask crossroads with [not empty? stops] [set shape "circle" set size 3]
+  ask crossroads with [empty? stops] [set shape "x" set size 6]
 
-  ask ints [
-    let col palette:scale-gradient-hsb color-list (mean car-delay) 0 max-n
+  ask crossroads [
+    let col palette:scale-gradient-hsb color-list car-delay 0 max-n
     set color col
   ]
 
@@ -1949,81 +2042,38 @@ to view-intersection-car-delay
   ask pedestrians [set size 0]
 end
 
-
-to view-intersection-car-in-flow
+to view-intersection-flow [flow-dir agent-type]
   ask patches [set pcolor white]
   let color-list [[100 100 100] [0 100 100]]
+  let tmp list max [sum table:values car-in-flow] of crossroads max [sum table:values car-out-flow] of crossroads
+  print tmp
 
-  let tmp list max [(sum table:values car-in-flow)] of crossroads max [(sum table:values car-out-flow)] of crossroads
+  if agent-type = "pedestrian" [
+    set tmp list max [sum table:values ped-in-flow] of crossroads max [sum table:values ped-out-flow] of crossroads
+  ]
+
   let max-n max tmp
 
+  ask intersections [set size 0] ; hide non-crossroads
+
   ask crossroads [
-    let col palette:scale-gradient-hsb color-list (sum table:values car-in-flow) 0 max-n
-    set color col
+    let flow ifelse-value flow-dir = "in" [car-in-flow][car-out-flow]
+
+    if agent-type = "pedestrian" [
+      set flow ifelse-value flow-dir = "in" [ped-in-flow][ped-out-flow]
+    ]
+
+    let col palette:scale-gradient-hsb color-list (sum table:values flow) 0 max-n
+
     set size 4
+    set color col
+    set shape "circle"
   ]
 
   ask residents [set size 0]
   ask cars [set size 0]
   ask pedestrians [set size 0]
 
-  print max-n
-end
-
-to view-intersection-car-out-flow
-  ask patches [set pcolor white]
-  let color-list [[100 100 100] [0 100 100]]
-
-  let tmp list max [(sum table:values car-in-flow)] of crossroads max [(sum table:values car-out-flow)] of crossroads
-  let max-n max tmp
-
-  ask crossroads [
-    let col palette:scale-gradient-hsb color-list (sum table:values car-out-flow) 0 max-n
-    set color col
-    set size 4
-  ]
-
-  ask residents [set size 0]
-  ask cars [set size 0]
-  ask pedestrians [set size 0]
-
-  print max-n
-end
-
-
-to view-intersection-p-in-flow
-  ask patches [set pcolor white]
-  let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of crossroads max [(sum map [x -> mean x] table:values p-out-flow)] of crossroads
-  let max-n max tmp
-
-  ask crossroads [
-    let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-in-flow) 0 max-n
-    set color col
-    set size 4
-  ]
-
-  ask residents [set size 0]
-  ask cars [set size 0]
-  ask pedestrians [set size 0]
-  print max-n
-end
-
-to view-intersection-p-out-flow
-  ask patches [set pcolor white]
-  let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [(sum map [x -> mean x] table:values p-in-flow)] of crossroads max [(sum map [x -> mean x] table:values p-out-flow)] of crossroads
-  let max-n max tmp
-
-  ask crossroads [
-    let col palette:scale-gradient-hsb color-list (sum map [x -> mean x] table:values p-out-flow) 0 max-n
-    set color col
-    set size 4
-  ]
-
-  ask residents [set size 0]
-  ask cars [set size 0]
-  ask pedestrians [set size 0]
   print max-n
 end
 
@@ -2658,7 +2708,7 @@ INPUTBOX
 1509
 669
 iteration
-2.0
+1.0
 1
 0
 Number
