@@ -104,6 +104,9 @@ intersections-own [ ; the variables that intersections own
   ped-out-flow
   car-in-flow
   car-out-flow
+  evacuee_list
+  car-avg_ev_times
+  ped-avg_ev_times
 ]
 
 
@@ -209,10 +212,13 @@ globals [        ; global variables
 
   road_data
   intersection_data
+  intersection_times
 
   ;; global agentsets
   crossroads
   int-roads
+
+  evacuee_times
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -652,6 +658,7 @@ to load-network
               set shape "square"
               set color white
               set curr who
+              set evacuee_list []
             ]
           ]
           if prev != -1 and prev != curr [                                             ; if this intersection is not the starting intersection, make roads
@@ -949,11 +956,14 @@ to load1
   ask patches [set pcolor white]
 
   set ev_times []
+  set evacuee_times table:make
 
   set road_data []
   set road_data lput (list "end1" "end2" "traffic" "crowd" "minute" "mean speed car" "mean speed ped" "casualties") road_data
   set intersection_data []
   set intersection_data lput (list "who" "car-delay" "car-in-flow" "car-out-flow" "p-in-flow" "p-out-flow" "minute") intersection_data
+  set intersection_times []
+  set intersection_times lput (list "who" "mean car evacuation time" "mean ped evacuation time") intersection_times
 
   set side_width 5 ; feet
   set lane_width 12 ; feet
@@ -1152,7 +1162,9 @@ to residents-behaviour
         ask current_int [          ; ask the current intersection of the resident to hatch a pedestrian
           let in_nodes in-link-neighbors
 
+          let _who 0
           hatch-pedestrians 1 [
+            set _who who
             set id resident_id
             set size 0.5 ; 2
             set shape "dot"
@@ -1210,13 +1222,16 @@ to residents-behaviour
 
             st
           ]
+          set evacuee_list lput pedestrian _who evacuee_list
         ]
       ]
       if dcsn = 2 or dcsn = 4 [   ; horizontal (2) or vertical (4) evacuation - by CAR
         ask current_int [         ; ask the current intersection of the resident to hatch a car
           let in_nodes in-link-neighbors
 
+          let _who 0
           hatch-cars 1 [
+            set _who who
             set id resident_id
             set size 0.5 ; 2
             set current_int myself ; myself = current_int of the resident
@@ -1259,9 +1274,9 @@ to residents-behaviour
               set prev_int current_int
             ]
 
-
             st
           ]
+          set evacuee_list lput car _who evacuee_list
         ]
       ]
       die
@@ -1369,7 +1384,10 @@ to pedestrians-behaviour
         ask road ([who] of current_int) ([who] of next_int)[set crowd crowd - 1] ; decrease the crowd of the road the pedestrian was on
         set prev_int current_int
         set current_int next_int                                                 ; update current intersection
-        if [who] of current_int = shelter [mark-evacuated]
+        if [who] of current_int = shelter [
+          mark-evacuated
+          table:put evacuee_times who ticks
+        ]
       ]
     ]
   ]
@@ -1477,7 +1495,11 @@ to cars-behaviour
         ask road ([who] of current_int) ([who] of next_int)[set traffic traffic - 1] ; decrease the traffic of the road the pedestrian was on
         set prev_int current_int           ; update previous intersection
         set current_int next_int           ; update current intersection
-        if [who] of current_int = shelter [mark-evacuated]
+
+        if [who] of current_int = shelter [
+          mark-evacuated
+          table:put evacuee_times who ticks
+        ]
       ]
 
       ;; the car has left the crossroad section
@@ -1770,6 +1792,23 @@ to export-network-data
     let row (list who car-times carinflow caroutflow pinflow poutflow int(ticks / 60))
     set intersection_data lput row intersection_data
   ]
+
+  if ticks = 3600 [
+    ask intersections [
+      let agents turtle-set evacuee_list
+      let car-ev_times [table:get-or-default evacuee_times who -1] of agents with [is-car? self]
+      let ped-ev_times [table:get-or-default evacuee_times who -1] of agents with [is-pedestrian? self]
+
+      set car-ev_times remove -1 car-ev_times
+      set ped-ev_times remove -1 ped-ev_times
+
+      set car-avg_ev_times ifelse-value not empty? car-ev_times [mean car-ev_times][0]
+      set ped-avg_ev_times ifelse-value not empty? ped-ev_times [mean ped-ev_times][0]
+
+      let row (list who car-avg_ev_times ped-avg_ev_times)
+      set intersection_times lput row intersection_times
+    ]
+  ]
 end
 
 
@@ -1786,7 +1825,7 @@ to import-network-data
   set rows remove-item 0 rows
 
   foreach rows [x ->
-    if item 4 x = 60 [
+    if item 4 x = 20 [
       ask road item 0 x item 1 x [
         set traffic item 2 x
         set crowd item 3 x
@@ -1824,28 +1863,87 @@ to import-network-data
       ]
     ]
   ]
+
+  set rows csv:from-file (word "./plot_results/data/intersections/intersections-evtimes-" suffix)
+  set rows remove-item 0 rows
+
+  foreach rows [x ->
+    ask intersection item 0 x [
+      set car-avg_ev_times item 1 x
+      set ped-avg_ev_times item 2 x
+    ]
+  ]
+end
+
+
+to view-evacuation-time-ss
+  ; reset
+  ask patches [ set pcolor white ]
+
+  let color-list [[100 100 100] [0 100 100]]
+
+  let ps 8 ; box size
+  let xs n-values (world-width / ps + 1) [i -> i - int(world-width / ps / 2)]
+  let ys n-values (world-height / ps + 1) [i -> i - int(world-height / ps / 2)]
+
+  foreach xs [ x ->
+    foreach ys [ y ->
+      let box patches with [pxcor > x * ps and pxcor <= x * ps + ps and pycor > y * ps and pycor <= y * ps + ps]
+      let ints intersections-on box
+
+      if any? ints [
+        let int_whos [[who] of turtle-set evacuee_list] of ints
+
+        let total []
+        foreach int_whos [whos ->
+          foreach whos [w ->
+            if table:has-key? evacuee_times w [
+              set total lput table:get evacuee_times w total
+            ]
+          ]
+        ]
+
+        if not empty? total [
+          let c palette:scale-gradient-hsb color-list (mean total) 0 3600
+          ask box [set pcolor c]
+        ]
+      ]
+    ]
+  ]
+end
+
+to view-evacuation-time [agent-type]
+  let color-list [[100 100 100] [0 100 100]]
+
+  ask intersections with [shelter?] [set size 0]
+
+  ask intersections [
+    let value ifelse-value agent-type = "cars" [car-avg_ev_times][ped-avg_ev_times]
+    let col palette:scale-gradient-hsb color-list value 0 3000
+    set color col
+    set size 5
+  ]
 end
 
 ;;; roads analysis
 
-to view-road-speeds [agent-type]
+to view-road-speed [agent-type]
   ask roads [set color gray]
 
   let color-list [[100 100 100] [0 100 100]]
-  let max-n 4.396325
-
+  let max-n free_flow_speed
 
   ifelse agent-type = "cars" [
     set max-n max_speed
 
-    ask roads with  [car_mean_speed != 0] [
-      let n car_mean_speed
+    ask roads with [car_mean_speed != 0] [
+      let n car_mean_speed * 1.609
       let col palette:scale-gradient-hsb color-list n 0 max-n
       set color col
     ]
   ][
     ask roads  with  [ped_mean_speed != 0] [
-      let n ped_mean_speed
+      let n ped_mean_speed / 3.281
       let col palette:scale-gradient-hsb color-list n 0 max-n
       set color col
     ]
@@ -1870,8 +1968,6 @@ to view-road-speeds [agent-type]
   print (word 0 ": " item 0 color-list ", " max-n ": "  item 1 color-list)
 end
 
-
-;; to identify critic links
 to view-road-traffic [agent-type density?]
   let color-list [[100 100 100] [300 100 100]]
   let max-n max [crowd] of roads
@@ -1880,6 +1976,8 @@ to view-road-traffic [agent-type density?]
     set max-n max [traffic] of roads
   ]
 
+  let max_len max [link-length] of roads * patch_to_meter
+  let tmp max-n
   ask roads [
     let n 0
 
@@ -1891,16 +1989,17 @@ to view-road-traffic [agent-type density?]
       set wid (lane_width / 3.281)
     ][
       set n crowd
-      set wid (side_width / 3.281)
+      set wid ((side_width * 2) / 3.281)
     ]
 
     if density? [
       set n (n / (len * wid))
-      set max-n 1
+      set tmp max-n / (max_len * wid)
     ]
 
-    let col palette:scale-gradient-hsb color-list n 0 max-n
+    let col palette:scale-gradient-hsb color-list n 0 tmp
     set color col
+    set thickness 0.5
   ]
 
   ifelse agent-type = "cars" [
@@ -1908,6 +2007,7 @@ to view-road-traffic [agent-type density?]
       let inverse road ([who] of end2) ([who] of end1)
       if inverse != nobody [
         set color [color] of inverse
+        set thickness 0.5
       ]
     ]
   ][
@@ -1915,11 +2015,12 @@ to view-road-traffic [agent-type density?]
       let inverse road ([who] of end2) ([who] of end1)
       if inverse != nobody [
         set color [color] of inverse
+        set thickness 0.5
       ]
     ]
   ]
 
-  print (word 0 ": " item 0 color-list ", " max-n ": "  item 1 color-list)
+  print (word 0 ": " item 0 color-list ", " tmp ": "  item 1 color-list)
 
   let warnings []
   ifelse agent-type = "cars" [
@@ -1933,69 +2034,9 @@ to view-road-traffic [agent-type density?]
   ]
 end
 
-;; agent speeds changing on time
-to view-road-speed [ped? car?]
-  ask patches [set pcolor black]
-  ask intersections with [not shelter?] [set color white]
-  ask intersections with [shelter?] [set color violet]
-  ask roads [set color white]
-
-  let color-list [[0 100 100] [100 100 100]] ;[0 100 100]
-
-  if car? [
-    let max-n max_speed
-    ask cars [
-      let spd speed * fd_to_mph;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      let col palette:scale-gradient-hsb color-list spd 0 max-n
-      set color col
-      set size 3
-    ]
-  ]
-
-  if ped? [
-    let max-n 5.446194
-    ask pedestrians [
-      let spd speed * fd_to_ftps;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-      let col palette:scale-gradient-hsb color-list spd 0 max-n
-      set color col
-      set size 3
-    ]
-  ]
-
-  ask residents [set size 0]
-  if ped? and not car? [ask cars [set size 0]]
-  if not ped? and car? [ask pedestrians [set size 0]]
-
-end
-
-to view-road-flow [agent-type]
-  ask turtles [set size 0]
-
-  ask roads [set car-in-h 0]
-
-  ask crossroads [
-    foreach table:keys car-in-flow [key ->
-      let r road key who
-      if r != nobody [
-        ask r [
-          set ped-flow table:get [car-in-flow] of myself key
-        ]
-      ]
-    ]
-  ]
-
-  let color-list [[0 100 100] [100 100 100]] ;[0 100 100]
-  let max-n max [car-in-h] of roads
-
-  ask int-roads [
-    let col palette:scale-gradient-hsb color-list car-in-h 0 max-n
-    set color col
-  ]
-end
-
 to view-critical-links
   ask int-roads [
-    set color black
+    set color gray
     set thickness 0.5
   ]
 
@@ -2018,6 +2059,40 @@ to view-critical-links
   ]
 end
 
+
+to view-micro-level-speed [ped? car?]
+  ask patches [set pcolor black]
+  ask intersections with [not shelter?] [set color white]
+  ask intersections with [shelter?] [set color violet]
+  ask roads [set color white]
+
+  let color-list [[0 100 100] [100 100 100]] ;[0 100 100]
+
+  if car? [
+    let max-n max_speed
+    ask cars [
+      let spd speed * fd_to_mph * 1.609
+      let col palette:scale-gradient-hsb color-list spd 0 max-n
+      set color col
+      set size 3
+    ]
+  ]
+
+  if ped? [
+    let max-n free_flow_speed
+    ask pedestrians [
+      let spd speed * fd_to_ftps / 3.281;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+      let col palette:scale-gradient-hsb color-list spd 0 max-n
+      set color col
+      set size 3
+    ]
+  ]
+
+  ask residents [set size 0]
+  if ped? and not car? [ask cars [set size 0]]
+  if not ped? and car? [ask pedestrians [set size 0]]
+
+end
 
 ;;; intersections analysis
 
@@ -2719,7 +2794,7 @@ BUTTON
 1510
 721
 Multiple Runs
-ifelse iteration <= 30 [  \n  if ticks = 0 and iteration = 1 [\n    reset-ticks\n    load1\n    load2\n  ]\n\n  go\n  \n  if ticks != 0 and ticks mod (20 * 60) = 0 [\n     export-network-data\n  ]\n\n  if ticks = 3600 [\n    let suffix (word R1_HorEvac_Foot \"-\" R2_HorEvac_Car \"-\" iteration \".csv\")\n  \n    ; export plot\n    export-plot \"Percentage of Evacuated\" (word \"./plot_results/data/evacuated/evacuated-\" suffix)\n    export-plot \"Percentage of Casualties\" (word \"./plot_results/data/casualties/casualties-\" suffix)\n    export-plot \"Evacuation Time Histogram\" (word \"./plot_results/data/times/times-\" suffix)\n    \n    ; export network data\n    csv:to-file (word \"./plot_results/data/roads/roads-\" suffix) road_data\n    csv:to-file (word \"./plot_results/data/intersections/intersections-\" suffix) intersection_data\n  \n    set iteration iteration + 1 \n    reset-ticks\n  \n    load1\n    load2\n  ]\n][\n  stop\n]
+ifelse iteration <= 30 [  \n  if ticks = 0 and iteration = 1 [\n    reset-ticks\n    load1\n    load2\n  ]\n\n  go\n  \n  if ticks != 0 and ticks mod (20 * 60) = 0 [\n     export-network-data\n  ]\n\n  if ticks = 3600 [\n    let suffix (word R1_HorEvac_Foot \"-\" R2_HorEvac_Car \"-\" iteration \".csv\")\n  \n    ; export plot\n    export-plot \"Percentage of Evacuated\" (word \"./plot_results/data/evacuated/evacuated-\" suffix)\n    export-plot \"Percentage of Casualties\" (word \"./plot_results/data/casualties/casualties-\" suffix)\n    export-plot \"Evacuation Time Histogram\" (word \"./plot_results/data/times/times-\" suffix)\n    \n    ; export network data\n    csv:to-file (word \"./plot_results/data/roads/roads-\" suffix) road_data\n    csv:to-file (word \"./plot_results/data/intersections/intersections-\" suffix) intersection_data\n    csv:to-file (word \"./plot_results/data/intersections/intersections-evtimes-\" suffix) intersection_times\n  \n    set iteration iteration + 1 \n    reset-ticks\n  \n    load1\n    load2\n  ]\n][\n  stop\n]
 T
 1
 T
