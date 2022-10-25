@@ -909,20 +909,15 @@ to load-population
             set moving? false                                          ; they agents are staionary at the beginning, before they start the evacuation
             set init_dest min-one-of intersections [ distance myself ] ; the first intersection an agent moves toward to
                                                                        ; to get to the transpotation network
-            ifelse pedestrian-speed = "wang2021" [
-              let speed_mu random-float 1 * (2 - 1.4) + 1.4
-              let speed_sigma random-float 1 * (0.6 - 0.1) + 0.1
+            let speed_mu random-float 1 * (2 - 1.4) + 1.4
+            let speed_sigma random-float 1 * (0.6 - 0.1) + 0.1
 
-              set speed random-normal speed_mu speed_sigma             ; walking speed is randomly drawn from a normal distribution
+            set speed random-normal speed_mu speed_sigma             ; walking speed is randomly drawn from a normal distribution
 
-              set speed min list 3.83 speed                            ; limit in range (0.75 - 3.83)
-              set speed max list 0.75 speed
+            set speed min list 3.83 speed                            ; limit in range (0.75 - 3.83)
+            set speed max list 0.75 speed
 
-              set speed speed / patch_to_meter                         ; turning m/s to patch/tick
-            ][
-              set speed random-normal 4 0.65                           ; walking speed is randomly drawn from a normal distribution
-              set speed speed / fd_to_ftps                             ; turning ft/s to patch/tick
-            ]
+            set speed speed / patch_to_meter                         ; turning m/s to patch/tick
 
             if speed < 0.001 [set speed 0.001]                         ; if speed is too low, set it to very small non-zero value
             set evacuated? false                                       ; initialized as not evacuated
@@ -1043,8 +1038,16 @@ to go
 
   cars-behaviour
 
+  ; compute ped-flow metrics
+  if count pedestrians != 0 [
+    ask int-roads [
+      let flow ifelse-value crowd = 0 [0][get-ped-flow]
+      set ped-flow lput flow ped-flow
+    ]
+  ]
+
   ; cars coordination in interections
-  if handle-intersections [
+  if model != "base" and model != "base_density" [
     handle-crossing-cars
   ]
 
@@ -1242,13 +1245,13 @@ to pedestrians-behaviour
 
     ; move the pedestrians that should move
     if moving? [
-      if pedestrian-speed = "wang2021" [
+      if model = "new" or model = "base_density" [
         update-density-ahead-pedestrians
         set speed update-pedestrian-speed free_speed density_ahead
       ]
 
       ;; the agent has entered the crosswalk
-      if handle-intersections and not moved? and not crossing? and not empty? path and [crossroad?] of next_int and distance next_int < int_width / patch_to_feet / 2 [
+      if model != "base" and model != "base_density" and not moved? and not crossing? and not empty? path and [crossroad?] of next_int and distance next_int < int_width / patch_to_feet / 2 [
         set crossing? true
         set arrival_time int(ticks)
 
@@ -1290,7 +1293,7 @@ to pedestrians-behaviour
       ]
 
       ;; the agent has left the crosswalk
-      if handle-intersections and moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet [
+      if model != "base" and model != "base_density" and moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet [
         set crossing? false
         set moved? false
 
@@ -1310,7 +1313,7 @@ to pedestrians-behaviour
       if distance next_int < 0.005 [                                    ; if close enough check if evacuated? dead? if neither, get ready for the next step
         set moving? false
 
-        if handle-intersections and [crossroad?] of next_int [
+        if model != "base" and model != "base_density" and [crossroad?] of next_int [
           set moved? true
         ]
 
@@ -1353,7 +1356,7 @@ to cars-behaviour
 
       ; intersection cars-pedestrians interactions
       ; cars wait for pedestrians crossing
-      if handle-intersections and crossing? [
+      if model != "base" and model != "base_density" and crossing? [
         let p_count 0
         let key [who] of current_int
 
@@ -1376,7 +1379,7 @@ to cars-behaviour
     if moving? [
       ifelse rightofway? and not waiting? [
         ;; check on speed to not go over!
-        if handle-intersections and [crossroad?] of next_int and not moved? and not crossing? [
+        if model != "base" and model != "base_density" and [crossroad?] of next_int and not moved? and not crossing? [
           let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
           if speed > lim_spd [set speed lim_spd]
         ]
@@ -1388,14 +1391,18 @@ to cars-behaviour
       ]
 
       ;; the car has entered the crossroad section
-      if handle-intersections and not moved? and not crossing? and [crossroad?] of next_int and distance next_int <= (int_width / 2) / patch_to_feet [
-        ask next_int [
-          set arrival-queue (lput myself arrival-queue) ;; add car to the car-queues
+      if not moved? and not crossing? and [crossroad?] of next_int and distance next_int <= (int_width / 2) / patch_to_feet [
+
+        if model != "base" and model != "base_density" [
+          ask next_int [
+            set arrival-queue (lput myself arrival-queue) ;; add car to the car-queues
+          ]
+
+          set arrival_time int(ticks)
+          set rightofway? false
         ]
 
-        set arrival_time int(ticks)
         set crossing? true
-        set rightofway? false
 
         ask road ([who] of current_int) ([who] of next_int)[
           if car-in-t != 0 [
@@ -1410,7 +1417,7 @@ to cars-behaviour
       if distance next_int < 0.005 [
         set moving? false
 
-        if handle-intersections and [crossroad?] of next_int [
+        if [crossroad?] of next_int [
           set moved? true;
         ]
 
@@ -1425,22 +1432,26 @@ to cars-behaviour
       ]
 
       ;; the car has left the crossroad section
-      if handle-intersections and moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet [
-        ask current_int [
-          let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
-          if index != false [
-            set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues]
+      if moved? and crossing? and [crossroad?] of current_int and distance current_int >= (int_width / 2) / patch_to_feet [
 
-            set index (position myself crossing-cars)
-
+        if model != "base" and model != "base_density" [
+          ask current_int [
+            let index (position myself arrival-queue) ;; get the index of myself in arrival-queue
             if index != false [
-              set crossing-cars (remove-item index crossing-cars)
+              set arrival-queue (remove-item index arrival-queue) ;; remove car from the car-queues]
+
+              set index (position myself crossing-cars)
+
+              if index != false [
+                set crossing-cars (remove-item index crossing-cars)
+              ]
             ]
           ]
+
+          set speed max_speed / fd_to_mph
         ]
 
         set crossing? false
-        set speed max_speed / fd_to_mph
         set moved? false
 
         ask road ([who] of current_int) ([who] of next_int)[
@@ -1460,13 +1471,6 @@ end
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 to handle-crossing-cars
-  if count pedestrians != 0 [
-    ask int-roads [
-      let flow ifelse-value crowd = 0 [0][get-ped-flow]
-      set ped-flow lput flow ped-flow
-    ]
-  ]
-
   if count pedestrians != 0 or count cars != 0 [
     ask crossroads [
       ifelse length stops = 2 [
@@ -1744,7 +1748,7 @@ to multiple-runs
     ]
 
     if ticks = 3600 [
-      let prefix (word "./plot_results/data/" ifelse-value handle-intersections ["new"]["base"])
+      let prefix (word "./plot_results/data/" model)
       let suffix (word R1_HorEvac_Foot "-" R2_HorEvac_Car "-" iteration ".csv")
 
       ; export plot
@@ -1873,15 +1877,15 @@ to import-network-data
   ask roads [set thickness 0.5]
 
   ; read csv
-  let suffix (word R1_HorEvac_Foot "-" R2_HorEvac_Car "-" iteration ".csv")
-  let rows csv:from-file (word "./plot_results/data/roads/roads-" suffix)
+  let suffix (word R1_HorEvac_Foot "-" R2_HorEvac_Car "-mean.csv")
+  let rows csv:from-file (word "./plot_results/data/" model "/roads/roads-" suffix)
   set rows remove-item 0 rows
 
   foreach rows [x ->
-    if item 4 x = 20 [
+    if item 2 x = minute [
       ask road item 0 x item 1 x [
-        set traffic item 2 x
-        set crowd item 3 x
+        set traffic item 3 x
+        set crowd item 4 x
         set car_mean_speed item 5 x
         set ped_mean_speed item 6 x
         set casualties item 7 x
@@ -1889,7 +1893,7 @@ to import-network-data
     ]
   ]
 
-  set rows csv:from-file (word "./plot_results/data/intersections/intersections-" suffix)
+  set rows csv:from-file (word "./plot_results/data/" model "/intersections/intersections-" suffix)
   set rows remove-item 0 rows
 
   ask crossroads [
@@ -1900,15 +1904,14 @@ to import-network-data
   ]
 
   foreach rows [x ->
-    if item 6 x = 60 [
-
-      let carinflow read-from-string (item 2 x)
-      let caroutflow read-from-string (item 3 x)
-      let pinflow read-from-string (item 4 x)
-      let poutflow read-from-string (item 5 x)
+    if item 1 x = minute [
+      let carinflow read-from-string (item 3 x)
+      let caroutflow read-from-string (item 4 x)
+      let pinflow read-from-string (item 5 x)
+      let poutflow read-from-string (item 6 x)
 
       ask intersection item 0 x [
-        set car-delay item 1 x
+        set car-delay item 2 x
         set car-in-flow table:from-list carinflow
         set car-out-flow table:from-list caroutflow
         set ped-in-flow table:from-list pinflow
@@ -1917,7 +1920,8 @@ to import-network-data
     ]
   ]
 
-  set rows csv:from-file (word "./plot_results/data/intersections/intersections-evtimes-" suffix)
+  ; set rows csv:from-file (word "./plot_results/data/" model "/intersections/intersections-evtimes-" suffix)
+  set rows csv:from-file (word "./plot_results/data/" model "/evtimes-mean.csv")
   set rows remove-item 0 rows
 
   foreach rows [x ->
@@ -1970,18 +1974,36 @@ to view-evacuation-time [agent-type]
 
   ask intersections with [shelter?] [set size 0]
 
-  ask intersections [
-    let value ifelse-value agent-type = "cars" [car-avg_ev_times][ped-avg_ev_times]
+  ask patches [set pcolor black]
+  ask roads [set color white]
+
+  let ints intersections with [ped-avg_ev_times != 0]
+
+  let measures []
+  ifelse agent-type = "cars" [
+    set ints intersections with [car-avg_ev_times != 0]
+    set measures (list (min [car-avg_ev_times] of ints - 600) (max [car-avg_ev_times] of ints - 600)  (mean [car-avg_ev_times] of ints - 600))
+  ][
+    set measures (list (min [ped-avg_ev_times] of ints - 600) (max [ped-avg_ev_times] of ints - 600) (mean [ped-avg_ev_times] of ints - 600) )
+  ]
+  print map [x -> round x / 60] measures
+
+  ask intersections [set size 0]
+
+  ask ints [
+    let value (ifelse-value agent-type = "cars" [car-avg_ev_times][ped-avg_ev_times]) - 600
     let col palette:scale-gradient-hsb color-list value 0 3000
     set color col
-    set size 5
+    set size 2.5
+    set shape "circle"
   ]
 end
 
 ;;; roads analysis
 
 to view-road-speed [agent-type]
-  ask roads [set color gray]
+  ask roads [set color white set thickness 0.6]
+  ask patches [set pcolor black]
 
   let color-list [[100 100 100] [0 100 100]]
   let max-n 3.83
@@ -2112,6 +2134,34 @@ to view-critical-links
   ]
 end
 
+to view-mean-critical-links
+;  ;; new
+;  let critical-links link-set (list
+;     road 46	140 road 140 46
+;     road 128	129 road 129 128
+;     road 152	499	road 499 152
+;     road 201	280 road 280 201
+;     road 333	128 road 128 333
+;  )
+
+; base
+  let critical-links link-set (list
+     road 128	250 road 250 128
+     road 173	389 road 389 173
+     road 188	214 road 214 188
+     road 250	389 road 389 250
+  )
+
+  ask roads [
+    set color black
+    set thickness 0.5
+  ]
+
+  ask critical-links [
+    set color red
+    set thickness 1
+  ]
+end
 
 to view-micro-level-speed [ped? car?]
   ask patches [set pcolor black]
@@ -2142,6 +2192,8 @@ to view-micro-level-speed [ped? car?]
   ]
 
   ask residents [set size 0]
+  ask pedestrians with [dead? or evacuated?] [set size 0]
+  ask cars with [dead? or evacuated?] [set size 0]
   if ped? and not car? [ask cars [set size 0]]
   if not ped? and car? [ask pedestrians [set size 0]]
 
@@ -2150,41 +2202,67 @@ end
 ;;; intersections analysis
 
 to view-intersection-car-delay
-  ask patches [set pcolor white]
-  ask intersections [set size 0]
+  ask patches [set pcolor black]
+  ask intersections with [not shelter?] [set color white]
+  ask intersections with [shelter?] [set color violet]
+  ask roads [set color white]
 
   let color-list [[100 100 100] [0 100 100]]
 
-  let max-n max [car-delay] of crossroads
+  let max-n 200 ; max [car-delay] of crossroads
+  print max-n
 
-  ask crossroads with [not empty? stops] [set shape "circle" set size 3]
-  ask crossroads with [empty? stops] [set shape "x" set size 6]
+;  ask crossroads with [not empty? stops] [set shape "circle" set size 2]
+;  ask crossroads with [empty? stops] [set shape "square" set size 4]
 
-  ask crossroads [
+  print word "Max TWSC: " max [car-delay] of crossroads with [not empty? stops]
+  print word "Max AWSC: " max [car-delay] of crossroads with [empty? stops]
+  print word "Average TWSC: " mean [car-delay] of crossroads with [not empty? stops]
+  print word "Average AWSC: " mean [car-delay] of crossroads with [empty? stops]
+
+  ask crossroads with [car-delay != 0] [
+    ; let col palette:scale-gradient palette:scheme-colors "Divergent" "RdYlGn" 5 (max-n - car-delay) 0 max-n
     let col palette:scale-gradient-hsb color-list car-delay 0 max-n
     set color col
+    set size 3
   ]
+
+  ask crossroads with [empty? stops and car-delay != 0] [ set shape "triangle" set size 6 ]
 
   ask residents [set size 0]
   ask cars [set size 0]
   ask pedestrians [set size 0]
 end
 
-to view-intersection-flow [flow-dir agent-type]
-  ask patches [set pcolor white]
+to view-intersection-flow [flow-dir agent-type int-type]
+  ask patches [set pcolor black]
+  ask intersections with [not shelter?] [set color white]
+  ask intersections with [shelter?] [set color violet]
+  ask roads [set color white]
+
   let color-list [[100 100 100] [0 100 100]]
-  let tmp list max [sum table:values car-in-flow] of crossroads max [sum table:values car-out-flow] of crossroads
-  print tmp
 
-  if agent-type = "pedestrian" [
-    set tmp list max [sum table:values ped-in-flow] of crossroads max [sum table:values ped-out-flow] of crossroads
-  ]
+;  let tmp list max [sum table:values car-in-flow] of crossroads max [sum table:values car-out-flow] of crossroads
+;
+;
+;  if agent-type = "pedestrian" [
+;    set tmp list max [sum table:values ped-in-flow] of crossroads max [sum table:values ped-out-flow] of crossroads
+;  ]
+;  print tmp
 
-  let max-n max tmp
+  let max-n ifelse-value agent-type = "pedestrian" [0.15][0.75] ; max tmp
 
   ask intersections [set size 0] ; hide non-crossroads
 
-  ask crossroads [
+  let ints crossroads
+  if int-type = "two" [
+    set ints crossroads with [not empty? stops]
+  ]
+  if int-type = "four" [
+    set ints crossroads with [empty? stops]
+  ]
+
+  ask ints [
     let flow ifelse-value flow-dir = "in" [car-in-flow][car-out-flow]
 
     if agent-type = "pedestrian" [
@@ -2202,9 +2280,68 @@ to view-intersection-flow [flow-dir agent-type]
   ask cars [set size 0]
   ask pedestrians [set size 0]
 
+  ask crossroads with [not empty? stops] [set shape "circle" set size 2]
+  ask crossroads with [empty? stops] [set shape "square" set size 4]
+
   print max-n
 end
 
+to view-intersection-flow2
+  ask patches [set pcolor black]
+  ask intersections with [not shelter?] [set color white]
+  ask intersections with [shelter?] [set color violet]
+  ask roads [set color white]
+
+  let color-list [[100 100 100] [0 100 100]]
+
+  ask intersections [set size 0] ; hide non-crossroads
+
+  ask crossroads [
+    let flow abs (sum table:values car-in-flow - sum table:values car-out-flow)
+
+    let dist (flow * 60) / sqrt(2)
+    print dist
+
+    ;print (list (sum table:values car-in-flow * 60) (sum table:values car-out-flow * 60) flow)
+
+    let t 3 ; threshold
+
+    ; ped max 3, car max 10
+    ;let col palette:scale-gradient-hsb color-list flow 0 t
+    ;set color col
+    if dist >= t [
+      set size 3
+      set color ifelse-value not empty? stops [sky][orange]
+      set shape "circle"
+    ]
+  ]
+
+  ask residents [set size 0]
+  ask cars [set size 0]
+  ask pedestrians [set size 0]
+
+  ;ask crossroads with [not empty? stops] [set shape "circle"]
+  ;ask crossroads with [empty? stops] [set shape "square"]
+end
+
+to show-intersections-casualties
+  let max-n  max [casualties] of roads
+  let color-list [[100 100 100] [0 100 100]]
+
+  ask crossroads [
+    let in_casualties [casualties] of (link-set (map [x -> road who x] [who] of in-road-neighbors)) with [casualties / sum [casualties] of roads * 100 >= 5]
+    let out_casualties [casualties] of (link-set (map [x -> road x who] [who] of out-road-neighbors)) with [casualties / sum [casualties] of roads * 100 >= 5]
+
+    let tot_casualties sum in_casualties + sum out_casualties
+
+    if tot_casualties > 0 [
+      print list in_casualties out_casualties
+      let col palette:scale-gradient-hsb color-list tot_casualties 0 max-n
+      set color col
+      set size 4
+    ]
+  ]
+end
 
 to profile
   reset-ticks
@@ -2265,10 +2402,10 @@ PENS
 "Pedestrians" 1.0 0 -14835848 true "" "plotxy (ticks / 60) (count pedestrians with [ color = green ] / (count residents + count pedestrians + count cars) * 100)"
 
 SWITCH
-9
-52
-214
-85
+11
+48
+216
+81
 immediate_evacuation
 immediate_evacuation
 1
@@ -2276,9 +2413,9 @@ immediate_evacuation
 -1000
 
 BUTTON
-1130
+1145
 12
-1209
+1236
 45
 GO
 \ngo
@@ -2293,31 +2430,31 @@ NIL
 1
 
 TEXTBOX
-8
-168
-217
-196
+12
+170
+221
+198
 Residents' Decision Making Probabalisties : (Percent)
 11
 0.0
 1
 
 INPUTBOX
-8
-201
-109
-261
+12
+203
+113
+263
 R1_HorEvac_Foot
-50.0
+25.0
 1
 0
 Number
 
 INPUTBOX
-8
-264
-109
-324
+12
+266
+113
+326
 R3_VerEvac_Foot
 0.0
 1
@@ -2327,7 +2464,7 @@ Number
 MONITOR
 947
 52
-1029
+1037
 97
 Time (min)
 ticks / 60
@@ -2336,10 +2473,10 @@ ticks / 60
 11
 
 INPUTBOX
-114
-328
-164
-388
+118
+330
+168
+390
 Hc
 1.0
 1
@@ -2369,7 +2506,7 @@ PENS
 BUTTON
 947
 12
-1029
+1038
 45
 READ (1/2)
 load1\noutput-print \"READ (1/2) DONE!\"\nbeep
@@ -2384,20 +2521,20 @@ NIL
 1
 
 TEXTBOX
-5
-329
-121
-371
+9
+331
+125
+373
 Critical Depth and Time: (Meters and Seconds)
 11
 0.0
 1
 
 INPUTBOX
-6
-598
-56
-658
+10
+600
+60
+660
 Rtau1
 10.0
 1
@@ -2405,10 +2542,10 @@ Rtau1
 Number
 
 INPUTBOX
-56
-598
-106
-658
+60
+600
+110
+660
 Rsig1
 1.65
 1
@@ -2416,10 +2553,10 @@ Rsig1
 Number
 
 INPUTBOX
-6
-662
-56
-722
+10
+664
+60
+724
 Rtau3
 10.0
 1
@@ -2427,10 +2564,10 @@ Rtau3
 Number
 
 INPUTBOX
-56
-662
-106
-722
+60
+664
+110
+724
 Rsig3
 1.65
 1
@@ -2438,19 +2575,19 @@ Rsig3
 Number
 
 TEXTBOX
-8
-582
-208
-610
+12
+584
+212
+612
 Evacuation Decsion Making Times:
 11
 0.0
 1
 
 MONITOR
-1037
+1044
 53
-1119
+1138
 98
 Evacuated
 count turtles with [ color = green ]
@@ -2459,10 +2596,10 @@ count turtles with [ color = green ]
 11
 
 MONITOR
-1130
-52
-1207
-97
+1145
+54
+1236
+99
 Casualty
 count turtles with [ color = red ]
 17
@@ -2470,10 +2607,10 @@ count turtles with [ color = red ]
 11
 
 MONITOR
-1130
-103
-1208
-148
+1144
+105
+1236
+150
 Mortality (%)
 mortality_rate
 2
@@ -2481,9 +2618,9 @@ mortality_rate
 11
 
 BUTTON
-1038
+1044
 12
-1120
+1139
 45
 Read (2/2)
 load2\noutput-print \"READ (2/2) DONE!\"\nbeep
@@ -2498,21 +2635,21 @@ NIL
 1
 
 INPUTBOX
-114
-200
-214
-260
+118
+202
+218
+262
 R2_HorEvac_Car
-50.0
+75.0
 1
 0
 Number
 
 INPUTBOX
-114
-263
-214
-323
+118
+265
+218
+325
 R4_VerEvac_Car
 0.0
 1
@@ -2520,10 +2657,10 @@ R4_VerEvac_Car
 Number
 
 INPUTBOX
-112
-598
-162
-658
+116
+600
+166
+660
 Rtau2
 10.0
 1
@@ -2531,10 +2668,10 @@ Rtau2
 Number
 
 INPUTBOX
-162
-598
-212
-658
+166
+600
+216
+660
 Rsig2
 1.65
 1
@@ -2542,10 +2679,10 @@ Rsig2
 Number
 
 INPUTBOX
-114
-663
-164
-723
+118
+665
+168
+725
 Rtau4
 10.0
 1
@@ -2553,10 +2690,10 @@ Rtau4
 Number
 
 INPUTBOX
-161
-663
-211
-723
+165
+665
+215
+725
 Rsig4
 1.65
 1
@@ -2564,10 +2701,10 @@ Rsig4
 Number
 
 INPUTBOX
-64
-399
-135
-459
+68
+401
+139
+461
 max_speed
 35.0
 1
@@ -2575,20 +2712,20 @@ max_speed
 Number
 
 TEXTBOX
-11
-399
-51
-427
+15
+401
+55
+429
 by car:\n(mph)
 11
 0.0
 1
 
 INPUTBOX
-64
-460
-137
-520
+68
+462
+141
+522
 acceleration
 5.0
 1
@@ -2596,10 +2733,10 @@ acceleration
 Number
 
 INPUTBOX
-141
-460
-216
-520
+145
+462
+220
+522
 deceleration
 25.0
 1
@@ -2607,20 +2744,20 @@ deceleration
 Number
 
 TEXTBOX
-6
-472
-55
-506
+10
+474
+59
+508
 (ft/s^2)
 11
 0.0
 1
 
 INPUTBOX
-64
-521
-137
-581
+68
+523
+141
+583
 alpha
 0.14
 1
@@ -2628,20 +2765,20 @@ alpha
 Number
 
 TEXTBOX
-3
-535
-63
-576
+7
+537
+67
+578
 (mi^2/hr)
 11
 0.0
 1
 
 BUTTON
-7
-14
-214
-47
+9
+10
+216
+43
 Initialize
 setup-init-val
 NIL
@@ -2658,7 +2795,7 @@ PLOT
 947
 504
 1370
-725
+724
 Evacuation Time Histogram
 Minutes (after the earthquake)
 #
@@ -2675,10 +2812,10 @@ PENS
 "Median" 1.0 0 -2674135 true "set-plot-pen-mode 0 ; line mode" "plot-pen-reset\nplot-pen-up\nplotxy median ev_times 0\nplot-pen-down\nplotxy median ev_times plot-y-max"
 
 MONITOR
-1036
-104
-1120
-149
+1044
+105
+1139
+150
 Evacuated (%)
 count turtles with [ color = green ] / (count residents + count pedestrians + count cars) * 100
 1
@@ -2686,10 +2823,10 @@ count turtles with [ color = green ] / (count residents + count pedestrians + co
 11
 
 INPUTBOX
-167
-328
-217
-388
+171
+330
+221
+390
 Tc
 120.0
 1
@@ -2763,10 +2900,10 @@ NIL
 1
 
 SWITCH
-8
-127
-213
-160
+10
+85
+215
+118
 enable-plots
 enable-plots
 0
@@ -2790,26 +2927,47 @@ NIL
 NIL
 1
 
-SWITCH
-8
-90
-214
-123
-handle-intersections
-handle-intersections
-0
-1
--1000
-
 CHOOSER
-1511
-454
-1663
-499
-pedestrian-speed
-pedestrian-speed
-"costant" "wang2021"
+10
+120
+215
+165
+model
+model
+"base" "new_const" "new" "base_density"
+0
+
+BUTTON
+1567
+344
+1645
+377
+Import
+import-network-data\n
+NIL
 1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+1388
+344
+1560
+377
+minute
+minute
+0
+60
+60.0
+10
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 @#$#@#$#@
@@ -2827,6 +2985,12 @@ arrow
 true
 0
 Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+awsc
+false
+0
+Rectangle -7500403 true true 30 30 270 270
+Rectangle -16777216 true false 90 90 210 210
 
 box
 false
