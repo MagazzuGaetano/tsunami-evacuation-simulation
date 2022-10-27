@@ -127,8 +127,8 @@ I pedoni invece non presentano alcun cambiamento significativo ne al variare di 
 \ref*{fig:analisi-comparison-ev-times-map} mostra i tempi di evacuazione spazialmente in base al punto di partenza,
 mediati tra tutte le possibili configurazioni di percentuali di auto e pedoni, si nota che in genrale chi parte sulla costa, la parte sinitra dell´immagine,
 impiega più tempo di chi invece è più verso destra.
-confrontando i casi (a) e (b) nessun cambiamente significativo viene introdotto dal modello esteso rispetto a quello base.
-mentre per i casi (c) e (d) il modello esteso introduce dei rallentamenti soprattuto lungo la costa.
+confrontando i casi (a) e (b) nessun cambiamente significativo viene introdotto per i pedoni dal modello esteso rispetto a quello base.
+mentre per i casi (c) e (d) il modello esteso introduce dei rallentamenti soprattuto lungo la costa dovuti alla gestione delle intersezioni.
 
 \begin{figure}
     \centering
@@ -141,18 +141,6 @@ mentre per i casi (c) e (d) il modello esteso introduce dei rallentamenti soprat
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-car.png}
-        \caption{base auto}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-car.png}
-        \caption{new auto}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-ped.png}
         \caption{base pedoni}
     \end{subfigure}
@@ -161,6 +149,18 @@ mentre per i casi (c) e (d) il modello esteso introduce dei rallentamenti soprat
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-ped.png}
         \caption{new pedoni}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-car.png}
+        \caption{base auto}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-car.png}
+        \caption{new auto}
     \end{subfigure}
     \caption{comparazione tempi di evacuazione rappresentati in base al punto di partenza dell´evacuazione}
     \label{fig:analisi-comparison-ev-times-map}
@@ -209,6 +209,11 @@ I link critici identificati vengono riportati nel grafico \ref*{fig:analisi-comp
     \label{fig:analisi-comparison-critical-links2}
 \end{figure}
 
+\ref*{fig:analisi-comparison-in-out-flow-ped} vengono confrontati il flusso in entrata ed in uscita delle intersezioni,
+comparando il modello base, al variare del numero di pedoni, per capire l´effetto generato dalla gestione degli incroci.
+E possibile notare come in generale non si notano grosse differenze tra gli AWSC e i TWSC, 
+il flusso in entrata ed in uscita sia abbastanza bilanciato formando una retta e che all´aumentare
+del numero di pedoni aumenti il flusso, infine tra i due modelii (a) e (b) non ci siano sostanziali differenze.
 
 \begin{figure}
     \centering
@@ -225,6 +230,17 @@ I link critici identificati vengono riportati nel grafico \ref*{fig:analisi-comp
     \caption{}
     \label{fig:analisi-comparison-in-out-flow-ped}
 \end{figure}
+
+\ref*{fig:analisi-comparison-in-out-flow-ped} viene confrontato invece il flusso per le auto anche
+qui in generale non si notano grosse differenze tra gli AWSC ed i TWSC, il flusso aumenta all´aumentare del numero di auto,
+ma il flusso in entrata ed in uscita non siano perfettamente bilanciati ed non
+formano una retta come il grafico precedente.
+Vengono quindi evidenziati gli incroci più critici come i punti che superano una distanza di 3 dalla retta y = x,
+si può notare come il numero di incroci critici aumenti con il numero di auto.
+In particolare si nota un abbassamento sostanziale del flusso nel modello esteso (b)
+rispetto a quello base (a).
+Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il modello base 
+\ref*{fig:analisi-comparison-in-out-flow-map-base} che per il modello esteso \ref*{fig:analisi-comparison-in-out-flow-map-new}.
 
 \begin{figure}
     \centering
