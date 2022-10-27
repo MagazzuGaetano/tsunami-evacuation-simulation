@@ -1,25 +1,71 @@
 \section{Simulazione}
 \label{sec:simulazione}
+Per la simulazione alcuni parametri sono stati fissati, mentre altri parametri sono estratti randomicamente 
+o sono stati cambiati manualmente per i diversi esperimenti.
 
-Distribuzione auto/pedoni gestita dai parametri...
+\subsection{Parametri Fissati}
 
-Lista parametri
+Parametri per il modello \textit{car-following}:
+\begin{itemize}
+    \item \textbf{max\_speed}: 55 km/h. Velocità massima.
+    \item \textbf{acceleration}: 1.5 m/s². Accelerazione.
+    \item \textbf{deceleration}: 7.5 m/s². Decelerazione.
+    \item \textbf{alpha}: 0.14. Coefficente di sensitività. 
+\end{itemize}
 
-\begin{description}
-  \item[R1\_HorEvac\_Foot]
-  \item[R2\_HorEvac\_Car]
-  \item[R3\_VerEvac\_Foot]
-  \item[R4\_VerEvac\_Car]
-  \item[Hc]
-  \item[Tc]
-  \item[Ped\_Speed]
-  \item[Ped\_Sigma]
-  \item[max\_speed]
-  \item[acceleration]
-  \item[deceleration]
-  \item[alpha]
-  \item[Rtau]
-  \item[Rsig]
-\end{description}
+\noindent
+Parametri per il \textit{casualty model}:
+\begin{itemize}
+  \item \textbf{Hc}: 1 m. Profondità critica alla quale l'agente viene considerato una vittima.
+  \item \textbf{Tc}: 120 s. Tempo in acqua che l'agente deve trascorrere per venire considerato una vittima. 
+\end{itemize}
 
-Monte-Carlo simulation mostly with 10 times repetition
+\noindent
+Parametri per il tempo di preparazione:
+\begin{itemize}
+  \item \textbf{Rtau}: 10 min. Tempo minimo per prepararsi prima di evacuare.
+  \item \textbf{Rsig}: 1.65. Fattore di scala per la distribuzione di Rayleigh.
+\end{itemize}
+
+\noindent
+Parametri per il comportamento dei pedoni:
+\begin{itemize}
+  \item \textbf{search\_length}: 4 m. Lunghezza della strada davanti al pedone per calcolare la densità.
+\end{itemize}
+
+\noindent
+Parametri per le dimensioni delle strade:
+\begin{itemize}
+  \item \textbf{side\_width}: 1.5 m. Larghezza di un marciapiede.
+  \item \textbf{lane\_width}: 3.6 m. Larghezza di una corsia.
+\end{itemize}
+
+\subsection{Parametri Variabili}
+
+Parametri per la percentuale di auto e pedoni:
+\begin{itemize}
+  \item \textbf{R1\_HorEvac\_Foot}: Percentuale di agenti che evacuano a piedi.
+  \item \textbf{R2\_HorEvac\_Car}: Percentuale di agenti che evacuano in auto.
+\end{itemize}
+
+\noindent
+%TODO: riscrivere
+Sono state provate le seguenti combinazioni di auto e pedoni:
+\begin{itemize}
+  \item \textbf{R1\_HorEvac\_Foot}: 0\%, \textbf{R2\_HorEvac\_Car}: 100\%
+  \item \textbf{R1\_HorEvac\_Foot}: 25\%, \textbf{R2\_HorEvac\_Car}: 75\%
+  \item \textbf{R1\_HorEvac\_Foot}: 50\%, \textbf{R2\_HorEvac\_Car}: 50\%
+  \item \textbf{R1\_HorEvac\_Foot}: 75\%, \textbf{R2\_HorEvac\_Car}: 25\%
+  \item \textbf{R1\_HorEvac\_Foot}: 100\%, \textbf{R2\_HorEvac\_Car}: 0\%
+\end{itemize}
+
+\noindent
+Parametri per il comportamento dei pedoni:
+\begin{itemize}
+  \item \textbf{free\_speed}: velocità massima... %TODO: aggiungere
+  \item \textbf{side}: lato del marciapiede all'inizio della simulazione (0 sinistro e 1 destro). Durante la simulazione può variare. 
+\end{itemize}
+
+\noindent
+%TODO: riscrivere
+Per via di questa randomicità i risultati degli esperimenti sono stati mediati su 30 simulazioni.
