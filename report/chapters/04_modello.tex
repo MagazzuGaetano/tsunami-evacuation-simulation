@@ -26,12 +26,10 @@ L'ambiente é composto dalla rete stradale della città con i relativi rifugi e 
 % TODO: riscrivere
 La rete stradale é rappresentata da un grafo, i cui nodi corrispondono alle intersezioni e gli archi alle strade.
 Tutte le strade sono considerate a senso unico, con una sola corsia e con una velocità limite di 55 km/h.
-
 8 delle intersezioni sono marcate come rifugi con capacità illimitata.
 
 Lo tsunami é rappresentato da una griglia discreta, dove ogni cella contiene i valori temporali di altezza delle onde.
 I dati usati in questo progetto sono quelli calcolati dal modello di inondazione ComMIT/MOST \parencite{titov1997implementation} per la zona di subduzione della Cascadia.
-
 
 \subsection{Agenti}
 La simulazione può prevedere diversi tipi di agenti: residenti, pedoni e auto.
@@ -43,7 +41,7 @@ Un residente può scegliere diverse modalità per evacuare: a piedi o in auto e 
 Una volta che ogni agente decide in che modo evacuare non cambierà scelta per tutta la simulazione.
 
 Prima di iniziare l'evacuazione i residenti impiegano del tempo per prepararsi
-che include il raggiungimento del veicolo.
+che include il tempo per il raggiungimento del veicolo.
 %
 Questo tempo chiamato \textit{milling time} é modellato tramite
 la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo ($\tau$) di 10 minuti
@@ -58,8 +56,13 @@ Scaduto il tempo di preparazione l'agente si muove verso l'intersezione più vic
 in base alla modalità scelta viene considerato un agente di tipo pedone o auto.
 L'agente quindi inizia a seguire il percorso più breve per il rifugio più vicino raggiungibile, trovato tramite l'algoritmo A*.
 
-Gli agenti durante l'evacuazione possono continuare sulla strada attuale o cambiare strada seguendo il percorso,
-morire se l'altezza dell'onda nel punto in cui si trova é superiore o uguale a un parametro $H_c$,
+Gli agenti durante l'evacuazione possono:
+\begin{itemize}
+  \item Continuare sulla strada attuale.
+  \item Cambiare strada seguendo il percorso più breve.
+  \item Morire se rimangono in una zona in cui l'altezza delle onde supera 1 m per un tempo di 120 s.
+  \item Evacuare se hanno raggiunto un rifuigio.
+\end{itemize}
 
 \subsubsection{Pedoni}
 La velocità di camminata viene stabilita tramite una distribuzione normale

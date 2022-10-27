@@ -19,28 +19,28 @@ Inoltre la velocità dei pedoni verrà modificata in base alla congestione in mo
 Prima di descrivere le varie aggiunte in questa sezione verrannò elencate le varie modifiche che sono state effettuate alla rete stradale.
 
 Tutte le strade della rete sono state considerate come strade locali secondo il \textcite{seaside2010tsp},
-ovvero strade a doppio senso e a una corsia con una larghezza variabile da 7.3 m a 9 m e opzionalmente
+ovvero strade a doppio senso e a una corsia con una larghezza variabile da 7.3 m a 9 m e opzionalmente con
 un marciapiedie per ogni lato della strada con una larghezza fissa di 1.5 m.
 %
-È stato assunto che tutte le strade abbiano marciapiedi su entrambi i lati e che la larghezza sia fissata al valore minimo.
+È stato assunto che tutte le strade abbiano marciapiedi su entrambi i lati e che la larghezza sia fissata al valore minimo (7.3 m).
 
 \newpage
-\subsection{Speed Variability dei Pedoni}
+\subsection{Velocità dei Pedoni}
 Nello stato dell'arte solitamente la velocità dei pedoni viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
-espresse tramite un diagramma fondamentale [survey].
-Per estrarre queste relazioni sono richiesti dei dati sperimentali che non sempre disponibili soprattutto nei casi di emergenza.
+espresse tramite un diagramma fondamentale \parencite{nikolic2016probabilistic}.
+Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre disponibili, soprattutto nei casi di emergenza.
 
 Perciò analizzeremo come questo problema viene trattato da metodi allo stato dell'arte
 per la simulazione di evacuazione di tsunami.
 
 Alcuni lavori distinguono i pedoni in gruppi in base alla loro velocità sulla base di questionari o altri lavori riguardanti il comportamento dei pedoni.
 \textcite{takabatake2017simulated} hanno effettuato una distinzione sull'età con una velocità massima di 1.19 m/s (Under 65) e 0.96 m/s (Over 65).
-Basandosi su \textcite[]{older1968movement} hanno assunto che una decrescità lineare della velocità da un livello di densità di 0.3 p/m² a 3.0 p/m² (Fig. \ref{fig:speed-linear}).
-\textcite{goto2012tsunami} hanno raggruppato i pedoni in famiglie che sono distinte in \textit{normal walkers} con velocità massima di 1.5 m/s e
-\textit{slow walkers} (famiglie con disabili o anziani) con velocità massima di 0.75 m/s (Fig. \ref{fig:speed-goto}).
+Basandosi sul lavoro di \textcite[]{older1968movement} hanno assunto una decrescità lineare della velocità da un livello di densità di 0.3 p/m² a uno di 3.0 p/m² (Fig. \ref{fig:speed-linear}).
+\textcite{goto2012tsunami}, invece hanno raggruppato i pedoni in famiglie che sono distinte in \textit{normal walkers}, con velocità massima di 1.5 m/s, e
+\textit{slow walkers} (famiglie con disabili o anziani), con velocità massima di 0.75 m/s (Fig. \ref{fig:speed-goto}).
 
 Altri lavori hanno assunto che la velocità sia distribuita normalmente.
-\textcite{wang2021novel} considera una distribuzione normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
+\textcite{wang2021novel} hanno considerato una distribuzione normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
 con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
 
 
@@ -68,7 +68,7 @@ con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
         \caption{}
         \label{fig:speed-wang}
     \end{subfigure}
-    \caption{Esempi di relazione velocità-densità.
+    \caption{Relazione velocità-densità.
         a) \textcite[]{lammel2010emergency},
         b) \textcite[]{takabatake2017simulated},
         c) \textcite[]{goto2012tsunami},
@@ -78,15 +78,22 @@ con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
 \end{figure}
 
 In questi lavori la velocità viene aggiustata in base alla densità in un'area davanti ai pedoni (Fig. \ref{fig:speeds}), tramite la seguente formula
-$\rho = n /(L \times W)$, dove n è il numero di persone nell'area $L \times W$, $L$ è la lunghezza di ricerca e $W$ la larghezza della strada.
+$\rho = n /(L \times W)$, dove $n$ è il numero di persone nell'area $L \times W$, $L$ è la lunghezza di ricerca e $W$ la larghezza della strada.
 %
 La lunghezza solitamente assume valori tra 3 e 5 m.
 
-\textcite{lammel2010emergency} invece ha introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO.
+\textcite{lammel2010emergency} invece hanno introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO.
+% TODO: coda FIFO... e poi come la usi?. spiegare
 La velocità viene aggiornata tramite la relazione $v = \min[v_{max}, FC / D]$ (Fig. \ref{fig:speed-lammel}),
-dove $D$ la densità e $FC$ è la \textit{flow capacity}, ovvero il flusso di pedoni in uscita in un link della rete.
-La \textit{flow capacity} è un parametro che è stato scelto approssimando la curva velocità-densità del modello a code a quella
-del diagramma fondamentale di \textcite{weidmann1993transporttechnik}. Inoltre è stata considerata una velocità massima di 1.66 m/s poichè i valori considerati da Weidmann sono relativi
+dove $D$ la densità e $FC$ è la \textit{flow capacity}, ovvero il flusso di pedoni in uscita, in un link della rete.
+
+\vspace{4mm}
+% TODO: toglierei
+-- La \textit{flow capacity} è un parametro che è stato scelto approssimando la curva velocità-densità del modello a code a quella
+del diagramma fondamentale di \textcite{weidmann1993transporttechnik}. -- 
+\vspace{4mm}
+
+Inoltre è stata considerata una velocità massima di 1.66 m/s poichè i valori considerati da Weidmann sono relativi
 al flusso dei pedoni in condizioni normali e non in caso di emergenza.
 
 % \vspace*{5mm}
@@ -110,22 +117,24 @@ al flusso dei pedoni in condizioni normali e non in caso di emergenza.
 % Basato sulla speed-density relationship in Goto et al (2012), introduce un modello di aggiustamento della velocità dei pedoni
 % come mostrato in figura \ref*{fig:speed-WANG}, dove vp0 rappresenta la free flow speed e $\rho_p$ la density ahead dei pedoni con search length di 4m.
 
-Come appena descritto i lavori analizzati, apparte avere informazioni sull'eta e sulle velocità massime dei pedoni, non hanno dati a loro disposizione per fittare i modelli.
-Di conseguenza non avendo dati empirici per questo lavoro si è deciso di usare il diagramma fondamentale di \textcite{weidmann1993transporttechnik},
-il quale descrive la relazione tra densità e velocità tramite la Kladek-formula (Eq. \ref{eq:kladek-formula}),
-dove $v_{f}$ è la free flow speed mentre $\rho$ è la densità e $\rho_{max}$ è la jam density.
+% Come appena descritto i lavori analizzati, apparte avere informazioni sull'eta e sulle velocità massime dei pedoni, non hanno dati a loro disposizione per fittare i modelli.
+% Di conseguenza non avendo dati empirici per questo lavoro si è deciso di usare il diagramma fondamentale di \textcite{weidmann1993transporttechnik},
+% il quale descrive la relazione tra densità e velocità tramite la Kladek-formula (Eq. \ref{eq:kladek-formula}),
+% dove $v_{f}$ è la free flow speed mentre $\rho$ è la densità e $\rho_{max}$ è la jam density.
+% %
+% \begin{equation}
+%     v = v_{f} \times (1 - e^{-\gamma \times (\frac{1}{\rho} - \frac{1}{\rho_{max}})})
+%     \label{eq:kladek-formula}
+% \end{equation}
+
+% I parametri scelti sono $\gamma = 1.913$, $v_f = 1.34$ m/s and $\rho_{max} = 5.4$ p/m² che secondo studi empirici hanno mostrato i risultati migliori.
+Non avendo a disposizione dati empirici é stato deciso di usare l'approccio di \textcite{wang2021novel}.
+%TODO: specificare che si basa sullo stesso modello di partenza
 %
-\begin{equation}
-    v = v_{f} \times (1 - e^{-\gamma \times (\frac{1}{\rho} - \frac{1}{\rho_{max}})})
-    \label{eq:kladek-formula}
-\end{equation}
-
-I parametri scelti sono $\gamma = 1.913$, $v_f = 1.34$ m/s and $\rho_{max} = 5.4$ p/m² che secondo studi empirici hanno mostrato i risultati migliori.
-
-Il calcolo della densità è stato effettuato considerando un'area di ricerca di 4 m x 1.5 m di fronte al pedone
+Il calcolo della densità è stato effettuato considerando un'area di ricerca di dimensioni 4 m x 1.5 m 
 come in \textcite{goto2012tsunami, wang2021novel}.
 
-I pedoni nel caso in cui sono presenti anche auto, procedono esclusivamente sui marciapiedi, altrimenti occupano tutta la strada.
+% I pedoni nel caso in cui sono presenti anche auto, procedono esclusivamente sui marciapiedi, altrimenti occupano tutta la strada.
 
 
 \newpage
