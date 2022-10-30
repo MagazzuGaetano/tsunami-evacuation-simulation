@@ -3,219 +3,270 @@
 
 \section{Analisi}
 \label{sec:analisi}
-In questa sezione verrà effettuata un analisi sui risultati della simulazione, comparando il modello base con le estensioni effettuate ed infine con un modello allo stato dell´arte.
+In questa sezione verrà effettuata un'analisi sui risultati mediati su 30 simulazioni, 
+comparando il modello base con il modello esteso e infine con un modello allo stato dell'arte.
 
-\subsection{Analisi Modello Base}
-Qui verranno analizzati le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per il modello base.
-Come mostrato nel grafico \ref*{fig:analisi-base-evacuated}, i pedoni non presentano alcun 
-cambiamento rilevante nel numero di evacuati al variare di diversi split, 
-per le auto invece all'aumentare del numero di auto corrisponde un numero sempre minore di evacuati ed un tempo maggiore è richiesto.
-Osservando le evacuazioni totali invece risulta che lo split migliore sia il 50\%-50\%, mentre lo split 0\%-100\% sia il peggiore.
-
-Considerazioni simili possono essere fatte rispetto \ref*{fig:analisi-base-casualties} alle morti con bassisime variazioni per i pedoni,
-mentre per le auto i casi peggiori risultano gli split 0\%-100\% e 25\%-75\%, mentre i casi restanti non comportano morti.
-Infine le morti totali mostrano come lo split migliore con meno perdite sia 50\%-50\%, mentre il peggiore 0\%-100\%.
-
-Analizzando la distribuzione della percentuale di evacuati nel tempo è possibile notare quanto tempo sia necessario per evacuare.
-Si può osservare da \ref*{fig:analisi-base-evtimes} come all´aumentare del numero di auto la media tenda a spostarsi verso sinistra
-in particolare nel caso 50\%-50\% due picchi sembrano formarsi un molto probabilmente
-per le auto il primo mentre il secondo per i pedoni, quest´ultimo tende ad appiattirsi con il crescere del numero di auto fino a sparire nel caso 0\%-100\%.
+\subsection{Modello Base}
+Nelle figure \ref{fig:analisi-base-evacuated} e \ref{fig:analisi-base-casualties} vengono mostrate le percentuali di evacuati 
+e di morti nel tempo, al variare del numero di auto e pedoni.
+%
+Come si può notare dalla figura \ref{fig:analisi-base-evacuated}, il numero di pedoni non influenza la percentuale di pedoni evacuati nel tempo.
+%
+Per quanto riguarda le auto, più è alto il numero di auto più tempo è richiesto per evacuare e inoltre più bassa è la percentuale di auto evacuate alla fine della simulazione.
+%
+% TODO: rivedere
+Osservando le evacuazioni totali invece risulta che la configurazione che permette di evacuare più agenti sia la 50\% - 50\%, mentre la configurazione 0\% - 100\% sia la peggiore.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/base-evacuated.png}
-    \caption{percentuale pedoni e auto evacuati nel tempo per diversi split}
+    \caption{Percentuale degli evacuati nel tempo al variare del numero di agenti con il modello base.}
     \label{fig:analisi-base-evacuated}
 \end{figure}
 
-\newpage
+Per quanto riguarda le percentuali di mortalità (Fig. \ref{fig:analisi-base-casualties}), per i pedoni rimangono sotto al 2\% in tutti i casi.
+%
+Per le auto invece nei casi con una percentuale di auto di 25\% e 50\% non c'é nessuna vittima, mentre 
+con una percentuale di 75\% si ha una mortalità di 1.8\% e nel caso peggiore, ovvero 100\%, si raggiunge circa il 10\% di vittime.
+%
+Infine osservando le morti totali risulta che il caso migliore sia uno scenario bilanciato tra auto e pedoni, 
+mentre i casi con una mortalità maggiore siano quelli con solo pedoni o solo auto.
+
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/analisi/base-casualties.png}
-    \caption{percentuale pedoni e auto morti nel tempo per diversi split}
+    \includegraphics[width=\textwidth]{images/analisi/base-casualties.png}
+    \caption{Percentuale delle vittime nel tempo al variare del numero di agenti con il modello base.}
     \label{fig:analisi-base-casualties}
 \end{figure}
+
+Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le distribuzioni delle percentuali di agenti evacuati ad ogni minuto della simulazione.
 %
+% TODO: sistemare
+Si può osservare come all'aumentare del numero di auto considerate in una simulazione la media tenda a spostarsi verso sinistra.
+In particolare nel caso 50\%-50\% due picchi sembrano formarsi un molto probabilmente per le auto 
+il primo mentre il secondo per i pedoni, quest'ultimo tende ad appiattirsi con il crescere del 
+numero di auto fino a sparire nel caso 0\%-100\%.
+
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.8\textwidth]{images/analisi/base-evtimes.png}
-    \caption{distribuzione nel tempo di evacuati in percentuale per diversi split}
+    \includegraphics[width=\textwidth]{images/analisi/base-evtimes.png}
+    \caption{Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti con il modello base.}
     \label{fig:analisi-base-evtimes}
 \end{figure}
 
-\newpage
+\pagebreak
 
-\subsection{Analisi Estensione Modello}
-Le stesse analisi prese in considerazione per il modello base verranno descritte per il modello esteso.
-Come mostrato nel grafico \ref*{fig:analisi-new-evacuated} andamento simile a quello visto in precedenza per il modello base
-poche variazioni per i pedoni nella percentuale di evacuati leggermente più basa la curva corrispondente al caso 100\%-0\% probabilmente dovuta
-ai rallentamenti introdotti nel modello dei pedoni.
-Per le auto invece il caso milgliore è 75\%-25\% seguito da 0\%-100\% che in questo caso è meglio dei casi restanti.
-Osservando le evacuazioni totali invece risulta che lo split migliore sia il 100\%-0\%, seguito da 75\%-25\% mentre lo split 0\%-100\% sia il peggiore.
+\subsection{Modello Esteso}
+Nonostante l'introduzione della variazione della velocità per i pedoni, 
+la percentuale di pedoni evacuati risulta molto simile al variare del numero di pedoni (Fig. \ref{fig:analisi-new-evacuated}). 
+Si può notare una differenza significativa tra il minuto 30 e il minuto 40 per il caso 100\% pedoni.
 
-Anche in questo caso considerazioni simili possono essere fatte rispetto \ref*{fig:analisi-new-casualties} alle morti con bassisime variazioni per i pedoni,
-mentre per le auto i casi peggiori risultano gli split 25\%-75\% e 50\%-50\%, mentre il migliore 75\%-25\%.
-Infine le morti totali mostrano come lo split migliore con meno perdite sia 100\%-0\%, seguito da 75\%-25\%, mentre il peggiore 0\%-100\%.
+In generale il numero di auto evacuate é molto più basso rispetto a quello dei pedoni. 
+Il caso con una percentuale di auto evacuate maggiore è quello con il 25\% di auto e il 75\% di pedoni.
+Il caso con solo auto, al contrario di come si possa pensare, non é il caso peggiore e ha un numero di evacuati simile ai casi 
+con 75\% e 50\% di auto.
+%
+In tutti i casi le auto evacuano prima dei pedoni avendo una velocità superiore.
+
+Considerando i contributi di auto e pedoni, al diminuire del numero di auto considerate cresce il numero totale di evacuati alla fine della simulazione,
+fino al caso migliore con solo pedoni.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/analisi/new-evacuated.png}
+    \caption{Percentuale degli evacuati nel tempo al variare del numero di agenti con il modello esteso.}
+    \label{fig:analisi-new-evacuated}
+\end{figure}
+
+Nella figura \ref{fig:analisi-new-casualties} si può vedere come al variare del numero di pedoni considerati 
+non ci siano differenze significative, mentre per le auto il numero di vittime sale al crescere del numero di auto considerate.
+In generale la percentuale di vittime per le auto è molto più alto rispetto a quello dei pedoni, con un massimo di circa 37\% nel caso con 75\% di auto. 
+%
+Il numero di vittime totali cresce al crescere del numero di auto.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/analisi/new-casualties.png}
+    \caption{Percentuale delle vittime nel tempo al variare del numero di agenti con il modello esteso.}
+    \label{fig:analisi-new-casualties}
+\end{figure}
+
+\pagebreak
 
 La distribuzione della percentuale di evacuati nel tempo \ref*{fig:analisi-new-evtimes} ha un comportamento analogo a quello del modello base, con un aumento del tempo medio di evacuazione.
 
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{images/analisi/new-evacuated.png}
-    \caption{}
-    \label{fig:analisi-new-evacuated}
-\end{figure}
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=\textwidth]{images/analisi/new-casualties.png}
-    \caption{}
-    \label{fig:analisi-new-casualties}
-\end{figure}
-
-\newpage
-\begin{figure}[ht]
-    \centering
     \includegraphics[width=\textwidth]{images/analisi/new-evtimes.png}
-    \caption{}
+    \caption{Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti con il modello esteso.}
     \label{fig:analisi-new-evtimes}
 \end{figure}
 
-\newpage
-
-\subsection*{Comparazione Modello Base con Estensioni}
+\subsection{Comparazione Modello Base e Modello Esteso}
+% TODO: sistemare
 In questa sottosezione verrano comparati il modello base con il modello esteso analizzando,
 le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
-in particolare mostrando l´efficienza delle intersezioni e l´effetto causato durante la simulazione.
+in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
 
-Osservando \label{fig:analisi-comparison-total-ec} è possibile comparare le percentuali di evacuati e morti a diversi split tra i due modelli.
-In generale il modello esteso presenta un numero minore di evacuati ed un numero maggiore di morti, con un andamento peggiorativo all´aumentare del numero di auto
-gli unici casi in cui il modello esteso si avvicina ai risultati del modello base sono il caso con solo pedoni ed il caso 75\%-25\%.
+\pagebreak
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-total-evacuated.png}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-total-casualties.png}
     \end{subfigure}
-    \caption{(a) comparazione \% evacuati tra modello base e modello esteso, (b) comparazione \% morti tra modello base e modello esteso}
+    \caption{Comparazione tra modello base e modello esteso delle percentuali di agenti evacuati (sinistra) e di agenti morti (destra) al variare del numero di agenti.}
     \label{fig:analisi-comparison-total-ec}
 \end{figure}
 
-Come già detto in precedenza le distribuzioni di percentuale di evacuati nel tempo \ref*{fig:analisi-comparison-evtimes} del modello base e del modello esteso 
+\newpage
+
+Osservando la figura \ref{fig:analisi-comparison-total-ec} è possibile comparare le percentuali di evacuati e morti a diversi split tra i due modelli.
+In generale il modello esteso presenta un numero minore di evacuati e un numero maggiore di vittime rispetto al modello base.
+Per entrambi i modelli la percentuale di evacuati decresce all'aumentare del numero di auto considerate, mentre la percentuale di vittime cresce.
+Inoltre per entrambi i modelli le prime vittime si verificano dopo 40 min.
+
+gli unici casi in cui il modello esteso si avvicina ai risultati del modello base sono il caso con solo pedoni ed il caso 75\%-25\%.
+
+
+Come già detto in precedenza le distribuzioni di percentuale di evacuati nel tempo \ref{fig:analisi-comparison-evtimes} del modello base e del modello esteso 
 presentano un andamento simile con un aumento del tempo medio di evacuazione.
 
-\begin{figure}
+
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{images/analisi/comparison-evtimes.png}
-    \caption{}
+    \includegraphics[width=0.9\textwidth]{images/analisi/comparison-evtimes.png}
+    \caption{Comparazione delle distribuzioni dei tempi di evacuazione al variare del numero di agenti.}
     \label{fig:analisi-comparison-evtimes}
 \end{figure}
 
 
-Un´ulteriore comparazione è stata effettuata sui tempi di evacuazione al variare del numero di auto e pedoni
-come si può vedere dal grafico \ref*{fig:analisi-comparison-evtimes2} il modello base presenta
-un andamento decrescente del tempo medio richiesto per evacuare al diminuire delle auto, 
-mentre il modello esteso ha sempre tempi maggiori del modello base ed i casi peggiori sono 25\% - 75\% e 50\% - 50\%.
-I pedoni invece non presentano alcun cambiamento significativo ne al variare di split ne tra i due modelli con una media di circa 20min.
-
-\ref*{fig:analisi-comparison-ev-times-map} mostra i tempi di evacuazione spazialmente in base al punto di partenza,
-mediati tra tutte le possibili configurazioni di percentuali di auto e pedoni, si nota che in genrale chi parte sulla costa, la parte sinitra dell´immagine,
-impiega più tempo di chi invece è più verso destra.
-confrontando i casi (a) e (b) nessun cambiamente significativo viene introdotto per i pedoni dal modello esteso rispetto a quello base.
-mentre per i casi (c) e (d) il modello esteso introduce dei rallentamenti soprattuto lungo la costa dovuti alla gestione delle intersezioni.
-
-\begin{figure}
+\begin{figure}[ht]
     \centering
-    \includegraphics[width=\textwidth]{images/analisi/comparison-evtimes2.png}
-    \caption{}
+    \includegraphics[width=0.9\textwidth]{images/analisi/comparison-evtimes2.png}
+    \caption{
+        Comparazione dei tempi di evacuazione al variare del numero di agenti e nel caso medio distinti per auto (sopra) e pedoni (sotto).
+    }
     \label{fig:analisi-comparison-evtimes2}
 \end{figure}
 
-\begin{figure}
+Nella figura \ref{fig:analisi-comparison-evtimes2} vengono confrontati i tempi di evacuazione tra auto e pedoni.
+Per quanto riguarda le auto, il modello base presenta un andamento descresente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
+Le auto impiegano in media tempi maggiori con il modello esteso rispetto a quello base.
+%
+I pedoni invece non presentano alcun cambiamento significativo al variare del numero di agenti e del modello considerato. 
+
+Per entrambi i modelli un pedone impiega in media un tempo di 20 minuti per evacuare e un massimo di X.
+Per le auto invece il tempo medio di evacuazione per il modello base è X e per il modello esteso Y, 
+con tempi massimi rispettivamente di K e H.
+
+La figura \ref{fig:analisi-comparison-ev-times-map} mostra i tempi di evacuazione mediati tra gli agenti che partono dalla stessa intersezione,
+mediati a loro volta tra tutte le configurazioni di auto e pedoni.
+
+In generale gli agenti che partono dalla costa impiegano più tempo rispetto agli altri che sono più vicini ai rifugi.
+
+Confrontando i pedoni al variare del modello usato non si riscontrano cambiamenti significativi nei tempi di evacuazione (\ref{fig:2d-evtimes-base-ped}, \ref{fig:2d-evtimes-new-ped}).
+Mentre nel caso delle auto si nota che il modello esteso introduca dei rallentamenti rispetto al modello base, soprattuto lungo la costa (\ref{fig:2d-evtimes-base-car}, \ref{fig:2d-evtimes-new-car}).
+
+
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-ped.png}
-        \caption{base pedoni}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-ped.png}
-        \caption{new pedoni}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-car.png}
-        \caption{base auto}
+        \caption{Pedoni nel modello base}
+        \label{fig:2d-evtimes-base-ped}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.475\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-car.png}
-        \caption{new auto}
+        \caption{Pedoni nel modello esteso}
+        \label{fig:2d-evtimes-new-ped}
     \end{subfigure}
-    \caption{comparazione tempi di evacuazione rappresentati in base al punto di partenza dell´evacuazione}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-ped.png}
+        \caption{Auto nel modello base}
+        \label{fig:2d-evtimes-base-car}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}{0.475\textwidth}
+        \centering
+        \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-ped.png}
+        \caption{Auto nel modello esteso}
+        \label{fig:2d-evtimes-new-car}
+    \end{subfigure}
+    \caption{Comparazione dei tempi di evacuazione mediati tra gli agenti che partono dalla stessa intersezione. }
     \label{fig:analisi-comparison-ev-times-map}
 \end{figure}
 
-Per valutare l´effetto casusato dalla gestione delle intersezioni i link critici dei due modelli sono stati comparati,
+Per valutare l'effetto casusato dalla gestione delle intersezioni i link critici dei due modelli sono stati comparati,
 essi sono identificati analizzando la percentuale di mortalità media nei link e poi sogliati.
-Il seguenti grafico \ref{fig:analisi-comparison-critical-links1} mostra la percentuale di mortalità
-media nei link al variare dello split per il modello base e quello esteso, per poi sogliare al 5\%
-la media dei vari split.
-Osservando sia (a) che (b) si notano molti picchi più bassi con meno auto ed meno picchi più alti
-all´aumentare del numero di auto, in generale il modello esteso presenta un numero maggiore di picchi più alti. 
-I link critici identificati vengono riportati nel grafico \ref*{fig:analisi-comparison-critical-links2}.
 
-\begin{figure}
+Una ulteriore analisi per valutare l'effetto dell'estensione del modello è quella di evidenziare in quali strade si verificano 
+più vittime al variare del numero di auto e pedoni. 
+
+Nella figura \ref{fig:analisi-comparison-critical-links1} viene mostrato come si distribusce la percentuali di mortalità nelle strade 
+al variare del numero di auto e pedoni e le percentuali mediate tra tutti questi casi. 
+Le strade segnate come critiche corrispondono a quelle con una percentuale media maggiore del 5\%.
+
+Il modello base (Fig. \ref{fig:base-link-casualties}) nei casi con un numero di auto minore o uguale al 50\%
+non ci sono differenze significative e si hanno tante strade con una percentuale bassa di vittime, 
+mentre negli altri due casi ci sono poche strade con una percentuale alta.
+
+Il modello esteso (Fig. \ref{fig:new-link-casualties}) invece % TODO
+
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/base_links_casualties.png}
-        \caption{}
+        \caption{Modello base}
+        \label{fig:base-link-casualties}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.475\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/new_links_casualties.png}
-        \caption{}
+        \caption{Modello esteso}
+        \label{fig:new-link-casualties}
     \end{subfigure}
-    \caption{}
+    \caption{Comparazione delle percentuali di mortalità nelle strade al variare del numero di auto e pedoni.}
     \label{fig:analisi-comparison-critical-links1}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-critical-links.png}
-        \caption{}
+        \caption{Modello base}
     \end{subfigure}
     \hfill
     \begin{subfigure}{0.475\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-critical-links.png}
-        \caption{}
+        \caption{Modello esteso}
     \end{subfigure}
-    \caption{}
+    \caption{Strade critiche trovate per i due modelli.}
     \label{fig:analisi-comparison-critical-links2}
 \end{figure}
 
 \ref*{fig:analisi-comparison-in-out-flow-ped} vengono confrontati il flusso in entrata ed in uscita delle intersezioni,
-comparando il modello base, al variare del numero di pedoni, per capire l´effetto generato dalla gestione degli incroci.
+comparando il modello base, al variare del numero di pedoni, per capire l'effetto generato dalla gestione degli incroci.
 E possibile notare come in generale non si notano grosse differenze tra gli AWSC e i TWSC, 
-il flusso in entrata ed in uscita sia abbastanza bilanciato formando una retta e che all´aumentare
+il flusso in entrata ed in uscita sia abbastanza bilanciato formando una retta e che all'aumentare
 del numero di pedoni aumenti il flusso, infine tra i due modelii (a) e (b) non ci siano sostanziali differenze.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.99\textwidth}
         \centering
@@ -242,7 +293,7 @@ rispetto a quello base (a).
 Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il modello base 
 \ref*{fig:analisi-comparison-in-out-flow-map-base} che per il modello esteso \ref*{fig:analisi-comparison-in-out-flow-map-new}.
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.99\textwidth}
         \centering
@@ -258,7 +309,7 @@ Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il
     \label{fig:analisi-comparison-in-out-flow-car}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
@@ -284,7 +335,7 @@ Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il
     \label{fig:analisi-comparison-in-out-flow-map-base}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
