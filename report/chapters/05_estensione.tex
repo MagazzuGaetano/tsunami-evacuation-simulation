@@ -82,17 +82,12 @@ $\rho = n /(L \times W)$, dove $n$ è il numero di persone nell'area $L \times W
 %
 La lunghezza solitamente assume valori tra 3 e 5 m.
 
-\textcite{lammel2010emergency} invece hanno introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO.
-% TODO: coda FIFO... e poi come la usi?. spiegare
+\textcite{lammel2010emergency} invece hanno introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO,
+limitata nel flusso in uscita \textit{flow capacity} e nella capacità di pedoni al suo interno \textit{Storage capacity}.
 La velocità viene aggiornata tramite la relazione $v = \min[v_{max}, FC / D]$ (Fig. \ref{fig:speed-lammel}),
-dove $D$ la densità e $FC$ è la \textit{flow capacity}, ovvero il flusso di pedoni in uscita, in un link della rete.
-
-\vspace{4mm}
-% TODO: toglierei
--- La \textit{flow capacity} è un parametro che è stato scelto approssimando la curva velocità-densità del modello a code a quella
-del diagramma fondamentale di \textcite{weidmann1993transporttechnik}. -- 
-\vspace{4mm}
-
+dove $D$ la densità e $FC$ è la \textit{flow capacity}.
+i parametri di tale modello sono stati scelti approssimando la curva velocità-densità del modello a code a quella
+del diagramma fondamentale di \textcite{weidmann1993transporttechnik}.
 Inoltre è stata considerata una velocità massima di 1.66 m/s poichè i valori considerati da Weidmann sono relativi
 al flusso dei pedoni in condizioni normali e non in caso di emergenza.
 
@@ -134,7 +129,6 @@ Non avendo a disposizione dati empirici é stato deciso di usare l'approccio di 
 Il calcolo della densità è stato effettuato considerando un'area di ricerca di dimensioni 4 m x 1.5 m 
 come in \textcite{goto2012tsunami, wang2021novel}.
 
-% I pedoni nel caso in cui sono presenti anche auto, procedono esclusivamente sui marciapiedi, altrimenti occupano tutta la strada.
 
 
 \newpage
