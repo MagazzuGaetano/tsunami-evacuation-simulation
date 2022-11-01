@@ -102,13 +102,14 @@ La distribuzione della percentuale di evacuati nel tempo \ref*{fig:analisi-new-e
     \label{fig:analisi-new-evtimes}
 \end{figure}
 
+\newpage
+
 \subsection{Comparazione Modello Base e Modello Esteso}
 % TODO: sistemare
 In questa sottosezione verrano comparati il modello base con il modello esteso analizzando,
 le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
 in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
 
-\pagebreak
 \subsubsection*{Percentuale di vittime ed evacuati}
 
 \begin{figure}[ht]
@@ -126,7 +127,7 @@ in particolare mostrando l'efficienza delle intersezioni e l'effetto causato dur
     \label{fig:analisi-comparison-total-ec}
 \end{figure}
 
-\newpage
+\pagebreak
 
 Osservando la figura \ref{fig:analisi-comparison-total-ec} è possibile comparare le percentuali di evacuati e morti a diversi split tra i due modelli.
 In generale il modello esteso presenta un numero minore di evacuati e un numero maggiore di vittime rispetto al modello base.
@@ -149,15 +150,6 @@ presentano un andamento simile con un aumento del tempo medio di evacuazione.
 \end{figure}
 
 
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.9\textwidth]{images/analisi/comparison-evtimes2.png}
-    \caption{
-        Comparazione dei tempi di evacuazione al variare del numero di agenti e nel caso medio distinti per auto (sopra) e pedoni (sotto).
-    }
-    \label{fig:analisi-comparison-evtimes2}
-\end{figure}
-
 Nella figura \ref{fig:analisi-comparison-evtimes2} vengono confrontati i tempi di evacuazione tra auto e pedoni.
 Per quanto riguarda le auto, il modello base presenta un andamento descresente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
 Le auto impiegano in media tempi maggiori con il modello esteso rispetto a quello base.
@@ -167,6 +159,15 @@ I pedoni invece non presentano alcun cambiamento significativo al variare del nu
 Per entrambi i modelli un pedone impiega in media un tempo di 21 minuti per evacuare e un massimo di 36 minuti.
 Per le auto invece il tempo medio di evacuazione per il modello base è 10 minuti e per il modello esteso 16 minuti, 
 con tempi massimi rispettivamente di 32 e 42 minuti.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.9\textwidth]{images/analisi/comparison-evtimes2.png}
+    \caption{
+        Comparazione dei tempi di evacuazione al variare del numero di agenti e nel caso medio distinti per auto (sopra) e pedoni (sotto).
+    }
+    \label{fig:analisi-comparison-evtimes2}
+\end{figure}
 
 \pagebreak
 
@@ -181,28 +182,28 @@ Mentre nel caso delle auto si nota che il modello esteso introduca dei rallentam
 
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-ped.png}
         \caption{Pedoni nel modello base}
         \label{fig:2d-evtimes-base-ped}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-ped.png}
         \caption{Pedoni nel modello esteso}
         \label{fig:2d-evtimes-new-ped}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-base-car.png}
         \caption{Auto nel modello base}
         \label{fig:2d-evtimes-base-car}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-ev-times-map-new-car.png}
         \caption{Auto nel modello esteso}
@@ -211,6 +212,8 @@ Mentre nel caso delle auto si nota che il modello esteso introduca dei rallentam
     \caption{Comparazione dei tempi di evacuazione mediati tra gli agenti che partono dalla stessa intersezione. }
     \label{fig:analisi-comparison-ev-times-map}
 \end{figure}
+
+\pagebreak
 
 \subsubsection*{Strade Critiche}
 
@@ -234,14 +237,14 @@ Le strade segnate come critiche corrispondono a quelle con una percentuale media
 
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/base_links_casualties}
         \caption{Modello base}
         \label{fig:base-link-casualties}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/new_links_casualties}
         \caption{Modello esteso}
@@ -251,15 +254,17 @@ Le strade segnate come critiche corrispondono a quelle con una percentuale media
     \label{fig:analisi-comparison-critical-links1}
 \end{figure}
 
+\pagebreak
+
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-critical-links.png}
         \caption{Modello base}
     \end{subfigure}
     \hfill
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-critical-links.png}
         \caption{Modello esteso}
@@ -267,6 +272,8 @@ Le strade segnate come critiche corrispondono a quelle con una percentuale media
     \caption{Strade critiche trovate per i due modelli.}
     \label{fig:analisi-comparison-critical-links2}
 \end{figure}
+
+\pagebreak
 
 \subsubsection*{Flusso}
 Delle ulteriori analisi sono state effettuate per le intersezioni. Sono stati confrontati i 
@@ -281,15 +288,15 @@ infatti i punti formati dalle coppie di flusso in entrata e di flusso in uscita 
 L'unica differenza che si nota è l'incremento del flusso all'aumentare del numero dei pedoni,
 mentre non si notano grosse differenze tra i due modelli e nemmeno tra i due tipi di incrocio.
 
-
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.99\textwidth}
+    \begin{subfigure}{0.9\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-ped.png}
         \caption{Modello base}
     \end{subfigure}
-    \begin{subfigure}{0.99\textwidth}
+    \hfill
+    \begin{subfigure}{0.9\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-ped.png}
         \caption{Modello esteso}
@@ -299,26 +306,30 @@ mentre non si notano grosse differenze tra i due modelli e nemmeno tra i due tip
     }
     \label{fig:analisi-comparison-in-out-flow-ped}
 \end{figure}
+
+\pagebreak
+
 % TODO: rivedere
 Osservando il flusso delle auto (Fig. \ref{fig:analisi-comparison-in-out-flow-car}), anche in questo caso
 non si notano grosse differenze tra AWSC e TWSC e viene sempre riscontrato un incremento di flusso all'aumentare del numero di auto.
 In questo caso però il flusso in entrata e in uscita non sono perfettamente bilanciati discostandosi dal formare una retta ideale.
 infatti il flusso in entrata è quasi sempre maggiore del flusso in uscita.
 La differenza che più si nota tra il modello esteso ed il modello base è un abbassamento sostanziale del flusso,
-molto probabilmente dovuto alla gestione delle intersezioni.
-Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il modello base 
-(Fig. \ref{fig:analisi-comparison-in-out-flow-map-base}) che per il modello esteso (Fig. \ref{fig:analisi-comparison-in-out-flow-map-new}).
-Gli incroci più critici sono identificati dai punti che superano una distanza di 3 dalla retta y = x,
+molto probabilmente dovuto alla gestione delle intersezioni che rallentano il flusso in uscita.
+In particolare vengono evidenziate le intersezioni più critiche sono identificate dai punti che superano una distanza di 3 dalla retta y = x,
 si può notare come il numero di incroci critici aumenti con il numero di auto.
+Infine gli incroci critici vengono mostrati spazialmente sia per il modello base (Fig. \ref{fig:analisi-comparison-in-out-flow-map-base})
+che per il modello esteso (Fig. \ref{fig:analisi-comparison-in-out-flow-map-new}).
 
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.99\textwidth}
+    \begin{subfigure}{0.9\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-car.png}
         \caption{Modello base}
     \end{subfigure}
-    \begin{subfigure}{0.99\textwidth}
+    \hfill
+    \begin{subfigure}{0.9\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-car.png}
         \caption{Modello estenso}
@@ -330,57 +341,64 @@ si può notare come il numero di incroci critici aumenti con il numero di auto.
     \label{fig:analisi-comparison-in-out-flow-car}
 \end{figure}
 
+\pagebreak
+
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-75-25-car.png}
         \caption{75 pedoni 25 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-50-50-car.png}
         \caption{50 pedoni 50 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-25-75-car.png}
         \caption{25 pedoni 75 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-0-100-car.png}
         \caption{0 pedoni 100 auto}
     \end{subfigure}
-    \caption{}
+    \caption{.....}
     \label{fig:analisi-comparison-in-out-flow-map-base}
 \end{figure}
+ 
+\pagebreak
 
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-75-25-car.png}
         \caption{75 pedoni 25 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-50-50-car.png}
         \caption{50 pedoni 50 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-25-75-car.png}
         \caption{25 pedoni 75 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-0-100-car.png}
         \caption{0 pedoni 100 auto}
     \end{subfigure}
-    \caption{}
+    \caption{.............................}
     \label{fig:analisi-comparison-in-out-flow-map-new}
 \end{figure}
+
 
 \pagebreak
 
@@ -398,6 +416,8 @@ per via della presenza degli stop nelle strade secondarie.
 Nella figura \ref{fig:analisi-comparison-car-delay} vengono riportati i tempi di attesa al variare del numero di auto,
 per ogni intersezione.
 
+
+
 \begin{table}[ht]
     \centering
     \begin{tabular}{|c|c|c|c|c|c|}
@@ -412,25 +432,27 @@ per ogni intersezione.
     \label{tab:analisi-car-delay}
 \end{table}
 
-\begin{figure}
+\pagebreak
+
+\begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-car-delay-75-25.png}
         \caption{75 pedoni 25 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-car-delay-50-50.png}
         \caption{50 pedoni 50 auto}
     \end{subfigure}
-
-    \begin{subfigure}{0.475\textwidth}
+    \hfill
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-car-delay-25-75.png}
         \caption{25 pedoni 75 auto}
     \end{subfigure}
-    \begin{subfigure}{0.475\textwidth}
+    \begin{subfigure}{0.45\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-car-delay-0-100.png}
         \caption{0 pedoni 100 auto}
@@ -439,4 +461,7 @@ per ogni intersezione.
     \label{fig:analisi-comparison-car-delay}
 \end{figure}
 
+\pagebreak
+
 \subsection*{Comparazione Modello Base con Modello Wang 2021}
+
