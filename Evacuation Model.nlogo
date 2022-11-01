@@ -431,6 +431,61 @@ to update-density-ahead-pedestrians
 end
 
 
+;; definition of the density a head of a car
+to update-density-ahead-cars
+
+  ;; select the patch in-front of myself
+  let phi 20
+  let search_length (40 / 3600);; km
+
+  ;; select the patch ahead of myself
+  ;; if the search lenght is over the next intersection the search length is reduced to the distance to the next intersection
+  if (search_length * 3281) / patch_to_feet > distance next_int  [
+    set search_length distance next_int * patch_to_feet
+    set search_length search_length / 3281
+  ]
+
+  let cars_ahead cars in-cone ((search_length * 3281) / patch_to_feet) phi                       ; get the cars ahead in search_length (almost half a block) and in field of view of phi degrees
+  set cars_ahead cars_ahead with [
+    self != myself and                                                   ; that are not myself
+    not evacuated? and                                                   ; that have not made it to the shelter yet (no congestion at the shelter)
+    not dead? and                                                        ; that have not died yet
+    current_int = [current_int] of myself and                            ; on the same road
+    next_int = [next_int] of myself and
+    abs(subtract-headings heading [heading] of myself) < 160             ; with relatively the same general heading as mine (not going the opposite direction)
+    and distance myself > 0.0001
+  ]
+
+  ;; lane_width from ft to km
+  let km_lane_width lane_width / 3281
+  let c_area (km_lane_width * search_length)
+
+
+  ifelse count cars_ahead != 0 [
+    set density_ahead (count cars_ahead) * 4 / search_length ; veh/km
+   ; print (list density_ahead "veh/km" (search_length * 1000))
+  ][
+    set density_ahead 0
+  ]
+
+  ;set density_ahead (min list density_ahead 160)
+  ;set density_ahead 1 ;veh/km
+end
+
+
+to-report update-car-speed [maxs d]
+  let s 0
+  let dmax 160 ;veh/km
+
+  ; convert mph to kmh
+  set maxs maxs * 1.609
+
+  if d <= dmax [
+    set s 40 * (1 - (d / dmax))
+  ]
+  report (s / 3.6) / patch_to_meter
+end
+
 to-report update-pedestrian-speed [fs d]
   let m1 (3.83 - 1.5) / (0.2 - 1)
   let m2 (0.75 - 1.5) / (1.7 - 1)
@@ -1378,14 +1433,47 @@ to cars-behaviour
     ; move the cars that should move
     if moving? [
       ifelse rightofway? and not waiting? [
+
+        ;;move-gm                 ; set the speed with general motors car-following model
         ;; check on speed to not go over!
+;        if model != "base" and model != "base_density" and [crossroad?] of next_int and not moved? and not crossing? [
+;          let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
+;          if speed > lim_spd [set speed lim_spd]
+;        ]
+        ;;fd speed                ; move
+
+        update-density-ahead-cars
+
+        set speed update-car-speed max_speed density_ahead
+
         if model != "base" and model != "base_density" and [crossroad?] of next_int and not moved? and not crossing? [
           let lim_spd distance next_int - (int_width / 2 / patch_to_feet)
           if speed > lim_spd [set speed lim_spd]
         ]
 
-        move-gm                 ; set the speed with general motors car-following model
-        fd speed                ; move
+        ;; check the speed with the car ahead!
+        set car_ahead cars in-cone (150 / patch_to_feet) 20                    ; get the cars ahead in 150ft (almost half a block) and in field of view of 20 degrees
+        set car_ahead car_ahead with [
+          self != myself and                                                   ; that are not myself
+          moving? and                                                          ; that are moving
+          not evacuated? and                                                   ; that have not made it to the shelter yet (no congestion at the shelter)
+          not dead? and                                                        ; that have not died yet
+          current_int = [current_int] of myself and                            ; on the same road
+          next_int = [next_int] of myself and
+          abs(subtract-headings heading [heading] of myself) < 160 and         ; with relatively the same general heading as mine (not going the opposite direction)
+          distance myself > 0.0001                                             ; not exteremely close to myself
+        ]
+
+        set car_ahead min-one-of car_ahead [distance myself]                                       ; and the closest car ahead
+
+        if is-turtle? car_ahead [
+          if speed > distance car_ahead [set speed distance car_ahead]
+        ]
+
+        ifelse speed > distance next_int [fd distance next_int][fd speed] ; move the car towards the next intersection
+
+
+
       ][
         set speed 0
       ]
@@ -2136,21 +2224,23 @@ end
 
 to view-mean-critical-links
 ;  ;; new
-;  let critical-links link-set (list
-;     road 46	140 road 140 46
-;     road 128	129 road 129 128
-;     road 152	499	road 499 152
-;     road 201	280 road 280 201
-;     road 333	128 road 128 333
-;  )
+  let critical-links link-set (list
+     road 46	140 road 140 46
+     road 128	129 road 129 128
+     road 152	499	road 499 152
+     road 201	280 road 280 201
+     road 333	128 road 128 333
+  )
 
 ; base
-  let critical-links link-set (list
-     road 128	250 road 250 128
-     road 173	389 road 389 173
-     road 188	214 road 214 188
-     road 250	389 road 389 250
-  )
+;  let critical-links link-set (list
+;     road 128	250 road 250 128
+;     road 173	389 road 389 173
+;     road 188	214 road 214 188
+;     road 250	389 road 389 250
+;  )
+
+  ask intersections [set size 0]
 
   ask roads [
     set color black
@@ -2312,7 +2402,7 @@ to view-intersection-flow2
     if dist >= t [
       set size 3
       set color ifelse-value not empty? stops [sky][orange]
-      set shape "circle"
+      set shape "square"
     ]
   ]
 
@@ -2445,7 +2535,7 @@ INPUTBOX
 113
 263
 R1_HorEvac_Foot
-25.0
+50.0
 1
 0
 Number
@@ -2640,7 +2730,7 @@ INPUTBOX
 218
 262
 R2_HorEvac_Car
-75.0
+50.0
 1
 0
 Number
@@ -2706,7 +2796,7 @@ INPUTBOX
 139
 461
 max_speed
-35.0
+24.8548
 1
 0
 Number
@@ -2935,7 +3025,7 @@ CHOOSER
 model
 model
 "base" "new_const" "new" "base_density"
-0
+3
 
 BUTTON
 1567
