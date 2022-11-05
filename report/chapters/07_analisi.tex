@@ -14,7 +14,7 @@ Per quanto riguarda le auto, più è alto il numero di auto più tempo è richie
 % TODO: rivedere
 Osservando le evacuazioni totali invece risulta che la configurazione che permette di evacuare più agenti sia la 50\% - 50\%, mentre la configurazione 0\% - 100\% sia la peggiore.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/base-evacuated.png}
     \caption{Percentuale degli evacuati nel tempo al variare del numero di agenti con il modello base.}
@@ -29,27 +29,35 @@ con una percentuale di 75\% si ha una mortalità di 1.8\% e nel caso peggiore, o
 Infine osservando le morti totali risulta che il caso migliore sia uno scenario bilanciato tra auto e pedoni, 
 mentre i casi con una mortalità maggiore siano quelli con solo pedoni o solo auto.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/base-casualties.png}
-    \caption{Percentuale delle vittime nel tempo al variare del numero di agenti con il modello base.}
+    \caption{
+        Percentuale delle vittime nel tempo al variare del numero di agenti con il modello base.
+        %
+    }
     \label{fig:analisi-base-casualties}
 \end{figure}
 
-Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le distribuzioni delle percentuali di agenti evacuati ad ogni minuto della simulazione.
+Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo
+e il tempo in cui evacuano in media.
 %
-% TODO: sistemare
-Si può osservare come all'aumentare del numero di auto considerate in una simulazione la media tenda a spostarsi verso sinistra.
-In particolare nel caso 50\%-50\% due picchi sembrano formarsi un molto probabilmente per le auto 
-il primo mentre il secondo per i pedoni, quest'ultimo tende ad appiattirsi con il crescere del 
-numero di auto fino a sparire nel caso 0\%-100\%.
+Nel caso con solo pedoni si ha un tempo medio di 35 minuti
+e all'aumentare del numero di auto il tempo medio di evacuzione si abbassa fino a 28 minuti nel caso con solo auto e 
+la distribuzione tende ad appiattirsi.
+Inoltre si può notare come al diminuire del numero di auto considerate minore è la percentuale di agenti che evacuano negli ultimi minuti.
+Questo poichè, come già evidenziato nella figura \ref{fig:analisi-base-evacuated}, le auto evacuano più velocemente dei pedoni.
 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{images/analisi/base-evtimes.png}
-    \caption{Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti con il modello base.}
+    \caption{
+        Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti e tempo medio di evacuazione.
+    }
     \label{fig:analisi-base-evtimes}
 \end{figure}
+
+\pagebreak
 
 \subsection{Modello Esteso}
 Nonostante l'introduzione della variazione della velocità per i pedoni, 
@@ -66,7 +74,7 @@ In tutti i casi le auto evacuano prima dei pedoni avendo una velocità superiore
 Considerando i contributi di auto e pedoni, al diminuire del numero di auto considerate cresce il numero totale di evacuati alla fine della simulazione,
 fino al caso migliore con solo pedoni.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/new-evacuated.png}
     \caption{Percentuale degli evacuati nel tempo al variare del numero di agenti con il modello esteso.}
@@ -79,7 +87,7 @@ In generale la percentuale di vittime per le auto è molto più alto rispetto a 
 %
 Il numero di vittime totali cresce al crescere del numero di auto.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/new-casualties.png}
     \caption{Percentuale delle vittime nel tempo al variare del numero di agenti con il modello esteso.}
@@ -88,12 +96,16 @@ Il numero di vittime totali cresce al crescere del numero di auto.
 
 \pagebreak
 
-La distribuzione della percentuale di evacuati nel tempo \ref*{fig:analisi-new-evtimes} ha un comportamento analogo a quello del modello base, con un aumento del tempo medio di evacuazione.
+Nella figura \ref{fig:analisi-new-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo
+e il tempo in cui evacuano in media.
+%
+In modo analogo al modello base il tempo medio di evacuazione si abbassa all'aumentare del numero di auto e 
+la percentuale di evacuati nel tempo si appiattisce.
 
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth]{images/analisi/new-evtimes.png}
-    \caption{Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti con il modello esteso.}
+    \caption{Distribuzione del tempo di evacuzione in percentuale al variare del numero di agenti e tempo medio di evacuazione.}
     \label{fig:analisi-new-evtimes}
 \end{figure}
 
@@ -105,7 +117,7 @@ In questa sottosezione verrano comparati il modello base con il modello esteso a
 le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
 in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.45\textwidth}
         \centering
@@ -125,14 +137,19 @@ In generale il modello esteso presenta un numero minore di evacuati e un numero 
 Per entrambi i modelli la percentuale di evacuati decresce all'aumentare del numero di auto considerate, mentre la percentuale di vittime cresce.
 Inoltre per entrambi i modelli le prime vittime si verificano dopo 40 min.
 
-gli unici casi in cui il modello esteso si avvicina ai risultati del modello base sono il caso con solo pedoni ed il caso 75\%-25\%.
+Gli unici casi in cui il modello esteso si avvicina ai risultati del modello base sono il caso con solo pedoni ed il caso 75\%-25\%.
 
 \pagebreak
 
-Come già detto in precedenza le distribuzioni di percentuale di evacuati nel tempo \ref{fig:analisi-comparison-evtimes} del modello base e del modello esteso 
-presentano un andamento simile con un aumento del tempo medio di evacuazione.
+Come già detto in precedenza le distribuzioni della percentuale di evacuati nel tempo del modello base e del modello esteso 
+presentano un andamento simile (Fig. \ref{fig:analisi-comparison-evtimes}).
+%
+Nel modello esteso si ha un numero di evacuati più alto negli ultimi minuti e 
+in generale la percentuale di evacuati nel tempo è mediamente più bassa rispetto al modello base, a eccezione del caso con solo pedoni.
+%
+Rispetto al modello base, il modello esteso presenta un tempo di evacuazione medio più alto nei casi con sia pedoni che auto.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.9\textwidth]{images/analisi/comparison-evtimes.png}
     \caption{Comparazione delle distribuzioni dei tempi di evacuazione al variare del numero di agenti.}
@@ -150,7 +167,7 @@ Per entrambi i modelli un pedone impiega in media un tempo di 21 minuti per evac
 Per le auto invece il tempo medio di evacuazione per il modello base è 10 minuti e per il modello esteso 16 minuti, 
 con tempi massimi rispettivamente di 32 e 42 minuti.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/analisi/comparison-evtimes2.png}
     \caption{
@@ -169,7 +186,7 @@ In generale gli agenti che partono dalla costa impiegano più tempo rispetto agl
 Confrontando i pedoni al variare del modello usato non si riscontrano cambiamenti significativi nei tempi di evacuazione.
 Mentre nel caso delle auto si nota che il modello esteso introduca dei rallentamenti rispetto al modello base, soprattuto lungo la costa.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{images/analisi/comparison-evtimes-map.png}
     \caption{Comparazione dei tempi di evacuazione mediati tra gli agenti che partono dalla stessa intersezione. }
@@ -257,13 +274,13 @@ vehicula augue eu neque.
 \newpage
 
 
-\ref*{fig:analisi-comparison-in-out-flow-ped} vengono confrontati il flusso in entrata ed in uscita delle intersezioni,
+\ref{fig:analisi-comparison-in-out-flow-ped} vengono confrontati il flusso in entrata ed in uscita delle intersezioni,
 comparando il modello base, al variare del numero di pedoni, per capire l'effetto generato dalla gestione degli incroci.
 E possibile notare come in generale non si notano grosse differenze tra gli AWSC e i TWSC, 
 il flusso in entrata ed in uscita sia abbastanza bilanciato formando una retta e che all'aumentare
 del numero di pedoni aumenti il flusso, infine tra i due modelii (a) e (b) non ci siano sostanziali differenze.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.99\textwidth}
         \centering
@@ -280,7 +297,7 @@ del numero di pedoni aumenti il flusso, infine tra i due modelii (a) e (b) non c
 \end{figure}
 
 \ref{fig:analisi-comparison-in-out-flow-ped} viene confrontato invece il flusso per le auto anche
-qui in generale non si notano grosse differenze tra gli AWSC ed i TWSC, il flusso aumenta all´aumentare del numero di auto,
+qui in generale non si notano grosse differenze tra gli AWSC ed i TWSC, il flusso aumenta all'aumentare del numero di auto,
 ma il flusso in entrata ed in uscita non siano perfettamente bilanciati ed non
 formano una retta come il grafico precedente.
 Vengono quindi evidenziati gli incroci più critici come i punti che superano una distanza di 3 dalla retta y = x,
@@ -290,7 +307,7 @@ rispetto a quello base (a).
 Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il modello base 
 che per il modello esteso \ref{fig:analisi-comparison-in-out-flow-car}.
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.99\textwidth}
         \centering
@@ -309,15 +326,15 @@ che per il modello esteso \ref{fig:analisi-comparison-in-out-flow-car}.
 \newpage
 
 Infine per il modello esteso vengono analizzati i tempi di attesa nelle intersezioni,
-ovvero il tempo che passa da quando arriva all´incrocio ed aspetta
+ovvero il tempo che passa da quando arriva all'incrocio ed aspetta
 il via libera, differenziando tra i due tipi di incrocio AWSC e TWSC.
-Come si pu`o vedere nella tabella \ref*{tab:analisi-car-delay} con un numero minore di auto le intersezioni AWSC 
+Come si pu`o vedere nella tabella \ref{tab:analisi-car-delay} con un numero minore di auto le intersezioni AWSC 
 in media hanno alti tempi di attesa mentre i TWSC hanno tempi bassi.
-All´aumentare del numero di auto si abbassano in media i tempi di attesa negli AWSC e si alzano quelli dei TWSC.
-In \ref*{fig:analisi-comparison-car-delay} vengno riportati i tempi di attesa nelle intersezioni spazialmente
+All'aumentare del numero di auto si abbassano in media i tempi di attesa negli AWSC e si alzano quelli dei TWSC.
+In \ref{fig:analisi-comparison-car-delay} vengno riportati i tempi di attesa nelle intersezioni spazialmente
 dove i triangoli rappresentano gli AWSC mentre i quadrati i TWSC.
 
-\begin{table}[h]
+\begin{table}[ht]
     \centering
     \begin{tabular}{|c|c|c|c|c|c|}
     \hline
@@ -335,7 +352,7 @@ dove i triangoli rappresentano gli AWSC mentre i quadrati i TWSC.
 \newpage
 
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \includegraphics[width=1\textwidth]{images/analisi/comparison-car-delay.png}   
     \caption{tempi di attesa nelle intersezioni al variare del numero di auto, differenziando AWSC (triangoli) e TWSC (cerchi).}
     \label{fig:analisi-comparison-car-delay}
@@ -343,7 +360,7 @@ dove i triangoli rappresentano gli AWSC mentre i quadrati i TWSC.
 
 \lipsum[1]
 
-\begin{figure}[h]
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.75\textwidth}
         \centering
