@@ -1,6 +1,9 @@
 \section{Background}
 \label{sec:background}
-Un modello di evacuazione in caso di tsunami e' composto da diversi elementi.
+L'evacuazione in caso di tsunami avviene nel contesto di una città e 
+consiste nel raggiungimento di rifugi da parte della popolazione nel minor tempo possibile.
+
+Un modello di evacuazione in caso di tsunami è composto da diversi elementi.
 
 \subsection{Rete stradale / Griglia}
 L'ambiente può essere rappresentato da modelli grid-based o network-based.
@@ -10,20 +13,24 @@ e sfruttare spazi ampi senza limitarsi alle strade \parencite{makinoshima2018enh
 Inoltre permettono una rappresentazione più efficace delle dinamiche tra gli agenti, ma il cui costo computazionale 
 cresce con il numero di agenti considerati.
 
-I modelli network-based invece rappresentano la rete stradale come un grafo dove i nodi sono le intersezioni e gli archi le strade percorribili.
+I modelli network-based invece rappresentano la rete stradale come un grafo dove i nodi corrispondono alle intersezioni e gli archi alle strade percorribili.
 Gli archi possono avere associate delle informazioni come la lunghezza e la larghezza della strada che permettono di stabilire i tempi di percorrenza e la capacità.
-Con questa rappresentazione gli agenti possono muoversi solo lungo gli archi, al contrario di quelli grid-based che hanno maggior libertà.
+
+Con questa rappresentazione gli agenti possono muoversi solo lungo gli archi, al contrario dei modelli grid-based in cui hanno maggior libertà.
 Questi modelli sono piu limitati nella rappresentazione delle interazioni tra agenti, ma risultano più efficienti computazionalmente.
 
 \subsection{Distribuzione della Popolazione}
 La distribuzione spaziale della popolazione al momento dell'evacuazione varia in base a diversi fattori:
-l'ora del giorno, la stagione, eventi. Inoltre la popolazione può essere composta da residenti e
-turisti che si comporteranno diversamente al pericolo.
+l'ora del giorno, la stagione, eventi. 
+Inoltre la popolazione può essere caratterizzata dall'età, dal genere, dalla presenza di disabilità, 
+e si può distinguere in residenti e turisti.
+%
+In base a questi elementi gli individui si comporteranno diversamente durante l'evacuazione.
 
 \subsection{Rifugi}
 I rifugi sono dei luoghi sicuri dove evacuare.
 Si distinguono in luoghi al di fuori della zona a rischio (rifugi orizzontali) o
-luoghi che si trovano ad una altezza che lo tsunami non raggiunge (rifugi verticali).
+luoghi che si trovano a una altezza che lo tsunami non raggiunge (rifugi verticali).
 %
 Solitamente si assume che resistano a terremoti e tsunami e
 che abbiano una capacità illimitata.
@@ -31,10 +38,11 @@ che abbiano una capacità illimitata.
 \subsection{Inondazione da Tsunami}
 Le inondazioni da tsunami vengono simulate utilizzando un modello di inondazione
 che fornisce una serie temporale di altezza e velocità delle onde in una determinata area.
+Con queste informazioni si può stabilire quando lo tsunami raggiunge una determinata zona e 
+se colpisce degli individui durante la simulazione.
 
 \subsection{Casualty Model}
-Un casualty model defisce quando un individuo viene considerato una vittima.
-Spesso si utilizza semplicemente l'altezza dello tsunami.
+Un casualty model definisce quando un individuo viene considerato una vittima a causa dello tsunami.
+Spesso si utilizza esclusivamente l'altezza dello tsunami.
 In alcuni studi vengono considerati altri fattori come la velocità
 e la temperatura dello tsunami o anche l'età e il genere dell'individuo \parencite{yeh2010gender}.
-

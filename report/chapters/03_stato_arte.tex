@@ -3,27 +3,31 @@
 I primi modelli di evacuazione da tsunami sono stati basati sui modelli network-based utilizzati per l'evacuazione da altri disastri come
 uragani, incendi e inondazioni \parencite{usuzawa1997development, imamura2001development}.
 
-% TODO: riscrivere
 Uno dei primi aspetti che è stato preso in considerazione è il comportamento umano,
-in particolare come i residenti reagiscono all'arrivo dello tsunami
-e quanto tempo ci mettono per iniziare ad evacuare.
+in particolare le reazioni dei residenti all'arrivo dello tsunami
+e il tempo che ci mettono per iniziare a evacuare.
 %
 Queste informazioni sono state raccolte tramite dei questionari rivolti ai residenti
-e usate per modellare i tempi di partenza dell'evacuazione \parencite{imamura2001development, saito2004simulation}.
+e usate per stimare i tempi di partenza dell'evacuazione \parencite{imamura2001development, saito2004simulation}.
 
 Questi primi modelli network-based hanno usato come regola di \textit{path finding}
-proseguire verso il prossimo nodo più alto. Successivamente si è passati a usare il percorso
-più breve \parencite{katada2004disaster} e altre strategie di routing basate sull'apprendimento come Nash equilibrium e system optimal \parencite{lammel2009towards}.
+proseguire verso il prossimo nodo più alto. % TODO: verificare
+Successivamente si è passati a usare il percorso
+più breve \parencite{katada2004disaster} e altre strategie di routing basate sull'apprendimento 
+come Nash equilibrium e system optimal \parencite{lammel2009towards}.
 
 \vspace*{4mm}
-Con l'aumento della potenza di calcolo è stato possibile passare da i modelli network-based ai modelli grid-based e ibridi.
+Con l'aumento della potenza di calcolo è stato possibile passare da modelli network-based a modelli grid-based e ibridi.
 Inoltre è stato possibile usare una quantità di dati maggiore e sfruttare il calcolo parallelo \parencite{wijerathne2013hpc, makinoshima2018enhancing}.
 
 \vspace*{4mm}
-Successivamente i modelli di evacuazione da tsunami sono stati sfruttati per prendere delle contromisure e migliorare le modalità di evacuazione,
-analizzando le congestioni del traffico, il posizionamento dei rifugi e lo scambio di informazioni.
+% TODO: rivedere
+Successivamente i modelli di evacuazione da tsunami si sono concentrati sulle applicazioni come trovare delle contromisure, 
+il miglioramento delle modalità di evacuazione
+tramite l'analisi delle congestioni del traffico, il posizionamento dei rifugi e lo scambio di informazioni durante l'evacuazione.
 %TODO: aggiungere citazioni
 
+\parencite{taubenbock2013risk}
 
 \newpage
 \noindent
@@ -35,16 +39,16 @@ Recentemente sempre più lavori hanno analizzato e approfondito diversi aspetti.
 Qua sotto descriviamo alcuni lavori che hanno approfondito.
 
 \vspace*{4mm}
-\textbf{\textcite{lammel2010emergency}} Queue model, NASH
-
-In molti modelli vengono considerati solo pedoni oppure pedoni e auto, ma senza gestire le interazioni tra essi.
+% a)
+In molti modelli vengono considerati solo pedoni oppure pedoni e auto, ma senza gestire le interazioni tra loro.
+% b)
 \textcite{goto2012tsunami} hanno considerato gli individui raggruppati in famiglie e categorizzato le famiglie in:
-pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto.
+pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto. % TODO: collegare le due frasi (a) e (b)
 %Inoltre hanno modellato le interazioni dei diversi agenti all'interno di una corsia della strada.
 \textcite{wang2021novel} hanno ripreso il lavoro di \textcite{goto2012tsunami} e ...
 
-Un'altro aspetto importante per l'evacuazione è la conoscenza dell'ambiente da parte degli agenti.
-Alcuni lavori distinto gli agenti in base alla loro conoscenza e
+Un altro aspetto importante per l'evacuazione è la conoscenza dell'ambiente da parte degli agenti.
+Alcuni lavori hanno distinto gli agenti in base alla loro conoscenza e
 studiato gli effetti di diverse proporzioni tra categorie di agenti.
 \textcite{nguyen2012simulation} hanno definito \textit{fox agent} un pedone ben informato che segue i segnali
 stradali fino a un rifugio e \textit{sheep agent} un pedone che non sa
@@ -53,7 +57,7 @@ come comportarsi e quindi segue i \textit{fox agent} o si muove casualmente.
 I residenti sono agenti che conoscono il percorso più breve per evacuare, mentre i visitatori
 seguono gli altri scegliendo la strada con più individui o si muovono verso una zona più elevata.
 
-\textbf{\textcite{mas2012agent}}
+\textbf{\textcite{lammel2010emergency}} Queue model, NASH
 
 \textcite{wijerathne2013hpc} hanno proposto un modello grid-based che utilizza un sistema di navigazione basato
 sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile scegliendo la strada con una maggiore distanza di visione.
@@ -61,9 +65,13 @@ sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile sceglien
 Anche in questo lavoro vengono distinti visitatori, che si affidano alla visione, e non-visitatori, che hanno conoscenza di un'area
 limita al di fuori della quale vengono considerati visitatori.
 
+Un altro modello grid-based è quello di \textcite{mas2012agent} 
+in cui è stato proposto un modello di evacuazione statica che da un insieme di informazioni % TODO: specificare (dati demografici, morfologia del terreno, distribuzione della popolazione, ...)
+calcola una mappa dei tempi di evacuazione.
 
-Altri lavori hanno analizzato come i tempi di partenza influenzano i tempi di evacuazione e le vittime
-\textbf{\textcite{wang2016agent}}.
+Altri lavori hanno analizzato come i tempi di partenza influenzano il tempi di evacuazione e il numero di vittime
+\parencite{wang2016agent, takabatake2017simulated}.
 
-\textbf{\textcite{wang2021novel}} propongono un modello più realistico che considera i danni del terremoto
+\textcite{wang2021novel} hanno proposto un modello più realistico che considera i danni del terremoto
 prima dello tsunami sulla rete stradale.
+% TODO: aggiungere altro per questo lavoro?

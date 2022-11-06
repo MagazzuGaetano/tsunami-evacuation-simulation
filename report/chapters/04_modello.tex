@@ -1,15 +1,15 @@
 \section{Descrizione del Modello}
 \label{sec:modello}
-Il modello considerato \parencite{mostafizi2019agent} é un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
+Il modello considerato \parencite{mostafizi2019agent} è un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
 %
 L'evacuazione inizia subito dopo il terremoto e non vengono considerati eventuali danni causati dal terremoto.
 
 Il modello utilizza dati GIS per la distribuzione della popolazione, la rete stradale e i rifugi.
 %
-Per la distribuzione della popolazione é stato considerato uno scenario a mezzogiorno di un fine settimana di estate,
+Per la distribuzione della popolazione è stato considerato uno scenario a mezzogiorno di un fine settimana di estate,
 che presenta una maggiore concentrazione di residenti sulla spiaggia e nel centro della città.
-La popolazione sulla costa (40\%) e nel centro (30\%) é distribuita normalmente,
-mentre quella nella zona residenziale (30\%) é distribuita uniformemente (Fig. \ref{fig:population}).
+La popolazione sulla costa (40\%) e nel centro (30\%) è distribuita normalmente,
+mentre quella nella zona residenziale (30\%) è distribuita uniformemente (Fig. \ref{fig:population}).
 
 \begin{figure}[ht]
   \centering
@@ -21,14 +21,14 @@ mentre quella nella zona residenziale (30\%) é distribuita uniformemente (Fig. 
 \end{figure}
 
 \subsection{Ambiente}
-L'ambiente é composto dalla rete stradale della città con i relativi rifugi e dallo tsunami.
+L'ambiente è composto dalla rete stradale della città con i relativi rifugi e dallo tsunami.
 
 % TODO: riscrivere
-La rete stradale é rappresentata da un grafo, i cui nodi corrispondono alle intersezioni e gli archi alle strade.
+La rete stradale è rappresentata da un grafo, i cui nodi corrispondono alle intersezioni e gli archi alle strade.
 Tutte le strade sono considerate a senso unico, con una sola corsia e con una velocità limite di 55 km/h.
 8 delle intersezioni sono marcate come rifugi con capacità illimitata.
 
-Lo tsunami é rappresentato da una griglia discreta, dove ogni cella contiene i valori temporali di altezza delle onde.
+Lo tsunami è rappresentato da una griglia discreta, dove ogni cella contiene i valori temporali di altezza delle onde.
 I dati usati in questo progetto sono quelli calcolati dal modello di inondazione ComMIT/MOST \parencite{titov1997implementation} per la zona di subduzione della Cascadia.
 
 \subsection{Agenti}
@@ -43,7 +43,7 @@ Una volta che ogni agente decide in che modo evacuare non cambierà scelta per t
 Prima di iniziare l'evacuazione i residenti impiegano del tempo per prepararsi
 che include il tempo per il raggiungimento del veicolo.
 %
-Questo tempo chiamato \textit{milling time} é modellato tramite
+Questo tempo chiamato \textit{milling time} è modellato tramite
 la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo ($\tau$) di 10 minuti
 e un parametro di scala ($\sigma$) di 1.65.
 
@@ -76,9 +76,9 @@ La velocità di ogni pedone rimane costante durante tutta l'evacuazione.
 Ogni auto conteniene una sola persona per considerare il caso peggiore.
 Le auto possono raggiungere la velocità massima imposta dalla strada, ovvero 55 km/h.
 
-Il comportamento delle auto é modellato tramite il modello car-following, General-Motors.
+Il comportamento delle auto è modellato tramite il modello car-following, General-Motors.
 
-La teoria sui modelli Car following descrivono come un veicolo ne segue un'altro
+La teoria sui modelli Car following descrivono come un veicolo ne segue un altro
 e cambi il proprio comportamenteo reagendo a quest'ultimo.
 
 \begin{figure}[ht]
