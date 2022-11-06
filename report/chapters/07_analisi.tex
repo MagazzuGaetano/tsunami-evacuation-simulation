@@ -117,6 +117,8 @@ In questa sottosezione verrano comparati il modello base con il modello esteso a
 le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
 in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
 
+\subsubsection*{Percentuale numero di evacuati e vittime}
+
 \begin{figure}[ht]
     \centering
     \begin{subfigure}{0.45\textwidth}
@@ -141,6 +143,8 @@ Gli unici casi in cui il modello esteso si avvicina ai risultati del modello bas
 
 \pagebreak
 
+\subsubsection*{Percentuale di evacuati nel tempo}
+
 Come già detto in precedenza le distribuzioni della percentuale di evacuati nel tempo del modello base e del modello esteso 
 presentano un andamento simile (Fig. \ref{fig:analisi-comparison-evtimes}).
 %
@@ -158,8 +162,10 @@ Rispetto al modello base, il modello esteso presenta un tempo di evacuazione med
 
 \pagebreak
 
-Nella figura \ref{fig:analisi-comparison-evtimes2} vengono confrontati i tempi di evacuazione tra auto e pedoni.
-Per quanto riguarda le auto, il modello base presenta un andamento descresente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
+\subsubsection*{Tempo impiegato per evacuare}
+
+Un ulteriore possibile comparazione sono quanto tempo impiegano auto e pedoni a evacuare.
+Come mostrato nella figura \ref{fig:analisi-comparison-evtimes2} per quanto riguarda le auto, il modello base presenta un andamento descresente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
 Le auto impiegano in media tempi maggiori con il modello esteso rispetto a quello base.
 %
 I pedoni invece non presentano alcun cambiamento significativo al variare del numero di agenti e del modello considerato. 
@@ -196,13 +202,11 @@ Mentre nel caso delle auto si nota che il modello esteso introduca dei rallentam
 
 \pagebreak
 
-Per valutare l'effetto casusato dalla gestione delle intersezioni i link critici dei due modelli sono stati comparati,
-essi sono identificati analizzando la percentuale di mortalità media nei link e poi sogliati.
-
+\subsubsection*{Strade Critiche}
 Un'ulteriore analisi per valutare l'effetto dell'estensione del modello è quella di evidenziare in quali strade si verificano 
 più vittime al variare del numero di auto e pedoni. 
-
-Nella figura \ref{fig:analisi-comparison-critical-links1} viene mostrato come si distribusce la percentuale di mortalità nelle strade 
+%
+Nella figura \ref{fig:analisi-comparison-critical-links1} viene mostrato come si distribuisce la percentuale di mortalità nelle strade 
 al variare del numero di auto e pedoni e riportata la percentuale media. 
 
 Il modello base (Fig. \ref{fig:base-link-casualties}) nei casi con un numero di auto minore o uguale al 50\%
@@ -211,15 +215,22 @@ mentre negli altri due casi ci sono poche strade con una percentuale alta.
 
 Il modello esteso (Fig. \ref{fig:new-link-casualties}) invece presenta una strada comune per tutti casi 
 in cui sono presenti delle auto che contribuisce a più del 50\% delle vittime.
-
+%
 In generale in tutti i casi la maggior parte delle strade con più vittime sono diverse tra i due modelli a eccezione del caso 
 100\% pedoni.
-
+%
 Le strade segnate come critiche corrispondono a quelle con una percentuale media maggiore del 5\% e sono mostrate nella figura \ref{fig:analisi-comparison-critical-links2}.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\textwidth]{images/analisi/casualties-map.png}
+    \caption{strade critiche trovate per i due modelli.}
+    \label{fig:analisi-comparison-critical-links2}
+\end{figure}
 
 \newpage
 
-\begin{figure}[p]
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \centering
@@ -238,16 +249,22 @@ Le strade segnate come critiche corrispondono a quelle con una percentuale media
     \label{fig:analisi-comparison-critical-links1}
 \end{figure}
 
-\begin{figure}[p]
-    \centering
-    \includegraphics[width=\textwidth]{images/analisi/casualties-map.png}
-    \caption{strade critiche trovate per i due modelli.}
-    \label{fig:analisi-comparison-critical-links2}
-\end{figure}
 
 \newpage
 
-\begin{figure}[p]
+\subsection{Analisi Intersezioni}
+In questa sottosezione verranno descritte le analisi effettuate sulle intersezioni per valutare l'effetto dell'estesione 
+del modello. Sono state identificate le intersezioni critiche, ovvero quelle con un alta mortalità. Successivamente 
+sono stati analizzati il flusso in entrata e in uscita e i tempi di attesa delle intersezioni, evidenziando le differenze tra le 
+intersezioni critiche e non critiche.
+
+\subsubsection*{Intersezioni Critiche}
+Per identificare le intersezioni critiche (Fig. \ref{fig:analisi-comparison-critical-ints2}) è stato considerato il numero totale di vittime delle strade 
+in entrata di ogni intersezione e sono state selezionate quelle con una percentuale di vittime superiore o uguale al 5\%.
+
+Come effettuato per le strade critiche (Fig. \ref{fig:analisi-comparison-critical-links1}), il numero di vittime considerato è quello mediato al variare del numero di auto e pedoni (Fig. \ref{fig:analisi-comparison-critical-ints1}).
+
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.45\textwidth}
         \centering
@@ -266,20 +283,22 @@ Le strade segnate come critiche corrispondono a quelle con una percentuale media
     \label{fig:analisi-comparison-critical-ints1}
 \end{figure}
 
-\begin{figure}[p]
+\pagebreak
+
+Nella figura \ref{fig:analisi-comparison-critical-ints2} vengono mostrate le intersezioni identificate 
+come critiche e distinte in base al tipo di intersezione: TWSC, AWSC e incroci con 3 strade.
+
+Alcune delle intersezioni critiche sono in comune tra i due modelli, tuttavia contribuiscono in modo diverso al totale di vittime.
+Nel modello base la percentuale maggiore di vittime si trova più vicino ai rifugi rispetto al modello esteso in cui la percentuale maggiore si trova nel centro.
+
+\begin{figure}[ht]
     \centering
     \includegraphics[width=0.8\textwidth]{images/analisi/critical_ints_map.png}
-    \caption{intersezioni critiche trovate per i due modelli.}
+    \caption{Intersezioni critiche distinte per tipo di intersezione. La dimensione dei punti indica la percentuale di vittime delle strade in entrata.}
     \label{fig:analisi-comparison-critical-ints2}
 \end{figure}
 
-
-
-Delle ulteriori analisi sono state effettuate per le intersezioni. Sono stati confrontati i 
-flussi in entrata e in uscita e i tempi di attesa delle intersezioni per i due modelli 
-al variare del numero di auto e di pedoni.
-
-%
+\subsubsection*{Flusso}%
 % TODO: rivedere
 Come si nota nella figura \ref{fig:analisi-comparison-in-out-flow-ped}, il flusso dei pedoni
 in entrambi i modelli risulta abbastanza bilanciato,
@@ -311,7 +330,6 @@ qui in generale non si notano grosse differenze tra gli AWSC ed i TWSC, il fluss
 ma il flusso in entrata ed in uscita non siano perfettamente bilanciati ed non
 formano una retta come il grafico precedente.
 Vengono quindi evidenziati gli incroci più critici come i punti che superano una distanza di 3 dalla retta y = x,
-\pagebreak
 
 % TODO: rivedere
 Osservando il flusso delle auto (Fig. \ref{fig:analisi-comparison-in-out-flow-car}), anche in questo caso
@@ -347,10 +365,8 @@ che per il modello esteso \ref{fig:analisi-comparison-in-out-flow-car}.
     \label{fig:analisi-comparison-in-out-flow-car}
 \end{figure}
 
-\newpage
 
-
-\pagebreak
+\subsubsection*{Tempi di Attesa}
 
 Infine per il modello esteso vengono analizzati i tempi di attesa nelle intersezioni per le auto,
 ovvero il tempo che passa da quando un'auto arriva all'incrocio a quando ha il via libera. 
@@ -382,8 +398,6 @@ per ogni intersezione.
 \end{table}
 
 
-\newpage
-
 
 \begin{figure}[ht]
     \includegraphics[width=1\textwidth]{images/analisi/comparison-car-delay.png}   
@@ -412,8 +426,6 @@ per ogni intersezione.
     \label{fig:critical-waiting-times}
 \end{figure}
 
-
-\newpage
 
 \subsection*{Comparazione Modello Base con Modello Wang 2021}
 
