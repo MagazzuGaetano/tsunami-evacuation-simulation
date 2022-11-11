@@ -117,7 +117,7 @@ In questa sottosezione verrano comparati il modello base con il modello esteso a
 le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
 in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
 
-\subsubsection*{Percentuale numero di evacuati e vittime}
+\subsubsection*{Percentuale di Evacuati e di Vittime}
 
 \begin{figure}[ht]
     \centering
@@ -143,7 +143,7 @@ Gli unici casi in cui il modello esteso si avvicina ai risultati del modello bas
 
 \pagebreak
 
-\subsubsection*{Percentuale di evacuati nel tempo}
+\subsubsection*{Percentuale di Evacuati nel Tempo}
 
 Come già detto in precedenza le distribuzioni della percentuale di evacuati nel tempo del modello base e del modello esteso 
 presentano un andamento simile (Fig. \ref{fig:analisi-comparison-evtimes}).
@@ -162,9 +162,8 @@ Rispetto al modello base, il modello esteso presenta un tempo di evacuazione med
 
 \pagebreak
 
-\subsubsection*{Tempo impiegato per evacuare}
-
-Un ulteriore possibile comparazione sono quanto tempo impiegano auto e pedoni a evacuare.
+\subsubsection*{Tempo Impiegato per Evacuare}
+Un' ulteriore comparazione riguarda il tempo impiegano auto e pedoni per evacuare.
 Come mostrato nella figura \ref{fig:analisi-comparison-evtimes2} per quanto riguarda le auto, il modello base presenta un andamento descresente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
 Le auto impiegano in media tempi maggiori con il modello esteso rispetto a quello base.
 %
@@ -298,23 +297,28 @@ Nel modello base la percentuale maggiore di vittime si trova più vicino ai rifu
     \label{fig:analisi-comparison-critical-ints2}
 \end{figure}
 
-\subsubsection*{Flusso}%
-% TODO: rivedere
-Come si nota nella figura \ref{fig:analisi-comparison-in-out-flow-ped}, il flusso dei pedoni
-in entrambi i modelli risulta abbastanza bilanciato,
-infatti i punti formati dalle coppie di flusso in entrata e di flusso in uscita si distribuiscono su una retta.
-L'unica differenza che si nota è l'incremento del flusso all'aumentare del numero dei pedoni,
-mentre non si notano grosse differenze tra i due modelli e nemmeno tra i due tipi di incrocio.
 
-\begin{figure}[ht]
+\subsubsection*{Flusso}
+Per ogni intersezione è stato calcolato il flusso in entrata e in uscita sommando i valori di ogni strada al variare del numero di auto e pedoni.
+
+Come si nota nella figura \ref{fig:analisi-comparison-in-out-flow-ped}, 
+il flusso dei pedoni non presenta particolari differenze tra modello base ed esteso, nonostante le modifiche apportate ai pedoni.
+
+Per entrambi i modelli il flusso in entrata e in uscita in ogni intersezione è molto simile.
+Inoltre all'aumentare del numero di pedoni c'è un incremento nel flusso.
+
+Nella maggior parte dei casi il flusso delle intersezioni TWSC risulta più basso rispetto a quelle AWSC, poichè la strada secondaria 
+è bloccata finchè la principale è occupata.
+
+\begin{figure}[p]
     \centering
-    \begin{subfigure}{0.9\textwidth}
+    \begin{subfigure}{\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-ped.png}
         \caption{Modello base}
     \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.9\textwidth}
+    
+    \begin{subfigure}{\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-ped.png}
         \caption{Modello esteso}
@@ -325,42 +329,31 @@ mentre non si notano grosse differenze tra i due modelli e nemmeno tra i due tip
     \label{fig:analisi-comparison-in-out-flow-ped}
 \end{figure}
 
-\ref{fig:analisi-comparison-in-out-flow-ped} viene confrontato invece il flusso per le auto anche
-qui in generale non si notano grosse differenze tra gli AWSC ed i TWSC, il flusso aumenta all'aumentare del numero di auto,
-ma il flusso in entrata ed in uscita non siano perfettamente bilanciati ed non
-formano una retta come il grafico precedente.
-Vengono quindi evidenziati gli incroci più critici come i punti che superano una distanza di 3 dalla retta y = x,
+Osservando il flusso delle auto (Fig. \ref{fig:analisi-comparison-in-out-flow-car}) 
+viene sempre riscontrato un incremento di flusso all'aumentare del numero di auto.
 
-% TODO: rivedere
-Osservando il flusso delle auto (Fig. \ref{fig:analisi-comparison-in-out-flow-car}), anche in questo caso
-non si notano grosse differenze tra AWSC e TWSC e viene sempre riscontrato un incremento di flusso all'aumentare del numero di auto.
-In questo caso però il flusso in entrata e in uscita non sono perfettamente bilanciati discostandosi dal formare una retta ideale.
-infatti il flusso in entrata è quasi sempre maggiore del flusso in uscita.
-La differenza che più si nota tra il modello esteso ed il modello base è un abbassamento sostanziale del flusso,
-molto probabilmente dovuto alla gestione delle intersezioni che rallentano il flusso in uscita.
-In particolare vengono evidenziate le intersezioni più critiche sono identificate dai punti che superano una distanza di 3 dalla retta y = x,
-si può notare come il numero di incroci critici aumenti con il numero di auto.
-In particolare si nota un abbassamento sostanziale del flusso nel modello esteso (b)
-rispetto a quello base (a).
-Infine le intersezioni più critiche vengono evidenziate spazialmente sia per il modello base 
-che per il modello esteso \ref{fig:analisi-comparison-in-out-flow-car}.
+In questo caso però il flusso in entrata e in uscita non sono perfettamente bilanciati e risultano più sparsi rispetto al flusso dei pedoni.
+Inoltre il flusso in entrata è quasi sempre maggiore del flusso in uscita.
 
-\begin{figure}[ht]
+Nel modello esteso in generale il flusso risulta più basso,
+probabilmente a causa della gestione delle intersezioni che, combinato all'utilizzo dello \textit{shortest path}, 
+provoca un rallentamento al traffico in uscita che, propagandosi in tutta la rete, abbassa il flusso in tutte le intersezioni.
+
+\begin{figure}[p]
     \centering
-    \begin{subfigure}{0.9\textwidth}
+    \begin{subfigure}{\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-base-in-out-flow-car.png}
         \caption{Modello base}
     \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.9\textwidth}
+
+    \begin{subfigure}{\textwidth}
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-new-in-out-flow-car.png}
-        \caption{Modello estenso}
+        \caption{Modello esteso}
     \end{subfigure}
     \caption{
         Confronto tra il flusso delle auto in entrata e in uscita per ogni intersezione al variare del numero di auto e pedoni.
-        I punti che hanno una distanza maggiore o uguale a 3 dalla retta sono marcati come critici.
     }
     \label{fig:analisi-comparison-in-out-flow-car}
 \end{figure}
@@ -368,7 +361,7 @@ che per il modello esteso \ref{fig:analisi-comparison-in-out-flow-car}.
 
 \subsubsection*{Tempi di Attesa}
 
-Infine per il modello esteso vengono analizzati i tempi di attesa nelle intersezioni per le auto,
+Infine esclusivamente per il modello esteso vengono analizzati i tempi di attesa nelle intersezioni per le auto,
 ovvero il tempo che passa da quando un'auto arriva all'incrocio a quando ha il via libera. 
 Inoltre i tempi sono distinti tra i due tipi di intersezione: AWSC e TWSC.
 
@@ -405,8 +398,6 @@ per ogni intersezione.
     \label{fig:analisi-comparison-car-delay}
 \end{figure}
 
-\lipsum[1]
-
 \begin{figure}[ht]
     \centering
     \begin{subfigure}{0.75\textwidth}
@@ -426,6 +417,7 @@ per ogni intersezione.
     \label{fig:critical-waiting-times}
 \end{figure}
 
+\newpage
 
 \subsection*{Comparazione Modello Base con Modello Wang 2021}
 

@@ -4,13 +4,16 @@ Per la simulazione alcuni parametri sono stati fissati, mentre altri parametri s
 o sono stati cambiati manualmente per i diversi esperimenti.
 
 \subsection{Parametri Fissati}
+\label{ssec:parametri-fissi}
 
-Parametri per il modello \textit{car-following}:
+Parametri per il modello \textit{General Motors}:
 \begin{itemize}
-    \item \textbf{max\_speed}: 55 km/h. Velocità massima.
-    \item \textbf{acceleration}: 1.5 m/s². Accelerazione.
-    \item \textbf{deceleration}: 7.5 m/s². Decelerazione.
-    \item \textbf{alpha}: 0.14. Coefficente di sensitività. 
+    \item \textbf{max speed}: 55 km/h. Velocità massima.
+    \item \textbf{safe distance}: 1.8 m. Distanza minima tra le auto.
+    \item \textbf{acceleration}: 1.5 m/s². Accelerazione nel caso in cui non è presente un'auto davanti.
+    \item \textbf{l}: 2. Esponente di distanza.
+    \item \textbf{m}: 0. Esponente di velocità.
+    \item \textbf{alpha}: 0.36 km²/h. Coefficente di sensitività. 
 \end{itemize}
 
 \noindent
@@ -44,8 +47,8 @@ Parametri per le dimensioni delle strade:
 
 Parametri per la percentuale di auto e pedoni:
 \begin{itemize}
-  \item \textbf{R1\_HorEvac\_Foot}: Percentuale di agenti che evacuano a piedi.
-  \item \textbf{R2\_HorEvac\_Car}: Percentuale di agenti che evacuano in auto.
+  \item \textbf{R1\_HorEvac\_Foot}: Probabilità di un residente di evacuare a piedi.
+  \item \textbf{R2\_HorEvac\_Car}: Probabilità di un residente di evacuare in auto.
 \end{itemize}
 
 \noindent
