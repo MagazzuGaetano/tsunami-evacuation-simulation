@@ -1,5 +1,8 @@
 \section{Stato dell'arte}
 \label{sec:stato-arte}
+In questa sezione verrà descritto prima lo stato dell'arte dei modelli di evacuazione da tsunami, senza focalizzarsi sui modelli di inondazione,
+e successivamente un approfondimento sulla gestione della velocità per i pedoni nel caso di modelli network-based.
+
 I primi modelli di evacuazione da tsunami sono stati basati sui modelli network-based utilizzati per l'evacuazione da altri disastri come
 uragani, incendi e inondazioni \parencite{usuzawa1997development, imamura2001development}.
 
@@ -16,22 +19,6 @@ Successivamente si è passati a usare il percorso
 più breve \parencite{katada2004disaster} e altre strategie di routing basate sull'apprendimento 
 come Nash equilibrium e system optimal \parencite{lammel2009towards}.
 
-%\textbf{\textcite{lammel2010emergency}} Queue model, NASH
-
-Con l'aumento della potenza di calcolo è stato possibile passare da modelli network-based a modelli grid-based e ibridi.
-Inoltre è stato possibile usare una quantità di dati maggiore e sfruttare il calcolo parallelo \parencite{wijerathne2013hpc, makinoshima2018enhancing}.
-
-\textcite{wijerathne2013hpc} hanno proposto un modello grid-based che utilizza un sistema di navigazione basato
-sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile scegliendo la strada con una maggiore distanza di visione.
-%
-Anche in questo lavoro vengono distinti visitatori, che si affidano alla visione, e non-visitatori, che hanno conoscenza di un'area
-limita al di fuori della quale vengono considerati visitatori.
-
-Un altro modello grid-based è quello di \textcite{mas2012agent} 
-in cui è stato proposto un modello di evacuazione statica che da un insieme di informazioni % TODO: specificare (dati demografici, morfologia del terreno, distribuzione della popolazione, ...)
-calcola una mappa dei tempi di evacuazione.
-
-
 Un altro aspetto importante per l'evacuazione è la conoscenza dell'ambiente da parte degli agenti.
 Alcuni lavori hanno distinto gli agenti in base alla loro conoscenza e
 studiato gli effetti di diverse proporzioni tra categorie di agenti.
@@ -42,40 +29,50 @@ come comportarsi e quindi segue i \textit{fox agent} o si muove casualmente.
 I residenti sono agenti che conoscono il percorso più breve per evacuare, mentre i visitatori
 seguono gli altri scegliendo la strada con più individui o si muovono verso una zona più elevata.
 
+Con l'aumento della potenza di calcolo è stato possibile passare da modelli network-based a modelli grid-based e ibridi.
+Inoltre è stato possibile usare una quantità di dati maggiore e sfruttare il calcolo parallelo \parencite{wijerathne2013hpc, makinoshima2018enhancing}.
+
+\textcite{wijerathne2013hpc} hanno proposto un modello grid-based che utilizza un sistema di navigazione basato
+sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile scegliendo la strada con una maggiore distanza di visione.
+%
+Anche in questo lavoro vengono distinti visitatori, che si affidano alla visione, e non-visitatori, che hanno conoscenza di un'area
+limita al di fuori della quale vengono considerati visitatori.
+
+% Un altro modello grid-based è quello di \textcite{mas2012agent} 
+% in cui è stato proposto un modello di evacuazione statica che da un insieme di informazioni % TODO: specificare (dati demografici, morfologia del terreno, distribuzione della popolazione, ...)
+% calcola una mappa dei tempi di evacuazione
+
+% Altri lavori hanno analizzato come i tempi di partenza influenzano il tempi di evacuazione e il numero di vittime
+% \parencite{wang2016agent, takabatake2017simulated}.
 
 % Successivamente i modelli di evacuazione da tsunami si sono concentrati sulle applicazioni come trovare delle contromisure, 
 % il miglioramento delle modalità di evacuazione
 % tramite l'analisi delle congestioni del traffico, il posizionamento dei rifugi e lo scambio di informazioni durante l'evacuazione.
+% \parencite{taubenbock2013risk} %TODO: aggiungere citazioni
 
-% \parencite{taubenbock2013risk}
-
-%TODO: aggiungere citazioni
-
-
-In molti modelli vengono considerati solo pedoni oppure pedoni e auto, ma senza gestire le interazioni tra loro.
+In molti modelli vengono considerati esclusivamente solo pedoni, ma alcuni lavori hanno analizzato l'aggiunta della presenza di auto e altri veicoli,
+e si concentrano nella gestione delle interazioni tra i diversi tipi di agenti.
 
 \textcite{goto2012tsunami} hanno considerato gli individui raggruppati in famiglie e categorizzato le famiglie in:
-pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto e inoltre hanno
+pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto, gestendo le loro velocità in base alla densità e inoltre hanno
 modellato le interazioni dei diversi agenti all'interno di una corsia stradale.
 
-\textcite{wang2021novel} hanno ripreso il lavoro di \textcite{goto2012tsunami} e
-modificato la gestione delle interazioni proponendo un modello che distingue diversi stati di traffico: \textit{vehicle-dominated}, \textit{balanced}, and \textit{pedestrian-dominated}. 
-Inoltre per rendere il modello più realistico 
-sono stati considerati i danni sulla rete stradale causati dal terremoto che si verifica prima dello tsunami.
+\textcite{wang2016agent} hanno proposto un modello in cui auto e pedoni evacuano separatamente e vengono gestite esclusivamente interazioni auto-auto. Ai pedoni viene assegnata
+una velocità costante tramite una distribuizione normale che comprende diversi range di velocità dei pedoni.
 
-Altri lavori hanno analizzato come i tempi di partenza influenzano il tempi di evacuazione e il numero di vittime
-\parencite{wang2016agent, takabatake2017simulated}.
-
+\textcite{wang2021novel} hanno ripreso il lavoro di \textcite{wang2016agent} e, 
+ispirandosi al lavoro \textcite{goto2012tsunami}, modificato la gestione delle interazioni proponendo un modello in cui sia pedoni che auto hanno una velocità variabile in base alla densità.
+Vengono distinti diversi stati di traffico in base al rapporto tra il volume dei pedoni e delle auto: \textit{vehicle-dominated}, \textit{balanced}, e \textit{pedestrian-dominated}. 
+Inoltre per rendere il modello più realistico sono stati considerati i danni sulla rete stradale causati dal terremoto che si verifica prima dello tsunami.
 
 \subsection{Velocità dei Pedoni}
 La velocità dei pedoni solitamente viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
 espresse tramite un diagramma fondamentale \parencite{nikolic2016probabilistic}.
 Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre disponibili, soprattutto nei casi di emergenza.
 
-Perciò analizzeremo come questo problema viene trattato da metodi allo stato dell'arte
-per la simulazione di evacuazione di tsunami.
+Perciò analizzeremo come questo problema viene trattato da metodi allo stato dell'arte per la simulazione di evacuazione di tsunami.
 
-Alcuni lavori distinguono i pedoni in gruppi in base alla loro velocità sulla base di questionari o altri lavori riguardanti il comportamento dei pedoni.
+Alcuni lavori distinguono i pedoni in gruppi in base alla loro velocità sulla base di questionari o di altri lavori riguardanti il comportamento dei pedoni.
 \textcite{takabatake2017simulated} hanno effettuato una distinzione sull'età con una velocità massima di 1.19 m/s (Under 65) e 0.96 m/s (Over 65).
 Basandosi sul lavoro di \textcite[]{older1968movement} hanno assunto una decrescità lineare della velocità da un livello di densità di 0.3 p/m² a uno di 3.0 p/m² (Fig. \ref{fig:speed-linear}).
 \textcite{goto2012tsunami}, invece hanno raggruppato i pedoni in famiglie che sono distinte in \textit{normal walkers}, con velocità massima di 1.5 m/s, e
@@ -84,7 +81,6 @@ Basandosi sul lavoro di \textcite[]{older1968movement} hanno assunto una decresc
 Altri lavori hanno assunto che la velocità sia distribuita normalmente.
 \textcite{wang2021novel} hanno considerato una distribuzione normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
 con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
-
 
 \begin{figure}[ht]
     \centering
@@ -120,12 +116,11 @@ con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
 \end{figure}
 
 In questi lavori la velocità viene aggiustata in base alla densità in un'area davanti ai pedoni (Fig. \ref{fig:speeds}), tramite la seguente formula
-$\rho = n /(L \times W)$, dove $n$ è il numero di persone nell'area $L \times W$, $L$ è la lunghezza di ricerca e $W$ la larghezza della strada.
-%
-La lunghezza solitamente assume valori tra 3 e 5 m.
+$\rho = n /(L \times W)$, dove $n$ è il numero di persone nell'area $L \times W$, $L$ è la lunghezza di ricerca, che assume solitamente assume valori tra 3 e 5 m, e $W$ la larghezza della strada.
 
 \textcite{lammel2010emergency} invece hanno introdotto un modello network-based in cui in ogni link viene assegnata una coda FIFO,
-limitata nel flusso in uscita \textit{flow capacity} e nella capacità di pedoni al suo interno \textit{Storage capacity}.
+limitata nel flusso in uscita \textit{flow capacity} e nella capacità di pedoni al suo interno \textit{storage capacity}.
+
 La velocità viene aggiornata tramite la relazione $v = \min[v_{max}, FC / D]$ (Fig. \ref{fig:speed-lammel}),
 dove $D$ la densità e $FC$ è la \textit{flow capacity}.
 i parametri di tale modello sono stati scelti approssimando la curva velocità-densità del modello a code a quella
