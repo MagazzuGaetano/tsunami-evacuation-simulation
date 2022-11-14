@@ -16,25 +16,13 @@ Quindi ci si concentrerà sulle interazioni nelle intersezioni introducendo mecc
 Inoltre la velocità dei pedoni verrà modificata in base alla congestione in modo da poter rappresentare uno scenario più realistico.
 
 \subsection{Rete Stradale}
-Prima di descrivere le varie aggiunte in questa sezione verrannò elencate le varie modifiche che sono state effettuate alla rete stradale.
-
 Tutte le strade della rete sono state considerate come strade locali secondo il \textcite{seaside2010tsp},
 ovvero strade a doppio senso e a una corsia con una larghezza variabile da 7.3 m a 9 m e opzionalmente con
 un marciapiedie per ogni lato della strada con una larghezza fissa di 1.5 m.
 %
 È stato assunto che tutte le strade abbiano marciapiedi su entrambi i lati e che la larghezza sia fissata al valore minimo (7.3 m).
 
-
-\newpage
-
-\subsection{Gestione degli Intersezioni}
-Per la gestione delle intersezioni sono stati considerati esclusivamente gli incroci a 4 strade e trattati come intersezioni di tipo AWSC (All Way Stop Controlled) o TWSC (Two Way Stop controlled).
-
-% TODO: riscrivere, un po' confuso
-Tramite l'utilizzo di OpenStreetMap e GoogleMaps, sono state estratte manualmente le informazioni circa la posizione e nel case dei TWSC la direzione
-di precedenza di tali tipi di incroci per la citta di Seaside, ottenendo la seguente (Fig. \ref{fig:intersections}).
-
-\begin{figure}
+\begin{figure}[ht]
     \centering
     \begin{subfigure}{0.475\textwidth}
         \includegraphics[width=\textwidth]{images/intersections}
@@ -47,13 +35,35 @@ di precedenza di tali tipi di incroci per la citta di Seaside, ottenendo la segu
         \caption{intersezioni a 4 strade classificate in base al tipo: AWSC in blu (20 nodi) e TWSC in rosso (78 nodi).}
         \label{fig:intersections_types}
     \end{subfigure}
-    \caption{Tipi di intersezioni.}
+    \caption{Intersezioni.}
+    \label{fig:ints_map}
 \end{figure}
 
-Inoltre nelle intersezioni è stata introdotta una zona di attraversamento per la gestione delle interazioni tra auto e pedoni.
-È stato assunto che gli incroci abbiano lunghezza e larghezza pari alla larghezza della strada (10.3 m).
+Tramite l'utilizzo di OpenStreetMap\footnote{\url{https://www.openstreetmap.org/relation/186505}} e Google Maps\footnote{\url{https://www.google.com/maps/place/Seaside,+Oregon+97138,+Stati+Uniti}} sono state estratte manualmente le posizioni e le direzioni delle strade con stop
+delle intersezioni per la città di Seaside, Oregon e classificate in base alla segnaletica stradale:
+
+\begin{itemize}
+    \item All-Way Stop Controlled (AWSC): intersezioni con stop in tutte le strade.
+    \item Two-Way Stop Controlled (TWSC): intersezioni a 4 strade con due stop nelle strade secondarie o intersezioni a T (3 strade) con uno stop nella strada secondaria.
+\end{itemize}
+Tutte le intersezioni presenti nella rete hanno massimo 4 strade e non hanno semafori.
+
+In questo lavoro, per semplicità, sono state gestite solo intersezioni a 4 strade.
+Come mostrato nella figura \ref{fig:ints_map}, la rete è composta da 304 intersezioni
+di cui 206 a 3 strade e 98 a 4 strade. Tra le intersezioni a 4 strade, 20 sono di tipo AWSC e 78 di tipo TWSC.
+
+\subsection{Gestione delle Intersezioni}
+% Per la gestione delle intersezioni sono stati considerati esclusivamente le intersezioni a 4 strade e trattati come intersezioni di tipo AWSC (All Way Stop Controlled) o TWSC (Two Way Stop controlled).
+La gestione delle intersezioni consiste nel definire quali auto possano passare rispettando le precedenze di auto e pedoni.
+I pedoni hanno sempre la precedenza e non c'è alcuna attesa per l'attraversamento.
+
+Per gestire queste interazioni tra pedoni e auto è stata introdotta una zona di attraversamento (Fig. \ref{fig:crossing-area}).
+
+% TODO: anticipare in breve cosa succede quando le auto entrano nella zona?
+
+È stato assunto che le intersezioni abbiano lunghezza e larghezza pari alla larghezza della strada, ovvero 10.3 m.
 Dal momento che la rappresentazione della strada è network-based è stato deciso che
-la zona iniza prima dell'incrocio e finisce dopo dell'incrocio a una distanza pari alla metà della larghezza (5.15 m) (Fig. \ref{fig:crossing-area}).
+la zona di attraversamento inizi prima dell'intersezione e termini dopo dell'intersezione a una distanza pari alla metà della larghezza dal centro (5.15 m).
 
 \begin{figure}[ht]
     \centering
@@ -63,9 +73,10 @@ la zona iniza prima dell'incrocio e finisce dopo dell'incrocio a una distanza pa
 \end{figure}
 
 \newpage
-Per rappresentare l'attraversamento dei pedoni e delle auto sono state aggiunte le seguenti informazioni ad ogni intersezione $i$ a 4 strade:
+
+Per rappresentare l'attraversamento dei pedoni e delle auto ad ogni intersezione $i$ sono state aggiunte le seguenti informazioni:
 \begin{itemize}
-    \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'incrocio $i$ all'incrocio $j$.
+    \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'intersezione $i$ all'intersezione $j$.
     \item $\textit{Arrival}_i$ = coda delle auto nella zona di attraversamento ordinate per tempo di arrivo.
     \item $\textit{Crossing}_i$ = insieme delle auto che possono passare contemporaneamente.
     \item $\textit{Stops}_i$ = insieme delle intersezioni $j$ collegate a $i$ in cui è presente uno stop nella strada $(i, j)$.
@@ -109,7 +120,7 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
     \caption{
         Esempio dei tre casi di attraversamento dal punto di vista del pedone che si trova sul marciapiede sinistro
         a) il pedone si trova sul lato sinistro e attraversa sul link collegato a origin.
-        b) il pedone attraverso sul lato sinistro dell'incrocio, quindi sul link collegato a left.
+        b) il pedone attraverso sul lato sinistro dell'intersezione, quindi sul link collegato a left.
         c) il pedone segue il marciapiede sulla sinistra senza attraversare.
     }
     \label{fig:pedestria-crossing}
@@ -119,11 +130,11 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
 \subsubsection{Auto}
 Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
 determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata e una volta avuto il via libera
-viene aggiunta a $\textit{Crossing}_i$ e rimossa una volta lasciato l'incrocio.
+viene aggiunta a $\textit{Crossing}_i$ e rimossa una volta lasciato l'intersezione.
 
 Le auto quando raggiungono la zona di attraversamento vengono aggiunte alla coda $\textit{Arrival}_i$ e schedulate
-in base al tipo d'intersezione (Sec. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte a $\textit{Crossing}_i$
-e rimosse una volta lasciato l'incrocio.
+in base al tipo d'intersezione (Sez. \ref{subsubsec:precedenze}), una volta avuto il via libera le auto sono aggiunte a $\textit{Crossing}_i$
+e rimosse una volta lasciato l'intersezione.
 %
 Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere,
 quindi potrà passare se e solo se $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
