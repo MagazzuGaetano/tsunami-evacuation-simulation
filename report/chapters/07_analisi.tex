@@ -5,14 +5,15 @@ comparando il modello base con il modello esteso e infine con un modello allo st
 
 \subsection{Modello Base}
 Nelle figure \ref{fig:analisi-base-evacuated} e \ref{fig:analisi-base-casualties} vengono mostrate le percentuali di evacuati 
-e di morti nel tempo, al variare del numero di auto e pedoni.
+e di morti nel tempo al variare del numero di auto e pedoni.
 %
 Come si può notare dalla figura \ref{fig:analisi-base-evacuated}, il numero di pedoni non influenza la percentuale di pedoni evacuati nel tempo.
 %
 Per quanto riguarda le auto, più è alto il numero di auto più tempo è richiesto per evacuare e inoltre più bassa è la percentuale di auto evacuate alla fine della simulazione.
 %
-% TODO: rivedere
-Osservando le evacuazioni totali invece risulta che la configurazione che permette di evacuare più agenti sia la 50\% - 50\%, mentre la configurazione 0\% - 100\% sia la peggiore.
+Osservando la percentuale di evacuati totali si può notare che un numero minore di auto permette di evacuare il numero maggiore di agenti.
+I casi con probabilità di pedoni del 75\% e 100\% si ottiene la stessa percentuale massima di agenti evacuati,
+tuttavia il caso con probabilità 75\% ha un andamento più veloce per la presenza delle auto.
 
 \begin{figure}[ht]
     \centering
@@ -21,13 +22,12 @@ Osservando le evacuazioni totali invece risulta che la configurazione che permet
     \label{fig:analisi-base-evacuated}
 \end{figure}
 
-Per quanto riguarda le percentuali di mortalità (Fig. \ref{fig:analisi-base-casualties}), per i pedoni rimangono sotto al 2\% in tutti i casi.
-%
-Per le auto invece nei casi con una percentuale di auto di 25\% e 50\% non c'è nessuna vittima, mentre 
-con una percentuale di 75\% si ha una mortalità di 1.8\% e nel caso peggiore, ovvero 100\%, si raggiunge circa il 10\% di vittime.
-%
-Infine osservando le morti totali risulta che il caso migliore sia uno scenario bilanciato tra auto e pedoni, 
-mentre i casi con una mortalità maggiore siano quelli con solo pedoni o solo auto.
+% TODO: riscrivere
+Per quanto riguarda le percentuali di mortalità (Fig. \ref{fig:analisi-base-casualties}), possono essere fatte analisi simili a quelle fatte in precendenza
+per il numero di evacuati.
+Per i pedoni in tutti i casi la percentuale di vittime rimane sotto al 2\%, mentre osservando le auto e le vittime totali
+risulta una mortalità maggiore all'aumentare del numero di auto fino a un massimo di circa 50\%.
+I casi con meno vittime sono con una probabilità di auto del 25\% e il caso solo pedoni che hanno risultati molto simili.
 
 \begin{figure}[ht]
     \centering
@@ -39,13 +39,15 @@ mentre i casi con una mortalità maggiore siano quelli con solo pedoni o solo au
     \label{fig:analisi-base-casualties}
 \end{figure}
 
-Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo
-e il tempo in cui evacuano in media.
+Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo e il tempo in cui evacuano in media.
 %
-Nel caso con solo pedoni si ha un tempo medio di 35 minuti
-e all'aumentare del numero di auto il tempo medio di evacuzione si abbassa fino a 28 minuti nel caso con solo auto e 
-la distribuzione tende ad appiattirsi.
-Inoltre si può notare come al diminuire del numero di auto considerate minore è la percentuale di agenti che evacuano negli ultimi minuti.
+Nel caso con solo pedoni si ha un enorme picco al tempo medio di X minuti e all'aumentare del numero di auto 
+il tempo medio di evacuzione si abbassa fino a X minuti nel caso con solo auto.
+
+Nel caso con probabilità di auto del 25\% sembra formarsi un secondo picco più basso nei primi minuti probabilmente dovuto alle auto, mentre il secondo ai pedoni.
+Questi picchi tendono ad appiattirsi con l'aumentare del numero di auto.
+
+Inoltre si può notare come con un numero maggiore di auto considerate minore è la percentuale di agenti che evacuano negli ultimi minuti.
 Questo poichè, come già evidenziato nella figura \ref{fig:analisi-base-evacuated}, le auto evacuano più velocemente dei pedoni.
 
 \begin{figure}
@@ -62,14 +64,15 @@ Questo poichè, come già evidenziato nella figura \ref{fig:analisi-base-evacuat
 \subsection{Modello Esteso}
 Nonostante l'introduzione della variazione della velocità per i pedoni, 
 la percentuale di pedoni evacuati risulta molto simile al variare del numero di pedoni (Fig. \ref{fig:analisi-new-evacuated}). 
-Si può notare una differenza significativa tra il minuto 30 e il minuto 40 per il caso 100\% pedoni.
+Si può notare una piccola differenza tra il minuto 30 e il minuto 40 per il caso con solo pedoni.
 
-In generale il numero di auto evacuate è molto più basso rispetto a quello dei pedoni. 
-Il caso con una percentuale di auto evacuate maggiore è quello con il 25\% di auto e il 75\% di pedoni.
+Il caso con una percentuale di auto evacuate maggiore è quello con una probabilità di auto del 25\%.
 Il caso con solo auto, al contrario di come si possa pensare, non è il caso peggiore e ha un numero di evacuati simile ai casi 
-con 75\% e 50\% di auto.
+con probabilità di auto di 75\% e 50\%.
 %
-In tutti i casi le auto evacuano prima dei pedoni avendo una velocità superiore.
+%In tutti i casi le auto evacuano prima dei pedoni avendo una velocità superiore.
+
+In generale il numero di auto evacuate è molto più basso rispetto a quello dei pedoni.
 
 Considerando i contributi di auto e pedoni, al diminuire del numero di auto considerate cresce il numero totale di evacuati alla fine della simulazione,
 fino al caso migliore con solo pedoni.
@@ -81,11 +84,16 @@ fino al caso migliore con solo pedoni.
     \label{fig:analisi-new-evacuated}
 \end{figure}
 
-Nella figura \ref{fig:analisi-new-casualties} si può vedere come al variare del numero di pedoni considerati 
-non ci siano differenze significative, mentre per le auto il numero di vittime sale al crescere del numero di auto considerate.
-In generale la percentuale di vittime per le auto è molto più alto rispetto a quello dei pedoni, con un massimo di circa 37\% nel caso con 75\% di auto. 
+% TODO: riscrivere
+Anche per le percentuali di morti figura \ref{fig:analisi-new-casualties} analisi simili alle percentuali di evacuati \ref*{fig:analisi-new-evacuated} possono essere fatte.
 %
-Il numero di vittime totali cresce al crescere del numero di auto.
+Si può vedere come al variare del numero di pedoni considerati non ci siano differenze significative,
+mentre per le auto la percentuale di vittime sale al crescere del numero di auto considerate.
+% TODO: ripetizioni
+Il caso con una probabilità di auto del 75\% risulta in una percentuale maggiore di vittime rispetto al caso solo auto.
+In generale la percentuale di vittime per le auto è molto più alta rispetto a quella dei pedoni, con un massimo di circa X\% nel caso con una probabilità di auto del 75\%. 
+%
+Il numero di vittime totali cresce al crescere del numero di auto e il caso con solo auto è quello con la percentuale di mortalità maggiore.
 
 \begin{figure}[ht]
     \centering
@@ -99,8 +107,9 @@ Il numero di vittime totali cresce al crescere del numero di auto.
 Nella figura \ref{fig:analisi-new-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo
 e il tempo in cui evacuano in media.
 %
-In modo analogo al modello base il tempo medio di evacuazione si abbassa all'aumentare del numero di auto e 
-la percentuale di evacuati nel tempo si appiattisce.
+In modo analogo al modello base il tempo medio di evacuazione si abbassa e sembrano formarsi due picchi nel caso con una probabilità di auto del 25\% per poi appiattirsi
+all'aumentare del numero di auto.
+
 
 \begin{figure}
     \centering
@@ -113,9 +122,9 @@ la percentuale di evacuati nel tempo si appiattisce.
 
 \subsection{Comparazione Modello Base e Modello Esteso}
 % TODO: sistemare
-In questa sottosezione verrano comparati il modello base con il modello esteso analizzando,
-le percentuali di evacuati e di morti nel tempo al variare del numero di auto e pedoni per poi passare a comparazioni spaziali,
-in particolare mostrando l'efficienza delle intersezioni e l'effetto causato durante la simulazione.
+In questa sottosezione verrano comparati il modello base e il modello esteso analizzando
+le percentuali di evacuati e di vittime per poi passare a comparazioni spaziali,
+in particolare mostrando l'effetto della gestione delle intersezioni durante la simulazione.
 
 \subsubsection*{Percentuale di Evacuati e di Vittime}
 
@@ -130,28 +139,26 @@ in particolare mostrando l'efficienza delle intersezioni e l'effetto causato dur
         \centering
         \includegraphics[width=\textwidth]{images/analisi/comparison-total-casualties.png}
     \end{subfigure}
-    \caption{Comparazione tra modello base e modello esteso delle percentuali di agenti evacuati (sinistra) e di agenti morti (destra) al variare del numero di agenti.}
+    \caption{Comparazione tra modello base e modello esteso delle percentuali di evacuati (sinistra) e di vittime (destra) al variare del numero di agenti.}
     \label{fig:analisi-comparison-total-ec}
 \end{figure}
 
-Osservando la figura \ref{fig:analisi-comparison-total-ec} è possibile comparare le percentuali di evacuati e morti a diversi split tra i due modelli.
+Osservando la figura \ref{fig:analisi-comparison-total-ec} è possibile comparare le percentuali di evacuati e di vittime nel tempo al variare del numero di agenti tra i due modelli.
 In generale il modello esteso presenta un numero minore di evacuati e un numero maggiore di vittime rispetto al modello base.
-Per entrambi i modelli la percentuale di evacuati decresce all'aumentare del numero di auto considerate, mentre la percentuale di vittime cresce.
+Questo può essere sintomo dell'effetto delle intersezioni che creando rallentamenti causano una mortalità maggiore,
+infatti la percentuale di evacuati del modello esteso presenta un andamento più lento rispetto al modello di partenza.
+Per entrambi i modelli la percentuale di evacuati decresce e la percentuale di vittime cresce all'aumentare del numero di auto considerate.
 Inoltre per entrambi i modelli le prime vittime si verificano dopo 40 min.
-
-Gli unici casi in cui il modello esteso si avvicina ai risultati del modello base sono il caso con solo pedoni ed il caso 75\%-25\%.
+Gli unici casi in cui il modello esteso e quello base hanno risultati molto simili sono il caso con solo pedoni e il caso solo auto, 
+ovvero i casi in cui l'effetto delle intersezioni è minimo.
 
 \pagebreak
 
 \subsubsection*{Percentuale di Evacuati nel Tempo}
 
 Come già detto in precedenza le distribuzioni della percentuale di evacuati nel tempo del modello base e del modello esteso 
-presentano un andamento simile (Fig. \ref{fig:analisi-comparison-evtimes}).
-%
-Nel modello esteso si ha un numero di evacuati più alto negli ultimi minuti e 
-in generale la percentuale di evacuati nel tempo è mediamente più bassa rispetto al modello base, a eccezione del caso con solo pedoni.
-%
-Rispetto al modello base, il modello esteso presenta un tempo di evacuazione medio più alto nei casi con sia pedoni che auto.
+presentano un andamento simile (Fig. \ref{fig:analisi-comparison-evtimes}). Il tempo medio di evacuazione abbastanza simile per i due modelli,
+leggermente più alto per il modello esteso con una probabilità di pedoni di 75\%.
 
 \begin{figure}[ht]
     \centering
