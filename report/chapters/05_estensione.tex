@@ -72,14 +72,12 @@ la zona di attraversamento inizi prima dell'intersezione e termini dopo dell'int
     \label{fig:crossing-area}
 \end{figure}
 
-\newpage
-
 Per rappresentare l'attraversamento dei pedoni e delle auto ad ogni intersezione $i$ sono state aggiunte le seguenti informazioni:
 \begin{itemize}
     \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'intersezione $i$ all'intersezione $j$.
     \item $\textit{Arrival}_i$ = coda delle auto nella zona di attraversamento ordinate per tempo di arrivo.
     \item $\textit{Crossing}_i$ = insieme delle auto che possono passare contemporaneamente.
-    \item $\textit{Stops}_i$ = insieme delle intersezioni $j$ collegate a $i$ in cui è presente uno stop nella strada $(i, j)$.
+    \item $\textit{Stops}_i$ = insieme delle intersezioni $j$ collegate all'intersezione $i$ in cui è presente uno stop nella strada $(i, j)$.
 \end{itemize}
 
 % Inoltre per i TWSC nelle intersezioni la presenza degli stop viene segnata, mediante una lista con il numero dell'intersezioni interessate.
@@ -94,7 +92,7 @@ vengono definite:
     \item $x_{xdir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
 \end{itemize}
 
-\newpage
+
 \subsubsection{Pedoni}
 % Dato un pedone $x$ si definiscono $x_{prev}$ l'intersezione precendente, $x_{curr}$ l'intersezione corrente e $x_{next}$ la prossima intersezione.
 
@@ -103,7 +101,7 @@ per cui $I_d$ indica l'intersezione nella direzione $d \in \{\textit{origin}, \t
 %
 La direzione associata all'intersezione $x_{next}$ è quella dove è diretto il pedone e viene identificata da $x_{dir}$.
 
-Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede $x_{side}$
+Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede sul lato $x_{side}$
 ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{right} (Fig. \ref{fig:pedestria-crossing}):
 \begin{itemize}
     \item Se $x_{dir} = \textit{straight}$ e $x_{side} = \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{side}}}$ di 1.
@@ -205,6 +203,7 @@ quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}
     \label{tab:origin-left-straight}
 \end{table}
 
+
 \subsubsection{TWSC}
 \label{subsubsec:TWSC}
 Nel caso in cui l'intersezione è di tipo TWSC vengono identificate due vie: quella principale che ha la precedenza e quella
@@ -227,6 +226,3 @@ Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre di
 
 Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel} 
 che si basa sullo stesso modello di partenza di questo lavoro.
-%
-Il calcolo della densità è stato effettuato considerando un'area di ricerca di dimensioni 4 m x 1.5 m 
-come in \textcite{goto2012tsunami, wang2021novel}.
