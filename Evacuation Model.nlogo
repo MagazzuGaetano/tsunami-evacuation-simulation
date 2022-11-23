@@ -1911,10 +1911,10 @@ to import-network-data
 
   foreach rows [x ->
     if item 1 x = minute [
-      let carinflow read-from-string (item 3 x)
-      let caroutflow read-from-string (item 4 x)
+      let carinflow read-from-string (item 6 x)
+      let caroutflow read-from-string (item 3 x)
       let pinflow read-from-string (item 5 x)
-      let poutflow read-from-string (item 6 x)
+      let poutflow read-from-string (item 4 x)
 
       ask intersection item 0 x [
         set car-delay item 2 x
@@ -1926,7 +1926,7 @@ to import-network-data
     ]
   ]
 
-  ; set rows csv:from-file (word "./plot_results/data/" model "/intersections/intersections-evtimes-" suffix)
+  ;set rows csv:from-file (word "./plot_results/data/" model "/intersections/intersections-evtimes-" suffix)
   set rows csv:from-file (word "./plot_results/data/" model "/evtimes-mean.csv")
   set rows remove-item 0 rows
 
@@ -1996,12 +1996,15 @@ to view-evacuation-time [agent-type]
 
   ask intersections [set size 0]
 
-  ask ints [
+  ask ints with [length remove-duplicates [who] of link-neighbors > 2] [
     let value (ifelse-value agent-type = "cars" [car-avg_ev_times][ped-avg_ev_times])
-    let col palette:scale-gradient-hsb color-list value 0 3000
-    set color col
-    set size 2.5
-    set shape "circle"
+
+    if value != 0 [
+      let col palette:scale-gradient-hsb color-list value 0 (45 * 60)
+      set color col
+      set size 2.5
+      set shape "circle"
+    ]
   ]
 end
 
@@ -2116,23 +2119,27 @@ to view-road-traffic [agent-type density?]
 end
 
 to view-critical-links
-  ask int-roads [
+  let color-list [[50 100 100] [0 100 100]]
+
+  ask roads [
     set color gray
     set thickness 0.5
   ]
 
-  let total sum [casualties] of int-roads
+  let total sum [casualties] of roads
 
-  ask int-roads [
+  ask roads [
     let perc casualties / total * 100
 
-    if perc >= 5 [
-      set color red
-      set thickness 2
+    let col palette:scale-gradient-hsb color-list perc 0 5
+
+    if perc >= 1 [
+      set color col
+      set thickness 1
     ]
   ]
 
-  ask int-roads with [casualties = 0] [
+  ask roads with [casualties = 0] [
     let inverse road ([who] of end2) ([who] of end1)
     if inverse != nobody [
       set color [color] of inverse
@@ -2228,7 +2235,7 @@ to view-intersection-car-delay
 
   let color-list [[100 100 100] [0 100 100]]
 
-  let max-n 400 ; max [car-delay] of crossroads
+  let max-n 1400 ; max [car-delay] of crossroads
   print max-n
 
 ;  ask crossroads with [not empty? stops] [set shape "circle" set size 2]
@@ -2248,16 +2255,16 @@ to view-intersection-car-delay
 
   ask crossroads with [empty? stops and car-delay != 0] [ set shape "triangle" set size 6 ]
 
-  ask intersections [set size 0]
-  foreach (list 128 140 152 173 188 201) [x ->
-    ask intersection x [
-      if crossroad? [
-        print (list ifelse-value empty? stops ["AWSC"]["TWSC"] car-delay)
-        let col palette:scale-gradient-hsb color-list car-delay 0 max-n
-        set color col
-        set size 3
-    ]]
-  ]
+;  ask intersections [set size 0]
+;  foreach (list 128 140 152 173 188 201) [x ->
+;    ask intersection x [
+;      if crossroad? [
+;        print (list ifelse-value empty? stops ["AWSC"]["TWSC"] car-delay)
+;        let col palette:scale-gradient-hsb color-list car-delay 0 max-n
+;        set color col
+;        set size 3
+;    ]]
+;  ]
 
   ask residents [set size 0]
   ask cars [set size 0]
@@ -2316,34 +2323,28 @@ to view-intersection-flow [flow-dir agent-type int-type]
   print max-n
 end
 
-to view-intersection-flow2
+to view-intersection-flow2 [agent-type]
   ask patches [set pcolor black]
   ask intersections with [not shelter?] [set color white]
   ask intersections with [shelter?] [set color violet]
   ask roads [set color white]
 
-  let color-list [[100 100 100] [0 100 100]]
+  let color-list [[0 100 100] [100 100 100]]
 
   ask intersections [set size 0] ; hide non-crossroads
 
+  let m 25 / 60
+
+  if agent-type = "ped" [
+    set m 11 / 60
+  ]
+
   ask crossroads [
-    let flow (sum table:values car-in-flow - sum table:values car-out-flow)
+    let flow (sum table:values ifelse-value agent-type = "ped" [ped-in-flow][car-in-flow])
 
-    let dist (flow * 60) / sqrt(2)
-    print dist
-
-    ;print (list (sum table:values car-in-flow * 60) (sum table:values car-out-flow * 60) flow)
-
-    ; ped max 3, car max 10
-    let t 10
-    let col palette:scale-gradient-hsb color-list dist (- t) t
+    let col palette:scale-gradient-hsb color-list flow 0 m
     set color col
     set size 3
-;    if dist >= t [
-;      set size 3
-;      set color ifelse-value not empty? stops [sky][orange]
-;      set shape "circle"
-;    ]
   ]
 
   ask residents [set size 0]
@@ -2397,6 +2398,64 @@ to view-intersection-flow3
   ask crossroads with [empty? stops] [ set shape "triangle" set size 6 ]
 end
 
+to-report show-speed-casualties [measure]
+  ;let dead_peds [self] of pedestrians with [dead?]
+  ask intersections [set size 0]
+  ask pedestrians [set size 0]
+
+  let lista []
+
+  let a []
+  let b []
+
+  ask intersections [
+    let dead_here pedestrians with [dead? and member? self [evacuee_list] of myself]
+    let ped_here pedestrians with [member? self [evacuee_list] of myself]
+
+    let dist abs (xcor + max-pxcor)
+
+    ask ped_here [
+      set lista lput (list dist (free_speed * patch_to_meter) dead?) lista
+
+      let m (free_speed * patch_to_meter)
+      if measure = "dist" [ set m dist]
+
+      ifelse dead? [
+        set a lput m a
+      ][
+        set b lput m b
+      ]
+    ]
+
+    if any? dead_here [
+      set color red
+      set size 8
+    ]
+  ]
+
+  ;clear-plot
+;  foreach lista [x ->
+;    ifelse item 2 x [ set-plot-pen-color 15 ][set-plot-pen-color 65]
+;    plotxy item 1 x item 0 x
+;  ]
+
+  set-current-plot "speed-dists"
+  clear-plot
+
+  set-plot-x-range 0.75 3.83
+  if measure = "dist" [set-plot-x-range 0 200 ]
+
+  setup-plots
+
+;  set-current-plot-pen "alive"
+;  histogram b
+
+  set-current-plot-pen "dead"
+  histogram a
+
+  report list a b
+end
+
 
 to show-intersections-casualties
   let max-n max [casualties] of roads
@@ -2409,10 +2468,10 @@ to show-intersections-casualties
 
     let out_casualties [casualties] of (link-set (map [x -> road who_crossroad x] [who] of out-road-neighbors)) ;with [casualties / sum [casualties] of roads * 100 >= 0]
 
-    let tot_casualties (sum out_casualties + sum in_casualties)
+    let tot_casualties (sum in_casualties)
     if tot_casualties > 0 [
       print tot_casualties
-      let col palette:scale-gradient-hsb color-list tot_casualties 0 300
+      let col palette:scale-gradient-hsb color-list tot_casualties 0 60
       set color col
       set size 4
     ]
@@ -2445,6 +2504,51 @@ to show-ints-casualties
       set shape "circle"
     ]
   ])
+end
+
+to show-mean-ints-casualties
+  ask patches [set pcolor black]
+  ask roads [set color gray]
+
+  let color-list [[50 100 100] [0 100 100]]
+  let rows csv:from-file (word "./plot_results/data/critical_ints_" model ".csv")
+  set rows remove-item 0 rows
+
+  ask intersections [set size 0]
+  foreach rows [row ->
+    ask intersection item 1 row [
+      let c item 2 row ; casualties
+
+      if c > 0  [
+        let col palette:scale-gradient-hsb color-list c 0 4
+        set color col
+        set size 3
+        set shape "square"
+
+        if empty? stops and crossroad? [ set shape "triangle" set size 6 ]
+      ]
+    ]
+  ]
+end
+
+to get-distance-from-cost
+  let color-list [[100 100 100] [0 100 100]]
+  let dists [["who" "distance"]]
+
+  ask intersections [set size 0]
+  ask intersections [ ; crossroads with [not shelter?] [
+    set dists lput list who (abs (xcor + max-pxcor)) dists
+
+    ; let col palette:scale-gradient-hsb color-list (abs (xcor + max-pxcor)) 0 (abs (max-pxcor - min-pxcor))
+
+    let col red
+    ifelse (abs (xcor + max-pxcor)) < 75 [set  col green][if (abs (xcor + max-pxcor)) > 110  [set col yellow]]
+    set color col
+    set size 3
+  ]
+
+  print dists
+  ;csv:to-file "./road_network/ints_distances.csv" dists
 end
 
 to profile
@@ -2948,7 +3052,7 @@ INPUTBOX
 1371
 151
 iteration
-14.0
+1.0
 1
 0
 Number
@@ -3009,10 +3113,10 @@ model
 2
 
 BUTTON
-1567
-344
-1645
-377
+132
+687
+210
+720
 Import
 import-network-data\n
 NIL
@@ -3026,10 +3130,10 @@ NIL
 1
 
 SLIDER
-1388
-344
-1560
-377
+13
+687
+122
+720
 minute
 minute
 0
@@ -3039,6 +3143,25 @@ minute
 1
 NIL
 HORIZONTAL
+
+PLOT
+1384
+339
+1795
+497
+speed-dists
+NIL
+NIL
+0.0
+200.0
+0.0
+0.0
+true
+false
+"" ""
+PENS
+"dead" 1.0 1 -2674135 true "set-histogram-num-bars 40" ""
+"alive" 1.0 1 -13840069 true "set-histogram-num-bars 40\nset-plot-pen-mode 1 ; bar mode" ""
 
 @#$#@#$#@
 @#$#@#$#@
