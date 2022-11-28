@@ -92,7 +92,6 @@ vengono definite:
     \item $x_{xdir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
 \end{itemize}
 
-
 \subsubsection{Pedoni}
 % Dato un pedone $x$ si definiscono $x_{prev}$ l'intersezione precendente, $x_{curr}$ l'intersezione corrente e $x_{next}$ la prossima intersezione.
 
@@ -100,6 +99,8 @@ Data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) viene associata ad ogni inte
 per cui $I_d$ indica l'intersezione nella direzione $d \in \{\textit{origin}, \textit{left}, \textit{straight}, \textit{right}\}$.
 %
 La direzione associata all'intersezione $x_{next}$ è quella dove è diretto il pedone e viene identificata da $x_{dir}$.
+
+\pagebreak
 
 Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede sul lato $x_{side}$
 ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{right} (Fig. \ref{fig:pedestria-crossing}):
@@ -218,6 +219,7 @@ Una volta che la via principale è libera viene gestita nello stesso modo quella
 
 Per verificare se le due auto possono passare contemporaneamente si procede come già visto per il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
 
+\newpage
 
 \subsection{Velocità dei Pedoni}
 La velocità dei pedoni solitamente viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
