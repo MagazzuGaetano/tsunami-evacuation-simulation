@@ -34,6 +34,7 @@ Parametri per il tempo di preparazione:
 Parametri per il comportamento dei pedoni:
 \begin{itemize}
   \item \textbf{search\_length}: 4 m. Lunghezza della strada davanti al pedone per calcolare la densità.
+  \item \textbf{jam\_density}: 6 ped/m². Densità massima.
 \end{itemize}
 
 \noindent
@@ -47,28 +48,28 @@ Parametri per le dimensioni delle strade:
 
 Parametri per la percentuale di auto e pedoni:
 \begin{itemize}
-  \item \textbf{R1\_HorEvac\_Foot}: Probabilità di un residente di evacuare a piedi.
-  \item \textbf{R2\_HorEvac\_Car}: Probabilità di un residente di evacuare in auto.
+  \item \textbf{R1\_Evac\_Foot}: Probabilità di un residente di evacuare a piedi.
+  \item \textbf{R2\_Evac\_Car}: Probabilità di un residente di evacuare in auto.
 \end{itemize}
 
 \noindent
-%TODO: riscrivere
 Sono state provate le seguenti combinazioni di auto e pedoni:
 \begin{itemize}
-  \item \textbf{R1\_HorEvac\_Foot}: 0\%, \textbf{R2\_HorEvac\_Car}: 100\%
-  \item \textbf{R1\_HorEvac\_Foot}: 25\%, \textbf{R2\_HorEvac\_Car}: 75\%
-  \item \textbf{R1\_HorEvac\_Foot}: 50\%, \textbf{R2\_HorEvac\_Car}: 50\%
-  \item \textbf{R1\_HorEvac\_Foot}: 75\%, \textbf{R2\_HorEvac\_Car}: 25\%
-  \item \textbf{R1\_HorEvac\_Foot}: 100\%, \textbf{R2\_HorEvac\_Car}: 0\%
+  \item \textbf{R1\_Evac\_Foot}: 0\%, \textbf{R2\_Evac\_Car}: 100\%
+  \item \textbf{R1\_Evac\_Foot}: 25\%, \textbf{R2\_Evac\_Car}: 75\%
+  \item \textbf{R1\_Evac\_Foot}: 50\%, \textbf{R2\_Evac\_Car}: 50\%
+  \item \textbf{R1\_Evac\_Foot}: 75\%, \textbf{R2\_Evac\_Car}: 25\%
+  \item \textbf{R1\_Evac\_Foot}: 100\%, \textbf{R2\_Evac\_Car}: 0\%
 \end{itemize}
 
 \noindent
 Parametri per il comportamento dei pedoni:
 \begin{itemize}
-  \item \textbf{free\_speed}: velocità massima... %TODO: aggiungere
-  \item \textbf{side}: lato del marciapiede all'inizio della simulazione (0 sinistro e 1 destro). Durante la simulazione può variare. 
+  \item \textbf{$\mu_p$}: media della velocità, distribuita uniformemente in [1.4, 2].
+  \item \textbf{$\sigma_p$}: deviazione standard della velocità, distribuita uniformemente in [0.1, 0.6].
+  \item \textbf{side}: lato del marciapiede all'inizio della simulazione (0 sinistro e 1 destro), assegnato in modo equiprobabile. 
+  Durante la simulazione può variare. 
 \end{itemize}
 
 \noindent
-%TODO: riscrivere
-Per via di questa randomicità i risultati degli esperimenti sono stati mediati su 30 simulazioni.
+Per via della randomicità dei parametri i risultati degli esperimenti sono stati mediati su 30 simulazioni.

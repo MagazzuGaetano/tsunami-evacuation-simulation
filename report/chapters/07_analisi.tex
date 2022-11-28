@@ -428,6 +428,75 @@ Spazialmente si può notare che la maggior parte delle intersezioni con tempi di
 \end{figure}
 
 
+\subsection{Comparazione con Z. Wang e Jia (2021)}
+In questa sezione verranno comparati il modello base e il modello esteso con il modello di \textcite{wang2021novel}, 
+il quale rappresenta un modello recente allo stato dell'arte e considera lo stesso scenario di evacuazione di questo lavoro.
 
-\subsection*{Comparazione Modello Base con Modello Wang 2021}
+\textcite{wang2021novel} hanno effettuato 4000 simulazioni con 5000 agenti e
+hanno modellato l'incertezza della percentuale di auto con una variabile $p_c \sim N(\mu_c, \sigma_c)$ troncata in (0, 1), 
+dove $\mu_c$ segue una distribuzione uniforme in [0, 1] e $\sigma_c$ = 0.15.
+Inoltre sono stati considerati diversi casi che introducono o meno diverse caratteristiche nel modello (Tab. \ref{tab:cases}).
 
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    Cases & Seismic damage & Pedestrian-vehicle interaction & Speed adjustment \\ \hline
+    C0 & No  & No  & No  \\ \hline
+    C1 & No  & No  & Yes \\ \hline
+    C2 & No  & Yes & Yes \\ \hline
+    C3 & Yes & No  & Yes \\ \hline
+    C4 & Yes & Yes & Yes \\ \hline
+    \end{tabular}
+    \caption{Casi di simulazione del modello \textcite{wang2021novel}.}
+    \label{tab:cases}
+\end{table}
+
+Per comparare con il modello di \textcite{wang2021novel} sono state mediate le prove effettuate al variare del numero
+di auto e di pedoni con un totale di 4502 agenti (Fig. \ref{fig:analisi-comparison-wang2}).
+Nella comparazione verranno presi in considerazione esclusivamente i casi C0, C1 e C2, ovvero quelli
+che non gestiscono i danni sismici.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/analisi/WANG_comparison1.png}
+    \caption{Confronto della percentuali di evacuati e di vittime per auto, pedoni e totale per il modello di \textcite{wang2021novel}.}
+    \label{fig:analisi-comparison-wang1}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/analisi/WANG_comparison2.png}
+    \caption{Confronto della percentuali di evacuati e di vittime per auto, pedoni e totale per modello base ed esteso.}
+    \label{fig:analisi-comparison-wang2}
+\end{figure}
+
+Come si nota nella figura \ref{fig:analisi-comparison-wang1} in entrambi i modelli i primi agenti
+iniziano a evacuare intorno ai 10 minuti. Nel caso di \textcite{wang2021novel} le auto iniziano
+poco prima dei 10 minuti per via dei parametri della distribuzione di Rayleigh.
+
+Nel modello di \textcite{wang2021novel} le prime vittime si verificano a circa 28 minuti ovvero quando lo tsunami inizia ad arrivare alla costa, 
+mentre nel modello esteso e nel modello base dopo 40 minuti, ovvero quando lo tsunami ha già coperto l'area vicino alla costa. 
+Dopo 50 minuti lo tsunami ha raggiunto la massima distanza e infatti in tutti i modelli il numero di vittime rimane costante.
+
+Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati 
+ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime.
+Sono presenti comunque delle differenze dovute ad diversi tempi di partenza degli agenti, alla larghezza della strada considerata ed un numero diverso di agenti.
+Infatti nel modello di \textcite{wang2021novel} l'andamento risulta leggermente più veloce tra i 20 e i 30 minuti
+e leggermente più lento dopo i 35 minuti.
+Inoltre nel modello di \textcite{wang2021novel} c'è una differenza più significativa
+nell'effettuare una variazione della velocità dei pedoni casi C0 e C1, 
+rispetto alla differenza tra il modello base ed esteso.
+
+In tutti i modelli le auto presentano differenze più marcate sia per le vittime che per gli evacuati. 
+Nel modello di \textcite{wang2021novel} gli evacuati hanno una curva crescente fino a circa 30 minuti dopo i quali si appiattisce e raggiunge un valore di circa 17\%, 
+mentre nel modello base e nel modello esteso la curva continua a crescere fino a 50 minuti e raggiunge un valore di 34\% nel modello base e di 26\% nel modello esteso.
+Per quanto riguarda le vittime nel modello di \textcite{wang2021novel} l'andamento cresce lentamente tra 28 e circa 50 minuti raggiungendo un valore di 26\%, mentre nel
+modello base e nel modello esteso la maggior parte delle vittime è concetrata vicino a 40 minuti raggiungendo un valore di di 16\% nel modello base e di 24\% nel modello esteso.
+
+Nel caso totale sono presenti andamenti simili a quelli già descritti nei grafici per i pedoni e per le auto. 
+Il modello base e il modello esteso prevedono un numero maggiore di evacuati e un numero minore di vittime rispetto al modello di \textcite{wang2021novel}.
+In particolare si può notare un massimo di evacuati dell'82\% per il modello base e un massimo di vittime del 25\% per il modello esteso,
+mentre per i casi C0, C1 e C2 sono previsti un numero massimo di evacuati poco sopra il 60\% e un numero massimo di vittime di circa 30\%.
+
+\newpage
