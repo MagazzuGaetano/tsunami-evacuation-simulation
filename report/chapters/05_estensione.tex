@@ -128,13 +128,13 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
 
 \subsubsection{Auto}
 Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
-determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}). 
+determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
 Tutte le auto in $\textit{Arrival}_i$ che possono passare insieme vengono aggiunte a $\textit{Crossing}_i$ e rimosse una volta lasciato l'intersezione.
 Finché $\textit{Crossing}_i$ è piena non potranno essere aggiunte altre auto.
 
 %
-Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere 
+Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere
 e passare quando $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
 
 \begin{figure}[ht]
@@ -159,51 +159,53 @@ in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \text
 quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}, Tab. \ref{tab:origin-straight}, Tab. \ref{tab:origin-left-straight}).
 
 
-\begin{table}[ht]
+\begin{table}[p]
     \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \textbf{Car1: Origin} & \textbf{Car2: Left} \\ \hline
-        Left                  & Left                \\ \hline
-        Right                 & Right               \\ \hline
-        Right                 & Straight            \\ \hline
-        Straight              & Right               \\ \hline
+    \begin{tabular}{l|l|l|}
+        \cline{2-3}
+                                                                                   & Car1: Origin & Car2: Left \\ \hline
+        \multicolumn{1}{|c|}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Direction}}} & Left         & Right      \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Right        & Left       \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Right        & Right      \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Straight     & Right      \\ \hline
     \end{tabular}
     \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
         di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{left}.}
     \label{tab:origin-left}
 \end{table}
 
-\begin{table}[ht]
+\begin{table}[p]
     \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \textbf{Car1: Origin} & \textbf{Car2: Straight} \\ \hline
-        Left                  & Right                   \\ \hline
-        Right                 & Left                    \\ \hline
-        Right                 & Right                   \\ \hline
-        Straight              & Right                   \\ \hline
+    \begin{tabular}{l|l|l|}
+        \cline{2-3}
+                                                                                   & \multicolumn{1}{c|}{Car1: Origin} & \multicolumn{1}{c|}{Car2: Straight} \\ \hline
+        \multicolumn{1}{|c|}{\multirow{5}{*}{\rotatebox[origin=c]{90}{Direction}}} & Left                              & Left                                \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Right                             & Right                               \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Right                             & Straight                            \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Straight                          & Right                               \\ \cline{2-3}
+        \multicolumn{1}{|c|}{}                                                     & Straight                          & Straight                            \\ \hline
     \end{tabular}
     \caption{Tutte le possibili combinazioni di destinazione delle due auto che permettono
         di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin} e \textit{straight}.}
     \label{tab:origin-straight}
 \end{table}
 
-\begin{table}[ht]
+\begin{table}[p]
     \centering
-    \begin{tabular}{|c|c|c|}
-        \hline
-        \textbf{Car1: Origin} & \textbf{Car2: Left} & \textbf{Car3: Straight} \\ \hline
-        Right                 & Left                & Right                   \\ \hline
-        Left                  & Right               & Left                    \\ \hline
-        Right                 & Right               & Right                   \\ \hline
-        Straight              & Right               & Right                   \\ \hline
+    \begin{tabular}{l|l|l|l|}
+        \cline{2-4}
+                                                                                   & \multicolumn{1}{c|}{Car1: Origin} & \multicolumn{1}{c|}{Car2: Left} & Car3: Straight \\ \hline
+        \multicolumn{1}{|c|}{\multirow{4}{*}{\rotatebox[origin=c]{90}{Direction}}} & Right                             & Left                            & Right          \\ \cline{2-4}
+        \multicolumn{1}{|c|}{}                                                     & Left                              & Right                           & Left           \\ \cline{2-4}
+        \multicolumn{1}{|c|}{}                                                     & Right                             & Right                           & Right          \\ \cline{2-4}
+        \multicolumn{1}{|c|}{}                                                     & Straight                          & Right                           & Right          \\ \hline
     \end{tabular}
     \caption{Tutte le possibili combinazioni di destinazione delle tre auto che permettono
         di passare contemporaneamente nel caso in cui arrivano rispettivamente da \textit{origin}, \textit{left} e \textit{straight}.}
     \label{tab:origin-left-straight}
 \end{table}
 
+\pagebreak
 
 \subsubsection{TWSC}
 \label{subsubsec:TWSC}
@@ -219,12 +221,11 @@ Una volta che la via principale è libera viene gestita nello stesso modo quella
 
 Per verificare se le due auto possono passare contemporaneamente si procede come già visto per il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
 
-\newpage
 
 \subsection{Velocità dei Pedoni}
 La velocità dei pedoni solitamente viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
 espresse tramite un diagramma fondamentale \parencite{nikolic2016probabilistic}.
 Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre disponibili, soprattutto nei casi di emergenza.
 
-Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel} 
+Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel}
 che si basa sullo stesso modello di partenza di questo lavoro.
