@@ -127,17 +127,17 @@ il lato del marciapiede $x_{side}$ viene impostato a quello opposto.
 
 
 \subsubsection{Auto}
-Quando un'auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta ad $\textit{Arrival}(i)$ e 
+Quando un'auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta ad $\textit{Arrival}(i)$ e
 in base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
-Quando $\textit{Crossing}(i)$ è vuoto, le auto in $\textit{Arrival}(i)$ vengono selezionate e aggiunte a $\textit{Crossing}(i)$. In base al tipo di 
+Quando $\textit{Crossing}(i)$ è vuoto, le auto in $\textit{Arrival}(i)$ vengono selezionate e aggiunte a $\textit{Crossing}(i)$. In base al tipo di
 intersezione viene dato il via libera solo a quelle che possono passare insieme secondo le regole che verranno descritte successivamente (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
 %
-Una volta che un'auto $x$ ottiene il via libera, viene controllato se ci sono pedoni che stanno attraversando le strade 
+Una volta che un'auto $x$ ottiene il via libera, viene controllato se ci sono pedoni che stanno attraversando le strade
 su cui deve passare per attraversare l'intersezione, ovvero $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$.
-Nello specifico se $C(x_{curr},x_{prev}) = 0$ l'auto può iniziare ad attraversare e se $C(x_{curr},x_{next}) = 0$ 
-l'auto può uscire dalla zona di attraversamento (Fig. \ref{fig:auto-ped-crossing}) e viene rimossa da $\textit{Arrival}(i)$ e $\textit{Crossing}(i)$. 
+Nello specifico se $C(x_{curr},x_{prev}) = 0$ l'auto può iniziare ad attraversare e se $C(x_{curr},x_{next}) = 0$
+l'auto può uscire dalla zona di attraversamento (Fig. \ref{fig:auto-ped-crossing}) e viene rimossa da $\textit{Arrival}(i)$ e $\textit{Crossing}(i)$.
 Finché sono presenti pedoni in queste due occasioni l'auto resta in attesa.
 
 \begin{figure}[ht]
@@ -160,7 +160,7 @@ Basandosi sulle direzioni di provenienza delle auto e sulle rispettive destinazi
 in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \textit{straight})
 quali auto possono passare contemporaneamente. Queste auto vengono aggiunte a $\textit{Crossing}(i)$.
 
-Nelle tabelle \ref{tab:origin-left}, \ref{tab:origin-straight}, e \ref{tab:origin-left-straight}) sono 
+Nelle tabelle \ref{tab:origin-left}, \ref{tab:origin-straight}, e \ref{tab:origin-left-straight}) sono
 elencati i casi tra due e tre auto in cui queste possono passare insieme.
 
 \begin{table}[p]
@@ -219,7 +219,7 @@ secondaria dove sono presenti gli stop.
 A differenza delle intersezioni AWSC, l'ordine di precedenza non importa poiché possono passare al più due auto alla volta
 che si trovano l'una di fronte all'altra.
 Quindi viene scelta casualmente come riferimento una delle due auto che viene considerata provenire da \textit{origin}, mentre
-l'altra da \textit{straight} e si verifica se le due auto possono passare contemporaneamente controllando il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
+l'altra da \textit{straight} e si verifica se le due auto possono passare insieme controllando il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
 
 Quando la via principale sarà libera, ovvero se tutte le auto in $\textit{Crossing}(i)$ provengono solo dalle intersezioni $\textit{Stops}(i)$, verrà gestita nello stesso modo quella secondaria.
 
@@ -231,9 +231,12 @@ Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre di
 Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel}
 che si basa sullo stesso modello di partenza di questo lavoro.
 
+Ogni pedone ha una velocità massima e aggiorna la sua velocità attuale in base alla densità di fronte 
+seguendo il diagramma velocita-densità (Fig. \ref{fig:modello-esteso-velocita-pedoni}).
+
 \begin{figure}[ht]
     \centering
     \includegraphics[width=\textwidth]{images/modello_esteso_velocità_pedoni.png}
-    \label{fig:modello-esteso-velocita-pedoni}
     \caption{Distribuzione della velocità e relazione velocità-densità di \textcite{wang2021novel} applicata al modello base}
+    \label{fig:modello-esteso-velocita-pedoni}
 \end{figure}
