@@ -211,127 +211,9 @@ soprattutto lungo la costa.
 \pagebreak
 
 
-% \subsubsection*{Strade Critiche}
-% Un'ulteriore analisi per valutare l'effetto dell'estensione del modello è quella di evidenziare in quali strade si verificano 
-% più vittime al variare del numero di auto e pedoni. 
-% %
-% Nella figura \ref{fig:analisi-comparison-critical-links1} viene mostrato come si distribuisce la percentuale di mortalità nelle strade 
-% al variare del numero di auto e pedoni e riportata la percentuale media. 
-
-% Il modello base (Fig. \ref{fig:base-link-casualties}) nei casi con un numero di auto minore o uguale al 50\%
-% non presenta differenze significative e si hanno tante strade con una percentuale bassa di vittime, 
-% mentre negli altri due casi ci sono poche strade con una percentuale alta.
-
-% Il modello esteso (Fig. \ref{fig:new-link-casualties}) invece presenta una strada comune per tutti casi 
-% in cui sono presenti delle auto che contribuisce a più del 50\% delle vittime.
-% %
-% In generale in tutti i casi la maggior parte delle strade con più vittime sono diverse tra i due modelli a eccezione del caso 
-% 100\% pedoni.
-% %
-% Le strade segnate come critiche corrispondono a quelle con una percentuale media maggiore del 5\% e sono mostrate nella figura \ref{fig:analisi-comparison-critical-links2}.
-
-% \begin{figure}[ht]
-%     \centering
-%     \includegraphics[width=0.8\textwidth]{images/analisi/casualties-map.png}
-%     \caption{strade critiche trovate per i due modelli.}
-%     \label{fig:analisi-comparison-critical-links2}
-% \end{figure}
-
-% \newpage
-
-% \begin{figure}[ht]
-%     \centering
-%     \begin{subfigure}{0.475\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{images/analisi/base_links_casualties}
-%         \caption{Modello base}
-%         \label{fig:base-link-casualties}
-%     \end{subfigure}
-%     \hfill
-%     \begin{subfigure}{0.475\textwidth}
-%         \centering
-%         \includegraphics[width=\textwidth]{images/analisi/new_links_casualties}
-%         \caption{Modello esteso}
-%         \label{fig:new-link-casualties}
-%     \end{subfigure}
-%     \caption{Comparazione delle percentuali di mortalità nelle strade al variare del numero di auto e pedoni.}
-%     \label{fig:analisi-comparison-critical-links1}
-% \end{figure}
-
-
-\newpage
-
-\subsection{Analisi Intersezioni}
-In questa sottosezione verranno descritte le analisi effettuate sulle intersezioni per valutare l'effetto dell'estesione
-del modello. Per ogni intersezione sono stati analizzati la percentuale di vittime e il flusso in entrata e in uscita, comparando
-i due modelli. Inoltre solo per il modello esteso sono stati analizzati anche i tempi medi di attesa nelle intersezioni,
-poichè nel modello base non c'è attesa.
-
-\subsubsection*{Percentuale di Vittime}
-Nella figura \ref{fig:analisi-comparison-critical-ints1} vengono mostrate le percentuali di mortalità nelle intersezioni gestite per i due modelli al variare del numero di
-agenti e il caso mediato. Inoltre le intersezioni sono ordinate per distanza crescente dal mare.
-
-La percentuale di vittime in un'intersezione è il numero di vittime su ogni strada in entrata nell'intersezione sul numero di vittime totale.
-
-In generale le intersezioni hanno una percentuale di mortalità non superiore al 10\%.
-Nei casi con solo pedoni e solo auto i risultati sono molto simili.
-
-
-\begin{figure}[ht]
-    \centering
-    \begin{subfigure}{0.475\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-critical-ints-base.png}
-        \caption{Modello base}
-        \label{fig:base-ints-casualties}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \centering
-        \includegraphics[width=\textwidth]{images/analisi/comparison-critical-ints-new.png}
-        \caption{Modello esteso}
-        \label{fig:new-ints-casualties}
-    \end{subfigure}
-    \caption{%
-        Comparazione delle percentuali di mortalità nelle intersezioni al variare del numero di auto e pedoni.
-        Le intersezioni sono ordinate per distanza crescente dal mare.
-    }
-    \label{fig:analisi-comparison-critical-ints1}
-\end{figure}
-
-Per quanto riguarda il caso con probabilità di auto del 75\%, entrambi i modelli condividono valori relativamente alti di mortalità per molte intersezioni,
-ma nel modello esteso risultano leggermente più bassi.
-
-Nei casi con probabilità di auto del 50\% e del 25\% il modello esteso ha una percentuale di mortalità distribuita su più intersezioni.
-
-Come si può notare dall'ordine delle intersezioni (Fig. \ref{fig:analisi-comparison-critical-ints1}), i casi con più pedoni
-hanno più vittime nelle intersezioni più distanti, mentre i casi con più auto hanno più vittime nelle intersezioni più vicine al mare per
-via delle code che si formano in caso di congenstione.
-
-In media le percentuali di mortalità per i due modelli risultato simili come si può vedere anche nella figura \ref{fig:analisi-comparison-critical-ints2}.
-
-
-\begin{figure}[ht]
-    \centering
-    \begin{subfigure}{0.475\textwidth}
-        \includegraphics[width=\textwidth]{images/analisi/base_critical_ints_map.png}
-        \caption{Modello base}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}{0.475\textwidth}
-        \includegraphics[width=\textwidth]{images/analisi/new_critical_ints_map.png}
-        \caption{Modello esteso}
-    \end{subfigure}
-    \caption{Percentuali di vittime medie per ogni intersezione distinte per tipo: TWSC (quadrati), AWSC (triangoli).}
-    \label{fig:analisi-comparison-critical-ints2}
-\end{figure}
-
-Nella figura \ref{fig:analisi-comparison-critical-ints2} vengono mostrate le percentuali di vittime nella rete
-distinte in base al tipo di intersezione: TWSC, AWSC.
-
-% TODO: commenti su TWSC, AWSC...
-
 \subsubsection*{Flusso}
+Per valutare la gestione delle intersezioni è stato considerato il flusso distinguendo tra i due tipi di intersezione.
+
 Per ogni intersezione è stato calcolato il flusso in entrata e in uscita sommando i valori di ogni strada al variare del numero di auto e pedoni.
 
 Come si nota nella figura \ref{fig:analisi-comparison-in-out-flow-ped},
@@ -393,45 +275,6 @@ propagandosi in tutta la rete, abbassa il flusso in tutte le intersezioni.
 \pagebreak
 
 
-\subsubsection*{Tempi di Attesa}
-
-Infine, esclusivamente per il modello esteso, vengono analizzati i tempi di attesa nelle intersezioni per le auto,
-ovvero il tempo che passa da quando un'auto arriva all'incrocio a quando ottiene il via libera.
-Inoltre i tempi sono distinti tra i due tipi di intersezione: AWSC e TWSC.
-
-Come si può vedere nella tabella \ref{tab:analisi-car-delay}, all'aumentare del numero di auto entrambi i tipi di intersezioni
-hanno tempi medi di attesa più lunghi.
-
-Per quanto riguarda le intersezioni TWSC, i tempi di attesa medi e massimi in generale sono più alti rispetto agli AWSC,
-per via della presenza degli stop nelle strade secondarie.
-
-\begin{table}[ht]
-    \centering
-    \begin{tabular}{|c|c|c|c|c|c|}
-        \hline
-             & 25\% cars & 50\% cars & 75\% cars & 100\% cars & intersection \\ \hline
-        mean & 36 s      & 56 s      & 142 s     & 185 s      & AWSC         \\ \hline
-        max  & 223 s     & 209 s     & 962 s     & 1363 s     & AWSC         \\ \hline
-        mean & 35 s      & 111 s     & 170 s     & 262 s      & TWSC         \\ \hline
-        max  & 451 s     & 1136 s    & 1246 s    & 1400 s     & TWSC         \\ \hline
-    \end{tabular}
-    \caption{Confronto dei tempi di attesa massimi e medi per i due tipi di intersezioni al variare della percentuale di auto considerate.}
-    \label{tab:analisi-car-delay}
-\end{table}
-
-Nella figura \ref{fig:analisi-comparison-car-delay} vengono riportati i tempi di attesa nella rete al variare del numero di auto.
-
-Al crescere del numero di auto si può notare come la zona in alto vicino al mare composta da una serie di TWSC abbia tempi di attesa più
-alti.
-
-Spazialmente si può notare che la maggior parte delle intersezioni con tempi di attesa elevati si trovano vicino al mare.
-
-\begin{figure}[ht]
-    \includegraphics[width=1\textwidth]{images/analisi/comparison-car-delay.png}
-    \caption{Tempi di attesa nelle intersezioni al variare del numero di auto, differenziando AWSC (triangoli) e TWSC (cerchi).}
-    \label{fig:analisi-comparison-car-delay}
-\end{figure}
-
 
 \subsection{Comparazione con Z. Wang e Jia (2021)}
 In questa sezione verranno comparati il modello base e il modello esteso con il modello di \textcite{wang2021novel}, 
@@ -476,32 +319,57 @@ che non gestiscono i danni sismici.
     \label{fig:analisi-comparison-wang2}
 \end{figure}
 
-Come si nota nella figura \ref{fig:analisi-comparison-wang1} in entrambi i modelli i primi agenti
-iniziano a evacuare intorno ai 10 minuti. Nel caso di \textcite{wang2021novel} le auto iniziano
-poco prima dei 10 minuti per via dei parametri della distribuzione di Rayleigh.
+Una delle prime differenze tra i due modelli riguarda il tempo di preparazione. Infatti i primi agenti nel modello di
+\textcite{wang2021novel} iniziano a evacuare intorno ai 10 minuti, mentre nel modello esteso e nel modello base iniziano 
+dopo 1 minuto.
 
 Nel modello di \textcite{wang2021novel} le prime vittime si verificano a circa 28 minuti ovvero quando lo tsunami inizia ad arrivare alla costa, 
-mentre nel modello esteso e nel modello base dopo 40 minuti, ovvero quando lo tsunami ha già coperto l'area vicino alla costa. 
+mentre nel modello esteso e nel modello base poco prima dei 40 minuti, ovvero quando lo tsunami ha già coperto l'area vicino alla costa. 
 Dopo 50 minuti lo tsunami ha raggiunto la massima distanza e infatti in tutti i modelli il numero di vittime rimane costante.
 
 Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati 
 ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime.
-Sono presenti comunque delle differenze dovute ad diversi tempi di partenza degli agenti, alla larghezza della strada considerata ed un numero diverso di agenti.
-Infatti nel modello di \textcite{wang2021novel} l'andamento risulta leggermente più veloce tra i 20 e i 30 minuti
-e leggermente più lento dopo i 35 minuti.
+
+Sono presenti comunque delle differenze dovute ad diversi tempi di partenza degli agenti, alla distribuzione della popelazione, la larghezza della strada considerata ed un numero diverso di agenti.
+
 Inoltre nel modello di \textcite{wang2021novel} c'è una differenza più significativa
 nell'effettuare una variazione della velocità dei pedoni casi C0 e C1, 
 rispetto alla differenza tra il modello base ed esteso.
 
 In tutti i modelli le auto presentano differenze più marcate sia per le vittime che per gli evacuati. 
 Nel modello di \textcite{wang2021novel} gli evacuati hanno una curva crescente fino a circa 30 minuti dopo i quali si appiattisce e raggiunge un valore di circa 17\%, 
-mentre nel modello base e nel modello esteso la curva continua a crescere fino a 50 minuti e raggiunge un valore di 34\% nel modello base e di 26\% nel modello esteso.
-Per quanto riguarda le vittime nel modello di \textcite{wang2021novel} l'andamento cresce lentamente tra 28 e circa 50 minuti raggiungendo un valore di 26\%, mentre nel
-modello base e nel modello esteso la maggior parte delle vittime è concetrata vicino a 40 minuti raggiungendo un valore di di 16\% nel modello base e di 24\% nel modello esteso.
+mentre nel modello base e nel modello esteso la curva continua a crescere fino intorno ai 40 minuti e raggiunge un valore di 87\% nel modello base e di 79\% nel modello esteso.
 
-Nel caso totale sono presenti andamenti simili a quelli già descritti nei grafici per i pedoni e per le auto. 
-Il modello base e il modello esteso prevedono un numero maggiore di evacuati e un numero minore di vittime rispetto al modello di \textcite{wang2021novel}.
-In particolare si può notare un massimo di evacuati dell'82\% per il modello base e un massimo di vittime del 25\% per il modello esteso,
-mentre per i casi C0, C1 e C2 sono previsti un numero massimo di evacuati poco sopra il 60\% e un numero massimo di vittime di circa 30\%.
+Per quanto riguarda le vittime nel modello di \textcite{wang2021novel} l'andamento cresce lentamente tra 28 e circa 50 minuti raggiungendo un valore di 26\%, mentre nel
+modello base e nel modello esteso la maggior parte delle vittime è concetrata vicino a 40 minuti raggiungendo un valore di di 12\% nel modello base e di 21\% nel modello esteso.
+
+Nel caso totale sono presenti andamenti simili a quelli già descritti nei grafici per i pedoni e per le auto, ovvero sia il modello base ed il modello esteso 
+prevedono un numero maggiore di evacuati e un numero minore di vittime rispetto al modello di \textcite{wang2021novel}.
+
+Il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni 
+che prevede un rallentamento del traffico e più vittime rispetto al modello base.
+
+In generale risultano abbastanza diversi se non per i pedoni che sono modellati in modo simile, il tutto dovuto da molti fattori specialmente i tempi di partenza ed
+il numero di agenti considerati per auto i quali possono essere molto influenti sul numero di evacuati e vittime.
+
 
 \newpage
+
+% Una delle prime differenze tra i due modelli riguarda il tempo di preparazione. Infatti i primi agenti nel modello di
+% \textcite{wang2021novel} iniziano a evacuare intorno ai 10 minuti, mentre nel modello esteso e nel modello base iniziano 
+% dopo 1 minuto.
+
+% Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati 
+% ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime.
+
+% Inoltre nel modello di \textcite{wang2021novel} c'è una differenza più significativa
+% nell'effettuare una variazione della velocità dei pedoni casi C0 e C1, 
+% rispetto alla differenza tra il modello base ed esteso.
+
+% le auto sono molto diverse.
+
+% Il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni 
+% che prevede un rallentamento del traffico e più vittime rispetto al modello base.
+
+% In generale risultano abbastanza diversi se non per i pedoni che sono modellati in modo simile, il tutto dovuto da molti fattori specialmente i tempi di partenza ed
+% il numero di agenti considerati per auto i quali possono essere molto influenti sul numero di evacuati e vittime.

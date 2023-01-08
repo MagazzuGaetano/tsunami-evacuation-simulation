@@ -19,15 +19,14 @@ Parametri per il modello \textit{General Motors}:
 \noindent
 Parametri per il \textit{casualty model}:
 \begin{itemize}
-  \item \textbf{Hc}: 1 m. Profondità critica alla quale l'agente viene considerato una vittima.
-  \item \textbf{Tc}: 120 s. Tempo in acqua che l'agente deve trascorrere per venire considerato una vittima. 
+  \item \textbf{Hc}: 0.5 m. Profondità critica alla quale l'agente viene considerato una vittima.
 \end{itemize}
 
 \noindent
 Parametri per il tempo di preparazione:
 \begin{itemize}
-  \item \textbf{Rtau}: 10 min. Tempo minimo per prepararsi prima di evacuare.
-  \item \textbf{Rsig}: 1.65. Fattore di scala per la distribuzione di Rayleigh.
+  \item \textbf{Rtau}: 1 min. Tempo minimo per prepararsi prima di evacuare.
+  \item \textbf{Rsig}: 0.5. Fattore di scala per la distribuzione di Rayleigh.
 \end{itemize}
 
 \noindent
@@ -65,8 +64,8 @@ Sono state provate le seguenti combinazioni di auto e pedoni:
 \noindent
 Parametri per il comportamento dei pedoni:
 \begin{itemize}
-  \item \textbf{$\mu_p$}: media della velocità, distribuita uniformemente in [1.4, 2].
-  \item \textbf{$\sigma_p$}: deviazione standard della velocità, distribuita uniformemente in [0.1, 0.6].
+  \item \textbf{$\mu_p$}: 1.22 m/s. Velocità media.
+  \item \textbf{$\sigma_p$}: 0.2. Deviazione standard della velocità.
   \item \textbf{side}: lato del marciapiede all'inizio della simulazione (0 sinistro e 1 destro), assegnato in modo equiprobabile. 
   Durante la simulazione può variare. 
 \end{itemize}

@@ -55,7 +55,7 @@ di cui 206 a 3 strade e 98 a 4 strade. Tra le intersezioni a 4 strade, 20 sono d
 \subsection{Gestione delle Intersezioni}
 % Per la gestione delle intersezioni sono stati considerati esclusivamente le intersezioni a 4 strade e trattati come intersezioni di tipo AWSC (All Way Stop Controlled) o TWSC (Two Way Stop controlled).
 La gestione delle intersezioni consiste nel definire quali auto possano passare rispettando le precedenze di auto e pedoni.
-I pedoni hanno sempre la precedenza e non c'è alcuna attesa per l'attraversamento.
+I pedoni hanno sempre la precedenza e non hanno alcuna attesa per l'attraversamento.
 
 Per gestire queste interazioni tra pedoni e auto è stata introdotta una zona di attraversamento (Fig. \ref{fig:crossing-area}).
 
@@ -72,12 +72,12 @@ la zona di attraversamento inizi prima dell'intersezione e termini dopo dell'int
     \label{fig:crossing-area}
 \end{figure}
 
-Per rappresentare l'attraversamento dei pedoni e delle auto ad ogni intersezione $i$ sono state aggiunte le seguenti informazioni:
+Per rappresentare l'attraversamento dei pedoni e delle auto a ogni intersezione $i$ sono state aggiunte le seguenti informazioni:
 \begin{itemize}
-    \item $C_{i, j}$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'intersezione $i$ all'intersezione $j$.
-    \item $\textit{Arrival}_i$ = coda delle auto nella zona di attraversamento ordinate per tempo di arrivo.
-    \item $\textit{Crossing}_i$ = insieme delle auto che possono passare contemporaneamente.
-    \item $\textit{Stops}_i$ = insieme delle intersezioni $j$ collegate all'intersezione $i$ in cui è presente uno stop nella strada $(i, j)$.
+    \item $C(i, j)$ = numero di pedoni che stanno usando l'attraversamento pedonale che si trova sulla strada che va dall'intersezione $i$ all'intersezione $j$.
+    \item $\textit{Arrival}(i)$ = insieme delle auto entrate nella zona di attraversamento.
+    \item $\textit{Crossing}(i)$ = insieme delle auto che possono passare contemporaneamente.
+    \item $\textit{Stops}(i)$ = insieme delle intersezioni $j$ collegate all'intersezione $i$ in cui è presente uno stop nella strada $(i, j)$.
 \end{itemize}
 
 % Inoltre per i TWSC nelle intersezioni la presenza degli stop viene segnata, mediante una lista con il numero dell'intersezioni interessate.
@@ -110,8 +110,9 @@ ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{
     \item Se  $x_{dir} = \textit{side}$ e $x_{side} = \textit{side}$ non viene alterato nessun contatore.
 \end{itemize}
 
-Quando il pedone finisce di attraversare il contatore corrispondente viene decrementato di 1.
-
+Quando il pedone finisce di attraversare il contatore corrispondente viene decrementato di 1, e se
+$x_{dir} \neq x_{side} \land x_{side} \neq \textit{straight}$,
+il lato del marciapiede $x_{side}$ viene impostato a quello opposto.
 
 \begin{figure}[ht]
     \centering
@@ -130,12 +131,12 @@ Quando il pedone finisce di attraversare il contatore corrispondente viene decre
 Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
 determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
-Tutte le auto in $\textit{Arrival}_i$ che possono passare insieme vengono aggiunte a $\textit{Crossing}_i$ e rimosse una volta lasciato l'intersezione.
-Finché $\textit{Crossing}_i$ è piena non potranno essere aggiunte altre auto.
+Tutte le auto in $\textit{Arrival}(i)$ che possono passare insieme vengono aggiunte a $\textit{Crossing}(i)$ e rimosse una volta lasciato l'intersezione.
+Finché $\textit{Crossing}(i)$ è piena non potranno essere aggiunte altre auto.
 
 %
 Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere
-e passare quando $C_{x_{curr},x_{prev}}$ = 0 e $C_{x_{curr},x_{next}}$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
+e passare quando $C(x_{curr},x_{prev})$ = 0 e $C(x_{curr},x_{next})$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
 
 \begin{figure}[ht]
     \centering
@@ -229,3 +230,11 @@ Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre di
 
 Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel}
 che si basa sullo stesso modello di partenza di questo lavoro.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\textwidth]{images/modello_esteso_velocità_pedoni.png}
+    \label{fig:modello-esteso-velocita-pedoni}
+    \caption{Distribuzione della velocità e relazione velocità-densità di \textcite{wang2021novel} applicata al modello base}
+\end{figure}

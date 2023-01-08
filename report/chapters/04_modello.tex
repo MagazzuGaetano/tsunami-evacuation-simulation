@@ -47,12 +47,24 @@ Prima di iniziare l'evacuazione i residenti impiegano del tempo per prepararsi
 che include l'eventuale raggiungimento del veicolo.
 %
 Questo tempo, chiamato \textit{milling time}, è modellato tramite
-la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo ($\tau$) e un parametro di scala ($\sigma$).
+la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo di preparazione ($\tau$) e un parametro di scala ($\sigma$).
 
 \begin{equation}
-  f(x; \tau, \sigma) = \frac{(x - \tau)^2}{\sigma^2}e^{-{(x - \tau)^2}/(2\sigma^2)}
+  P(t) = 
+  \begin{cases}
+    0 &0 < t < \tau\\
+    1 - e^{-{(t - \tau)^2}/(2\sigma^2)} &t < \tau
+  \end{cases}
   \label{eq:rayleigh}
 \end{equation}
+
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{images/modello_base_milling_time.png}
+  \label{fig:modello-base-millingtime}
+  \caption{Effetto di $\sigma$ sui tempi di partenza con $\tau = 5$ minuti,
+  in base al valore di $\sigma$ è possibile capire quando il 99\% degli agenti avrà iniziato ad evacuare.}
+\end{figure}
 
 Scaduto il tempo di preparazione l'agente si muove verso l'intersezione più vicina e
 in base alla modalità scelta viene considerato un agente di tipo pedone o auto.
@@ -66,15 +78,21 @@ Gli agenti durante l'evacuazione possono:
 \begin{itemize}
   \item Continuare sulla strada attuale.
   \item Cambiare strada seguendo il percorso più breve.
-  \item Morire se rimangono in una zona in cui l'altezza delle onde supera $H_c$ per un tempo di $T_c$.
+  \item Morire se l'altezza delle onde supera $H_c$.
   \item Evacuare se hanno raggiunto un rifugio.
 \end{itemize}
 
 \subsubsection{Pedoni}
 La velocità di camminata viene stabilita tramite una distribuzione normale
-con media $\mu_p$ e deviazione standard $\sigma_p$.
+con media $\mu_p$ e deviazione standard $\sigma_p$, in questo modo vengono considerati diversi tipi di pedoni dai più veloci ai più lenti.
 La velocità di ogni pedone rimane costante durante tutta l'evacuazione.
 
+\begin{figure}[ht]
+  \centering
+  \includegraphics[width=\textwidth]{images/modello_base_velocità_pedoni.png}
+  \label{fig:modello-base-velocità-pedoni-img}
+  \caption{Differenti distribuzioni di velocità al variare di $\mu_p$ e $\sigma_p$.}
+\end{figure}
 
 \subsubsection{Auto}
 È stato considerato il caso peggiore in cui ogni auto contiene una sola persona.
