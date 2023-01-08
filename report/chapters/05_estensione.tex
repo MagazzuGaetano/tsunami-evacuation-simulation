@@ -89,7 +89,7 @@ vengono definite:
     \item $x_{curr}$ l'intersezione corrente
     \item $x_{next}$ la prossima intersezione
     \item $x_{side} \in \{ \textit{left}, \textit{right} \}$  il lato di marciapiede (solo pedoni)
-    \item $x_{xdir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
+    \item $x_{dir} \in \{\textit{left}, \textit{straight}, \textit{right}\}$ la direzione verso $x_{next}$
 \end{itemize}
 
 \subsubsection{Pedoni}
@@ -104,14 +104,13 @@ La direzione associata all'intersezione $x_{next}$ è quella dove è diretto il 
 
 Quando un pedone $x$ entra nella zona di attraversamento di $x_{curr}$ dall'intersezione $x_{prev}$ e si trova sul marciapiede sul lato $x_{side}$
 ha tre direzioni in cui poter andare: \textit{left}, \textit{straight}, \textit{right} (Fig. \ref{fig:pedestria-crossing}):
-\begin{itemize}
-    \item Se $x_{dir} = \textit{straight}$ e $x_{side} = \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{side}}}$ di 1.
-    \item Se $x_{dir} = \textit{side}$ e $x_{side} \neq \textit{side}$ viene incrementato $C_{x_{curr}, I_{\textit{origin}}}$ di 1.
-    \item Se  $x_{dir} = \textit{side}$ e $x_{side} = \textit{side}$ non viene alterato nessun contatore.
-\end{itemize}
+\begin{enumerate}[label=\alph*)]
+    \item Se $x_{dir} = \textit{straight}$ e $\textit{side} = x_{side}$ viene incrementato $C(x_{curr}, I_{\textit{side}})$ di 1.
+    \item Se $x_{dir} \neq x_{side} \land x_{dir} \neq \textit{straight}$ viene incrementato $C(x_{curr}, I_{\textit{origin}})$ di 1.
+    \item Se  $x_{dir} = x_{side}$ non viene alterato nessun contatore.
+\end{enumerate}
 
-Quando il pedone finisce di attraversare il contatore corrispondente viene decrementato di 1, e se
-$x_{dir} \neq x_{side} \land x_{side} \neq \textit{straight}$,
+Quando il pedone esce dalla zona di attraversamento il contatore corrispondente viene decrementato di 1, e nel caso b
 il lato del marciapiede $x_{side}$ viene impostato a quello opposto.
 
 \begin{figure}[ht]
@@ -128,37 +127,41 @@ il lato del marciapiede $x_{side}$ viene impostato a quello opposto.
 
 
 \subsubsection{Auto}
-Quando un auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta alla coda $\textit{Arrival}_i$ che
-determina l'ordine di arrivo delle auto. In base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
+Quando un'auto $x$ raggiunge la zona di attraversamento dell'intersezione $i$ viene aggiunta ad $\textit{Arrival}(i)$ e 
+in base al tipo di intersezione viene schedulata (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
-Tutte le auto in $\textit{Arrival}(i)$ che possono passare insieme vengono aggiunte a $\textit{Crossing}(i)$ e rimosse una volta lasciato l'intersezione.
-Finché $\textit{Crossing}(i)$ è piena non potranno essere aggiunte altre auto.
+Quando $\textit{Crossing}(i)$ è vuoto, le auto in $\textit{Arrival}(i)$ vengono selezionate e aggiunte a $\textit{Crossing}(i)$. In base al tipo di 
+intersezione viene dato il via libera solo a quelle che possono passare insieme secondo le regole che verranno descritte successivamente (Sez. \ref{subsubsec:AWSC}, \ref{subsubsec:TWSC}).
 
 %
-Se ci sono pedoni che stanno attraversando le strade $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$ l'auto dovrà attendere
-e passare quando $C(x_{curr},x_{prev})$ = 0 e $C(x_{curr},x_{next})$ = 0 (Fig. \ref{fig:auto-ped-crossing}).
+Una volta che un'auto $x$ ottiene il via libera, viene controllato se ci sono pedoni che stanno attraversando le strade 
+su cui deve passare per attraversare l'intersezione, ovvero $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$.
+Nello specifico se $C(x_{curr},x_{prev}) = 0$ l'auto può iniziare ad attraversare e se $C(x_{curr},x_{next}) = 0$ 
+l'auto può uscire dalla zona di attraversamento (Fig. \ref{fig:auto-ped-crossing}) e viene rimossa da $\textit{Arrival}(i)$ e $\textit{Crossing}(i)$. 
+Finché sono presenti pedoni in queste due occasioni l'auto resta in attesa.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.45\textwidth]{images/crossing_auto_ped_crossing}
     \caption{Esempio degli attraversamenti pedonali (in rosso) che vanno controllati
-        per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un auto $x$.}
+        per poter passare data la tripla ($x_{prev}$, $x_{curr}$, $x_{next}$) di un'auto $x$.}
     \label{fig:auto-ped-crossing}
 \end{figure}
 
 \subsubsection{AWSC}
 \label{subsubsec:AWSC}
-Nelle intersezioni di tipo AWSC la prima auto che arriva ha la precedenza sulle altre auto e deve aspettare eventuali pedoni come spiegato in precedenza.
-Inoltre lo scenario in cui 4 auto arrivano contemporaneamente non è stato considerato poiché poco probabile.
+Nelle intersezioni di tipo AWSC la prima auto che arriva ha la precedenza sulle altre e deve aspettare eventuali pedoni come spiegato in precedenza.
 
-La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo.
+La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo, ovvero $\textit{Arrival}(i)$.
 L'auto che ha la destra libera viene considerata provenire da \textit{origin} e dal suo punto di riferimento
 vengono identificate le direzioni di provenienza delle altre auto.
 
 Basandosi sulle direzioni di provenienza delle auto e sulle rispettive destinazioni viene verificato
 in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \textit{straight})
-quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}, Tab. \ref{tab:origin-straight}, Tab. \ref{tab:origin-left-straight}).
+quali auto possono passare contemporaneamente. Queste auto vengono aggiunte a $\textit{Crossing}(i)$.
 
+Nelle tabelle \ref{tab:origin-left}, \ref{tab:origin-straight}, e \ref{tab:origin-left-straight}) sono 
+elencati i casi tra due e tre auto in cui queste possono passare insieme.
 
 \begin{table}[p]
     \centering
@@ -210,18 +213,15 @@ quali auto possono passare contemporaneamente o meno (Tab. \ref{tab:origin-left}
 
 \subsubsection{TWSC}
 \label{subsubsec:TWSC}
-Nel caso in cui l'intersezione è di tipo TWSC vengono identificate due vie: quella principale che ha la precedenza e quella
-secondaria in cui sono presenti gli stop.
+Nel caso in cui l'intersezione sia di tipo TWSC vengono identificate due vie: quella principale che ha la precedenza e quella
+secondaria dove sono presenti gli stop.
 
-A differenza dell'intersezioni AWSC, l'ordine di precedenza non importa poiché possono passare al più due auto alla volta
+A differenza delle intersezioni AWSC, l'ordine di precedenza non importa poiché possono passare al più due auto alla volta
 che si trovano l'una di fronte all'altra.
 Quindi viene scelta casualmente come riferimento una delle due auto che viene considerata provenire da \textit{origin}, mentre
-l'altra da \textit{straight}.
-%
-Una volta che la via principale è libera viene gestita nello stesso modo quella secondaria.
+l'altra da \textit{straight} e si verifica se le due auto possono passare contemporaneamente controllando il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
 
-Per verificare se le due auto possono passare contemporaneamente si procede come già visto per il caso origin-straight (Tab. \ref{tab:origin-left-straight}).
-
+Quando la via principale sarà libera, ovvero se tutte le auto in $\textit{Crossing}(i)$ provengono solo dalle intersezioni $\textit{Stops}(i)$, verrà gestita nello stesso modo quella secondaria.
 
 \subsection{Velocità dei Pedoni}
 La velocità dei pedoni solitamente viene gestita tramite relazioni macroscopiche tra velocità-densità-flusso
@@ -230,7 +230,6 @@ Per estrarre queste relazioni sono richiesti dei dati empirici che non sempre di
 
 Non avendo a disposizione dati empirici è stato deciso di usare l'approccio di \textcite{wang2021novel}
 che si basa sullo stesso modello di partenza di questo lavoro.
-
 
 \begin{figure}[ht]
     \centering
