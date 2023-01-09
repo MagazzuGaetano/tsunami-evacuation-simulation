@@ -53,7 +53,7 @@ la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo di pre
   P(t) = 
   \begin{cases}
     0 &0 < t < \tau\\
-    1 - e^{-{(t - \tau)^2}/(2\sigma^2)} &t < \tau
+    1 - e^{-{(t - \tau)^2}/(2\sigma^2)} &t \geq \tau
   \end{cases}
   \label{eq:rayleigh}
 \end{equation}
@@ -89,7 +89,7 @@ La velocità di ogni pedone rimane costante durante tutta l'evacuazione.
 
 \begin{figure}[ht]
   \centering
-  \includegraphics[width=\textwidth]{images/modello_base_velocità_pedoni.png}
+  \includegraphics[width=0.8\textwidth]{images/modello_base_velocità_pedoni.png}
   \label{fig:modello-base-velocità-pedoni-img}
   \caption{Differenti distribuzioni di velocità al variare di $\mu_p$ e $\sigma_p$.}
 \end{figure}

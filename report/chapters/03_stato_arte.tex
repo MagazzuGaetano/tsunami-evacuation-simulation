@@ -38,33 +38,12 @@ sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile sceglien
 Anche in questo lavoro vengono distinti visitatori, che si affidano alla visione, e non-visitatori, che hanno conoscenza di un'area
 limita al di fuori della quale vengono considerati visitatori.
 
+\pagebreak
+
 In molti modelli vengono considerati esclusivamente solo pedoni, ma alcuni lavori hanno analizzato l'aggiunta della presenza di auto e altri veicoli,
 e si concentrano nella gestione delle interazioni tra i diversi tipi di agenti \parencite{goto2012tsunami, wang2016agent, wang2021novel}.
 
-\subsection{L\"ammel, Rieser et al. (2010)}
-Questo lavoro utilizza un modello \textit{network-based} per simulare un'evacuzione in larga scala di 450,000 pedoni.
-
-All'inizio della simulazione tutti gli agenti siano nelle loro abitazioni 
-e inizino ad evacuare dopo un certo tempo di partenza individuale.
-
-I pedoni evacuano seguendo il percorso più breve e per alcuni di essi viene effettuato un \textit{re-planning} del percorso tramite Nash equilibrium,
-considerando i tempi di attraversamento sulle strade.
-
-La simulazione del traffico è implementata con un sistema a code dove ad ogni link viene assegnata una coda FIFO, 
-limitata nel flusso in uscita \textit{flow capacity} e nella capacità di pedoni al suo interno \textit{storage capacity}.
-
-La velocità viene aggiornata tramite la relazione $v = \min[v_{max}, FC / D]$, dove $v$ la velocità,
-$V_{max}$ la velocità massima, $D$ la densità e $FC$ è la \textit{flow capacity} (Fig. \ref{fig:queue-model}).
-%
-Inoltre è stata considerata una velocità massima di 1.66 m/s per considerare il
-flusso dei pedoni in caso di emergenza.
-
-\begin{figure}[ht]
-    \centering
-    \includegraphics[width=0.6\textwidth]{images/queue-model.png}
-    \caption{Diagramma fondamentale del modello a code confrontato con quello di \textcite{weidmann1993transporttechnik}.}
-    \label{fig:queue-model}
-\end{figure}
+Questi modelli di evacuazione multimodale verranno approfonditi in quanto questo lavoro si focalizza sulle interazioni tra i diversi tipi di agenti.
 
 \subsection{Goto et al. (2012)}
 In questo lavoro sono stati modellati diversi tipi di agenti raggruppati in famglie: pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto.
@@ -75,29 +54,34 @@ e sono state gestite le interazioni tra i diversi agenti all'interno di una cors
 
 La popolazione considerata è composta da oltre 20,000 individui ed è stato assunto che tutti si trovino a casa all'inizio dell'evacuazione.
 %
-Gli agenti evacuano seguendo il percorso più breve verso il rifugio più vicino. Nel caso di traffico elevato le auto possono aspettare o seguire il secondo percoso più breve.
+Gli agenti evacuano seguendo il percorso più breve verso il rifugio più vicino. 
+Il percorso più breve per auto considera il tempo di attraversamento della strada, mentre per 
+moto e pedoni la lunghezza della strada.
+
 Alcuni dei rifugi prevedono una capacità limita, che nel caso venga raggiunta la capacità massima gli agenti dovranno cambiare destinazione.
 
 Un agente colpito dallo tsunami muore quando la profondità dello tsunami supera 1 m.
 
 \begin{figure}[ht]
     \centering
-    \begin{subfigure}{0.4\textwidth}
+    \begin{subfigure}{0.32\textwidth}
         \includegraphics[width=\textwidth]{images/speed_GOTO.png}
         \caption{}
         \label{fig:goto-ped}
     \end{subfigure}
-    \begin{subfigure}{0.4\textwidth}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
         \includegraphics[width=\textwidth]{images/speed_GOTO_motocicli.png}
         \caption{}
         \label{fig:goto-moto}
     \end{subfigure}
-    \begin{subfigure}{0.4\textwidth}
+    \hfill
+    \begin{subfigure}{0.32\textwidth}
         \includegraphics[width=\textwidth]{images/speed_GOTO_auto.png}
         \caption{}
         \label{fig:goto-auto}
     \end{subfigure}
-    \caption{Relazione velocità-densità per i pedoni (a), per i motocicli (b), e relazione velocità-larghezza per le auto (c).}
+    \caption{Relazione velocità-densità per i pedoni (a), per i motocicli (b), e velocità massima per le auto al variare della larghezza della strada (c).}
     \label{fig:ankdasndk}
 \end{figure}
 
@@ -112,80 +96,101 @@ Per pedoni e motocicli la densità viene calcolata tramite la seguente formula:
 $\rho = n /(L \times W)$, dove $n$ è il numero di agenti nell'area di fronte all'agente $L \times W$, $L$ è la lunghezza di ricerca 
 e $W$ la larghezza della strada.
 
-Le auto in assenza di ostacoli si muovono per $L_{f} = V_{f} \times \Delta_{t} $, dove $L_{f}$ è la \textit{free run length},
-$V_{f}$ la velocità massima e $\Delta_{t}$ il \textit{time step}.
-La velocità cambia in base alla larghezza della strada e può raggiungere una velocità massima di 40 km/h (Fig. \ref{fig:goto-auto}).
-Per le auto invece la densità è definita da $\rho = n /((W - W_{c}) x L_{f})$, dove $W_{c}$ è la larghezza di un auto.
-In base alla densità l'auto si muoverà fino al prossimo ostacolo, oppure fino alla prossima auto se presente.
-
-Nel calcolo della densità un auto viene considerata 10 volte un pedone, mentre un motociclo 2 volte un pedone.
-
-\subsection{Takabatake et al. (2017)}
-In questo lavoro è stato sviluppato un modello di evacuazione da tsunami che considera
-21,238 pedoni distinti tra residenti e visitatori.
-
-I residenti si assume che conoscano il percorso più breve
-per il rifugio più vicino dal punto in cui si trovano all'inizio dell'evacuazione.
-%
-I visitatori invece seguono due regole adottando un approccio probabilistico:
-\begin{itemize}
-    \item “following other individuals”: ad ogni intersezione seguono la strada con più individui.
-    \item “going to higher ground”: ad ogni intersezione scelgono la strada che porta a un altezza maggiore.
-\end{itemize}
-
-Sia i residenti che i visitatori vengono distinti in base all'età con una velocità massima di 1.19 m/s (Under 65) e 0.96 m/s (Over 65).
-Basandosi sul lavoro di \textcite{older1968movement} hanno assunto una decrescità lineare della 
-velocità da un livello di densità di 0.3 p/m² a uno di 3.0 p/m² (Fig. \ref{fig:speed-linear}).
-
 \begin{figure}[ht]
     \centering
-    \includegraphics[width=0.7\textwidth]{images/speed_Linear.png}
-    \caption{Relazione velocità-densità \textcite{takabatake2017simulated}}
-    \label{fig:speed-linear}
+    \includegraphics[width=\textwidth]{images/goto_car.png}
+    \caption{Diversi casi che descrivono fino a dove l'auto si può muovere, in base alla densità e alla presenza di altre auto di fronte.}
+    \label{fig:goto-car-model}
 \end{figure}
 
-\pagebreak
+Le auto in assenza di ostacoli si muovono per $L_{f} = V_{f} \times \Delta_{t} $, dove $L_{f}$ è la \textit{free run length},
+$V_{f}$ la velocità massima e $\Delta_{t}$ il \textit{time step}.
+La velocità massima cambia in base alla larghezza della strada con un limite di 40 km/h (Fig. \ref{fig:goto-auto}).
 
-Per quanto riguarda i tempi di partenza sono stati usati due approcci sia per residenti che visitatori:
-\begin{itemize}
-    \item ``all-togheter'': gli agenti evacuano allo stesso tempo.
-    \item ``delayed evacuation'': il tempo di partenza degli agenti viene assegnato secondo la distribuzione di Rayleigh.
-\end{itemize}
+Per le auto la densità è definita da $\rho = n /((W - W_{c}) x L_{f})$, dove $W_{c}$ è la larghezza di un' auto.
+La densità di un'auto viene considerata 10 volte quella di un pedone, mentre di una moto 2 volte quella di un pedone.
 
-I rifugi prevedono una capacità limitata. Quando un agente arriva in un rifugio già pieno si dovrà dirigere a un altro rifugio.
-Per i visitatori viene applicato un delay di 30 secondi per chiedere informazioni sulla posizione del rifugio più vicino.
+In base alla densità l'auto si muoverà fino al prossimo ostacolo, oppure fino alla prossima auto se presente (Fig. \ref{fig:goto-car-model}).
 
-Il casualty model utilizzato considera che un agente muore quando l'altezza delle onde nella sua posizione supera i 0.3 m.
+\subsection{Mostafizi, Wang et. al}
+In questa sezione verrà descritto brevemente il modello di \textcite{wang2016agent} in quanto è stato scelto come modello di partenza per questo lavoro.
+Inoltre verranno mostrate alcune modifiche effettuate in altri lavori degli stessi autori.
+
+\subsubsection*{Wang et. al (2016)}
+
+Nel lavoro di \textcite{wang2016agent} viene studiato come il tempo di preparazione, la scelta della modalità di evacuazione, la velocità dei pedoni e la 
+presenza di rifugi per l'evacuazione verticale influenzi la quantità di vittime.
+
+Al contrario del modello di \textcite{goto2012tsunami} viene considerato un numero molto limitato di agenti, ovvero 4502 individui. 
+Inoltre i rifugi si assume che abbiano capacità illimitata e che non subiscano danni sismici. 
+
+Come nel lavoro di \textcite{goto2012tsunami} il routing avviene tramite il percorso più breve e viene considerato lo stesso casualty model.
+
+Il modello gestisce due tipi di agenti: auto e pedoni. Le interazioni tra questi tipi di agenti sono limitate.
+I pedoni hanno velocità costante definita secondo una distribuzione normale, e le auto interagiscono tra loro 
+tramite il modello \textit{General Motors}. Quindi non è gestita nessuna interazione pedone-pedone e pedone-auto.
+
+
+% Questo modello verrà descritto brevemente in quanto selezionato come modello di partenza per questo lavoro e nella sezione successiva.
+% Questo modello consiste di un numero molto limitato di agenti rispetto al modello di \textcite{goto2012tsunami}, 4502 individui.
+% Viene analizzato come l'aggiunta di rifugi verticali modalità
+% Anche qui il routing avviene mediate l'utilizzo del percorso più breve ed lo stesso casualty model viene considerato, 
+% mentre gli shelter si assume abbiano capacità illimitata.
+
+% Al contrario di \textcite{goto2012tsunami} le interazioni tra i diversi tipi di agenti sono abbastanza limitate.
+% I pedoni hanno velocità costante definita secondo una distribuzione normale, mentre le auto interagiscono tra di loro secondo il modello \textit{General Motors}.
+% Infine non avendo dati sul quali fare validazione gli autori si sono limitati ad uno studio 
+% dell'impatto sulla mortalità dato dai diversi parametri del modello tempi di preparazione, velocità dei pedoni e modalità di evacuazione.
+
+\subsubsection*{Mostafizi, et. al. (2017)}
+Il lavoro di \textcite{mostafizi2017agent} è basato sul precedente \parencite{wang2016agent} e si focalizza sul misurare la resilienza della rete stradale tramite l'analisi della mortalità.
+
+Per i tempi di preparazione viene considarata una situazione ideale in cui gli agenti evacuano immediatamente dopo l'allarme. Inoltre per poter rappresentare
+meglio il rischio per persone anziane o bambini, la profondità critica per il casualty model è stata ridotta a 0.5 m.
+
+Ogni scenario è stato simulato molteplici volte per catturare la randomicità dei parametri. 
+Per misurare il contributo di ogni link alla mortalità totale è stata considerata la mortalità media per ogni scenario al variare del numero di auto e pedoni.
+I link critici sono stati identificati come quelli con una percentuale di mortalità superiore al 5\% sulla media di ogni combinazione di agenti.
+
+\subsubsection*{Mostafizi, et. al. (2019)}
+Il lavoro di \textcite{mostafizi2019agent} si basa sui due lavori precedenti e 
+presenta un'analisi di sensitività di diversi fattori. 
+In aggiunta ai precedenti lavori sono stati analizzati diversi parametri per 
+il modello \textit{General Motors} e diversi limiti di velocità per le auto.
 
 
 \subsection{Z. Wang e Jia (2021)}
-In questo lavoro viene proposto un modello di evacuazione da tsunami multimodale e una valutazione dei rischi modellando l'incertezza
-nei danni sismici nelle strade e in altri parametri del modello.
+In questo lavoro viene proposto un modello di evacuazione multimodale e una valutazione dei rischi modellando l'incertezza
+nei danni sismici nelle strade e nei parametri del modello. Inoltre viene introdotta una velocità variabile per i pedoni e sono state 
+gestite le interazioni tra auto e pedoni.
 
 Sono state considerate diverse popolazioni al variare del numero di agenti: 5000 e 10,000,
 che rappresentano la popolazione all'inizio dell'estate e 15,000 rappresenta il picco nella stagione estiva.
 
 Gli agenti sono distinti in pedoni e auto ed evacuano verso il rifugio più vicino seguendo il percorso più breve.
-Si assume che ogni auto contenga 4 agenti e che sia equivalente a 10 volte un pedone in spazio occupato.
+Ogni auto contiene 4 persone ed è equivalente a 10 volte un pedone in spazio occupato.
 Gli agenti per poter evacuare in auto dovranno prima raggiungere a piedi degli appositi parcheggi.
 
-Il modello dei pedoni considera una velocità distribuita secondo una normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
+La velocità per i pedoni è distribuita secondo una normale $\mathcal{N}(\mu_p,\sigma_p)$ troncata tra 0.75 m/s e 3.83 m/s e
 con $\mu_p \sim \mathcal{U}(1.4, 2)$ e $\sigma_p \sim \mathcal{U}(0.1, 0.6)$.
-Inoltre viene aggiornata in base alla densità di fronte all'agente con una \textit{search length} di 4m secondo l'andamento mostrato in figura \ref*{fig:dadknakdand}.
+Inoltre viene aggiornata in base alla densità di fronte all'agente con una \textit{search length} di 4m secondo l'andamento mostrato in figura \ref{fig:wang2021}.
 
 \begin{figure}[ht]
     \centering
     \includegraphics[width=0.7\textwidth]{images/speed_WANG.png}
     \caption{Relazione velocità-densità \textcite{wang2021novel} basato su un approssimazione del modello di \textcite{goto2012tsunami}}
-    \label{fig:dadknakdand}
+    \label{fig:wang2021}
 \end{figure}
 
 Per le auto è stato utilizzato il modello di \textcite{greenshields1935study} che aggiorna la velocità in base alla densità di fronte lungo la \textit{free run length},
-con una massima velocità di 40 km/h e una densità massima di 160 veh/km per i link senza restrizioni sul traffico date dai danni sismici, altrimenti 120 veh/km.
+con una massima velocità di 40 km/h e una densità massima di 160 veh/km per i link senza restrizioni sul traffico date dai danni sismici.
 
 Per la gestione delle interazioni tra auto e pedoni vengono definite tre fasi di traffico in base al rapporto
 tra il volume dei pedoni e delle auto: \textit{vehicle-dominated}, \textit{balanced} e \textit{pedestrian-dominated}.
 Al variare della fase cambia la larghezza della strada occupabile sia per pedoni che per le auto.
+
+Per gestire i danni sismici viene assegnato un livello di distruzione ad ogni link e sulla base di questo viene 
+ridotta la capacità massima riducendo la densità massima.
 
 Per i tempi di partenza viene utilizzata la distribuzione di Rayleigh dove i parametri
 invece di essere fissati seguono delle apposite distribuzioni uniformi.
