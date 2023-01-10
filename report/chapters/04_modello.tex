@@ -3,10 +3,11 @@
 In questa sezione verranno descritti i diversi agenti e l'ambiente.
 I parametri usati per questo lavoro saranno specificati nella sezione \ref{sec:simulazione}.
 
-% TODO: check reference mostafizi2019agent ----------------------
-Il modello considerato \parencite{mostafizi2019agent} è un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
+Il modello considerato \parencite{mostafizi2016agent} è un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
 %
 L'evacuazione inizia subito dopo il terremoto e non vengono considerati eventuali danni causati dal terremoto.
+
+\pagebreak
 
 Il modello utilizza dati GIS per la distribuzione della popolazione, la rete stradale e i rifugi.
 %
@@ -34,6 +35,8 @@ Tutte le strade sono considerate a senso unico, con una sola corsia e con una ve
 Lo tsunami è rappresentato da una griglia discreta, dove ogni cella contiene i valori temporali di altezza delle onde.
 I dati usati in questo progetto sono quelli calcolati dal modello di inondazione ComMIT/MOST \parencite{titov1997implementation} per la zona di subduzione della Cascadia.
 
+\pagebreak
+
 \subsection{Agenti}
 La simulazione prevede diversi tipi di agenti: residenti, pedoni e auto.
 
@@ -57,14 +60,6 @@ la distribuzione di Rayleigh (Eq. \ref{eq:rayleigh}), con un tempo minimo di pre
   \end{cases}
   \label{eq:rayleigh}
 \end{equation}
-
-\begin{figure}[ht]
-  \centering
-  \includegraphics[width=\textwidth]{images/modello_base_milling_time.png}
-  \label{fig:modello-base-millingtime}
-  \caption{Effetto di $\sigma$ sui tempi di partenza con $\tau = 5$ minuti,
-  in base al valore di $\sigma$ è possibile capire quando il 99\% degli agenti avrà iniziato ad evacuare.}
-\end{figure}
 
 Scaduto il tempo di preparazione l'agente si muove verso l'intersezione più vicina e
 in base alla modalità scelta viene considerato un agente di tipo pedone o auto.

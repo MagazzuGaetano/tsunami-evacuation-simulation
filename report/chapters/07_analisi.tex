@@ -40,7 +40,7 @@ I casi con meno vittime sono quelli con probabilità di auto del 25\% e quello c
 
 Nella figura \ref{fig:analisi-base-evtimes} vengono riportate le percentuali di agenti evacuati nel tempo e il tempo in cui evacuano in media.
 %
-Nel caso con solo pedoni si ha un picco a 31 minuti che corrisponde al tempo medio di evacuzione. 
+Nel caso con solo pedoni si ha un picco a 31 minuti che corrisponde al tempo medio di evacuzione.
 All'aumentare del numero di auto il tempo medio si abbassa fino a 20 minuti nel caso con solo auto.
 
 Nel caso con probabilità di auto del 25\% sembra formarsi un secondo picco più basso nei primi minuti probabilmente dovuto alle auto, mentre il secondo ai pedoni.
@@ -171,7 +171,7 @@ Questo probabilmente è dovuto al fatto che i pedoni hanno la precedenza negli i
 
 \subsubsection*{Tempo Impiegato per Evacuare}
 Un'ulteriore comparazione riguarda il tempo che impiegano auto e pedoni per evacuare.
-Come mostrato nella figura \ref{fig:analisi-comparison-evtimes2} per quanto riguarda le auto, 
+Come mostrato nella figura \ref{fig:analisi-comparison-evtimes2} per quanto riguarda le auto,
 il modello base presenta un andamento decrescente per il tempo medio richiesto per evacuare al diminuire del numero di auto considerate.
 Le auto impiegano in media tempi più alti con il modello esteso rispetto a quello base, in particolar modo considerando un numero maggiore di pedoni.
 %
@@ -198,7 +198,7 @@ mediati a loro volta tra tutte le configurazioni di auto e pedoni.
 In generale gli agenti che partono dalla costa impiegano più tempo rispetto agli altri che sono più vicini ai rifugi.
 
 Confrontando i pedoni non si riscontrano cambiamenti significativi nei tempi di evacuazione tra i due modelli.
-Nel caso delle auto si nota che il modello esteso introduce dei rallentamenti rispetto al modello base, 
+Nel caso delle auto si nota che il modello esteso introduce dei rallentamenti rispetto al modello base,
 soprattutto lungo la costa.
 
 \begin{figure}[ht]
@@ -250,7 +250,7 @@ Il flusso in entrata e in uscita non sono perfettamente bilanciati e risultano p
 Inoltre in molte intersezioni il flusso in entrata è maggiore del flusso in uscita.
 
 Nel modello esteso il flusso risulta più basso
-probabilmente a causa della gestione delle intersezioni che genera una diminuzione del traffico in uscita che, 
+probabilmente a causa della gestione delle intersezioni che genera una diminuzione del traffico in uscita che,
 propagandosi in tutta la rete, abbassa il flusso in tutte le intersezioni.
 
 \begin{figure}[ht]
@@ -277,24 +277,24 @@ propagandosi in tutta la rete, abbassa il flusso in tutte le intersezioni.
 
 
 \subsection{Comparazione con Z. Wang e Jia (2021)}
-In questa sezione verranno comparati il modello base e il modello esteso con il modello di \textcite{wang2021novel}, 
+In questa sezione verranno comparati il modello base e il modello esteso con il modello di \textcite{wang2021novel},
 il quale rappresenta un modello recente allo stato dell'arte e considera lo stesso scenario di evacuazione di questo lavoro.
 
 \textcite{wang2021novel} hanno effettuato 4000 simulazioni con 5000 agenti e
-hanno modellato l'incertezza della percentuale di auto con una variabile $p_c \sim N(\mu_c, \sigma_c)$ troncata in (0, 1), 
+hanno modellato l'incertezza della percentuale di auto con una variabile $p_c \sim N(\mu_c, \sigma_c)$ troncata in (0, 1),
 dove $\mu_c$ segue una distribuzione uniforme in [0, 1] e $\sigma_c$ = 0.15.
 Inoltre sono stati considerati diversi casi che introducono o meno diverse caratteristiche nel modello (Tab. \ref{tab:cases}).
 
 \begin{table}[ht]
     \centering
     \begin{tabular}{|c|c|c|c|}
-    \hline
-    Cases & Seismic damage & Pedestrian-vehicle interaction & Speed adjustment \\ \hline
-    C0 & No  & No  & No  \\ \hline
-    C1 & No  & No  & Yes \\ \hline
-    C2 & No  & Yes & Yes \\ \hline
-    C3 & Yes & No  & Yes \\ \hline
-    C4 & Yes & Yes & Yes \\ \hline
+        \hline
+        Cases & Seismic damage & Pedestrian-vehicle interaction & Speed adjustment \\ \hline
+        C0    & No             & No                             & No               \\ \hline
+        C1    & No             & No                             & Yes              \\ \hline
+        C2    & No             & Yes                            & Yes              \\ \hline
+        C3    & Yes            & No                             & Yes              \\ \hline
+        C4    & Yes            & Yes                            & Yes              \\ \hline
     \end{tabular}
     \caption{Casi di simulazione del modello \textcite{wang2021novel}.}
     \label{tab:cases}
@@ -305,71 +305,74 @@ di auto e di pedoni con un totale di 4502 agenti (Fig. \ref{fig:analisi-comparis
 Nella comparazione verranno presi in considerazione esclusivamente i casi C0, C1 e C2, ovvero quelli
 che non gestiscono i danni sismici.
 
-\begin{figure}[ht]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=\textwidth]{images/analisi/WANG_comparison1.png}
+    \includegraphics[width=0.8\textwidth]{images/analisi/WANG_comparison1.png}
     \caption{Confronto della percentuali di evacuati e di vittime per auto, pedoni e totale per il modello di \textcite{wang2021novel}.}
     \label{fig:analisi-comparison-wang1}
 \end{figure}
 
-\begin{figure}[ht]
+\begin{figure}[p]
     \centering
-    \includegraphics[width=\textwidth]{images/analisi/WANG_comparison2.png}
+    \includegraphics[width=0.8\textwidth]{images/analisi/WANG_comparison2.png}
     \caption{Confronto della percentuali di evacuati e di vittime per auto, pedoni e totale per modello base ed esteso.}
     \label{fig:analisi-comparison-wang2}
 \end{figure}
 
 Una delle prime differenze tra i due modelli riguarda il tempo di preparazione. Infatti i primi agenti nel modello di
-\textcite{wang2021novel} iniziano a evacuare intorno ai 10 minuti, mentre nel modello esteso e nel modello base iniziano 
+\textcite{wang2021novel} iniziano a evacuare intorno ai 10 minuti, mentre nel modello esteso e nel modello base iniziano
 dopo 1 minuto.
 
-Nel modello di \textcite{wang2021novel} le prime vittime si verificano a circa 28 minuti ovvero quando lo tsunami inizia ad arrivare alla costa, 
-mentre nel modello esteso e nel modello base poco prima dei 40 minuti, ovvero quando lo tsunami ha già coperto l'area vicino alla costa. 
+Nel modello di \textcite{wang2021novel} le prime vittime si verificano a circa 28 minuti ovvero quando lo tsunami inizia ad arrivare alla costa,
+mentre nel modello esteso e nel modello base poco prima dei 40 minuti, ovvero quando lo tsunami ha già coperto l'area vicino alla costa.
 Dopo 50 minuti lo tsunami ha raggiunto la massima distanza e infatti in tutti i modelli il numero di vittime rimane costante.
 
-Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati 
-ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime.
+Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati
+ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime,
+nonostante varie differenze tra i due modelli.
 
-Sono presenti comunque delle differenze dovute ad diversi tempi di partenza degli agenti, alla distribuzione della popelazione, la larghezza della strada considerata ed un numero diverso di agenti.
-
-Inoltre nel modello di \textcite{wang2021novel} c'è una differenza più significativa
-nell'effettuare una variazione della velocità dei pedoni casi C0 e C1, 
+Inoltre nel modello di \textcite{wang2021novel} si nota una differenza significativa
+tra il caso con la velocità costante (C0) e il caso con velocità variabile (C1),
 rispetto alla differenza tra il modello base ed esteso.
 
-In tutti i modelli le auto presentano differenze più marcate sia per le vittime che per gli evacuati. 
-Nel modello di \textcite{wang2021novel} gli evacuati hanno una curva crescente fino a circa 30 minuti dopo i quali si appiattisce e raggiunge un valore di circa 17\%, 
+In tutti i modelli le auto presentano differenze più marcate sia per le vittime che per gli evacuati.
+Nel modello di \textcite{wang2021novel} gli evacuati hanno una curva crescente fino a circa 30 minuti dopo i quali si appiattisce e raggiunge un valore di circa 17\%,
 mentre nel modello base e nel modello esteso la curva continua a crescere fino intorno ai 40 minuti e raggiunge un valore di 87\% nel modello base e di 79\% nel modello esteso.
 
 Per quanto riguarda le vittime nel modello di \textcite{wang2021novel} l'andamento cresce lentamente tra 28 e circa 50 minuti raggiungendo un valore di 26\%, mentre nel
 modello base e nel modello esteso la maggior parte delle vittime è concetrata vicino a 40 minuti raggiungendo un valore di di 12\% nel modello base e di 21\% nel modello esteso.
 
-Nel caso totale sono presenti andamenti simili a quelli già descritti nei grafici per i pedoni e per le auto, ovvero sia il modello base ed il modello esteso 
+Nel caso totale sono presenti andamenti simili a quelli già descritti nei grafici per i pedoni e per le auto, ovvero sia il modello base ed il modello esteso
 prevedono un numero maggiore di evacuati e un numero minore di vittime rispetto al modello di \textcite{wang2021novel}.
 
-Il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni 
+Il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni
 che prevede un rallentamento del traffico e più vittime rispetto al modello base.
 
-In generale risultano abbastanza diversi se non per i pedoni che sono modellati in modo simile, il tutto dovuto da molti fattori specialmente i tempi di partenza ed
-il numero di agenti considerati per auto i quali possono essere molto influenti sul numero di evacuati e vittime.
 
+\begin{table}[ht]
+    \centering
+    \begin{tabular}{|l|l|l|}
+        \hline
+                                                                                                                               & \textbf{Base / Esteso}          & \textbf{Wang et. al 2021} \\ \hline
+        \textbf{N° agenti}                                                                                                     & 4502                            & 5000                      \\ \hline
+        \textbf{Pedoni}                                                                                                        &
+        \begin{tabular}[c]{@{}l@{}}$\mu_p$ = 1.22\\ $\sigma_p$ = 0.2\\ costante / variabile\end{tabular}                       &
+        \begin{tabular}[c]{@{}l@{}}$\mu_p$ $\sim$U(1.4, 2)\\ $\sigma_p$ $\sim$U(0.1, 0.6)\\ variabile\end{tabular}                                                                           \\ \hline
+        \textbf{Auto}                                                                                                          &
+        \begin{tabular}[c]{@{}l@{}}1 auto = 1 agente\\ general-motors\\ $V_{max}$ = 55 km/h\end{tabular} &
+        \begin{tabular}[c]{@{}l@{}}1 auto = 4 agenti\\ greenshields \\ $V_{max}$ = 40 km/h\end{tabular}                                                                \\ \hline
+        \textbf{Casualty Model}                                                                                                & $H_c$ = 0.5 m                   & $H_c$ $\sim$U(0.5, 3) m   \\ \hline
+        \textbf{\begin{tabular}[c]{@{}l@{}}Tempo di \\ preparazione\end{tabular}}                                              &
+        \begin{tabular}[c]{@{}l@{}}$t_0$ = 0\\ $\tau$ = 1\\ $\sigma_t$ = 0.5\end{tabular}                                      &
+        \begin{tabular}[c]{@{}l@{}}$t_0$ $\sim$U(3, 10)\\ $\tau$ $\sim$U(0, 10)\\ $\sigma_t$ $\sim$U(1, 5)\end{tabular}                                                                      \\ \hline
+        \textbf{\begin{tabular}[c]{@{}l@{}}Probabilità \\ Pedoni / Auto\end{tabular}}                                          &
+        \begin{tabular}[c]{@{}l@{}}100\% - 0\%, 75\% - 25\%, \\50\% - 50\%, 25\% - 75\%, \\0\% - 100\%\end{tabular}            &
+        \begin{tabular}[c]{@{}l@{}}$\mu_c$ $\sim$U(0, 1)\\ $\sigma_c$ = 0.15\end{tabular}                                                                                                    \\ \hline
+        \textbf{\begin{tabular}[c]{@{}l@{}}Interazioni \\ Auto-Pedoni\end{tabular}}                                            & nessuna / gestione intersezioni & tre fasi di traffico      \\ \hline
+    \end{tabular}
+    \caption{Differenze modelli base ed esteso con il modello \textcite{wang2021novel}.}
+    \label{tab:differences}
+\end{table}
 
-\newpage
-
-% Una delle prime differenze tra i due modelli riguarda il tempo di preparazione. Infatti i primi agenti nel modello di
-% \textcite{wang2021novel} iniziano a evacuare intorno ai 10 minuti, mentre nel modello esteso e nel modello base iniziano 
-% dopo 1 minuto.
-
-% Osservando solo i pedoni si può notare come il caso C2 sia lo scenario più simile ai risultati 
-% ottenuti dal modello base ed esteso per vittime ed evacuati, con valori leggermente inferiori di evacuati e maggiori di vittime.
-
-% Inoltre nel modello di \textcite{wang2021novel} c'è una differenza più significativa
-% nell'effettuare una variazione della velocità dei pedoni casi C0 e C1, 
-% rispetto alla differenza tra il modello base ed esteso.
-
-% le auto sono molto diverse.
-
-% Il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni 
-% che prevede un rallentamento del traffico e più vittime rispetto al modello base.
-
-% In generale risultano abbastanza diversi se non per i pedoni che sono modellati in modo simile, il tutto dovuto da molti fattori specialmente i tempi di partenza ed
-% il numero di agenti considerati per auto i quali possono essere molto influenti sul numero di evacuati e vittime.
+In generale risultano abbastanza diversi se non per i pedoni che sono modellati in modo simile, il tutto dovuto da molti fattori (Tab. \ref{tab:differences}),
+specialmente i tempi di partenza e il numero di auto considerate le quali sono molto influenti sul numero di evacuati e vittime.
