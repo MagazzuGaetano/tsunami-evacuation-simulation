@@ -22,7 +22,7 @@ extensions [
   csv   ; the CSV extension is required to read the tsunami inundation file
   table
   palette
-  profiler
+  ;profiler
 ]
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;;;;;;;;;;;;; BREEDS ;;;;;;;;;;;;;;
@@ -221,6 +221,8 @@ globals [        ; global variables
   int-roads
 
   evacuee_times
+
+  Tc ;;; time in water
 ]
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -461,8 +463,8 @@ to-report get-sorted-intersections [prev curr]
     ask out-link-neighbors with [self != prev] [
       let angle [link-heading] of road ([who] of myself) ([who] of self)
       set angle (angle - in_dir) mod 360 ; substract the initial angle
-      set directions lput (list ([who] of self) angle) directions
 
+      set directions lput (list ([who] of self) angle) directions
     ]
     ask in-link-neighbors with [self != prev] [
       let angle [link-heading] of road ([who] of self) ([who] of myself)
@@ -566,12 +568,8 @@ to setup-init-val
   set alpha 0.14                  ; alpha parameter of the car-following model is set to 0.14 mi2/hr (free-flow speed = 35 mph & jam density = 250 veh/mi/lane)
   set Rtau1 10                    ; minimum milling time for all decision categories is set to 10 minutes
   set Rtau2 10
-  set Rtau3 10
-  set Rtau4 10
   set Rsig1 1.65                  ; the scale factor parameter of the Rayleigh distribution for all decision categories is set to 1.65
   set Rsig2 1.65                  ; meaning that 99% of the agents evacuate within 5 minutes after the minimum milling time (between 10 to 15 mins in this case)
-  set Rsig3 1.65
-  set Rsig4 1.65
   set iteration 1
 end
 
@@ -899,14 +897,18 @@ to load-population
             set moving? false                                          ; they agents are staionary at the beginning, before they start the evacuation
             set init_dest min-one-of intersections [ distance myself ] ; the first intersection an agent moves toward to
                                                                        ; to get to the transpotation network
-            let speed_mu random-float 1 * (2 - 1.4) + 1.4
-            let speed_sigma random-float 1 * (0.6 - 0.1) + 0.1
+            ;let speed_mu random-float 1 * (2 - 1.4) + 1.4
+            ;let speed_sigma random-float 1 * (0.6 - 0.1) + 0.1
 
-            set speed random-normal speed_mu speed_sigma             ; walking speed is randomly drawn from a normal distribution
+            ;set speed random-normal speed_mu speed_sigma             ; walking speed is randomly drawn from a normal distribution
 
-            set speed min list 3.83 speed                            ; limit in range (0.75 - 3.83)
-            set speed max list 0.75 speed
 
+            let speed_mu 1.22
+            let speed_sigma 0.2
+
+            set speed random-normal speed_mu speed_sigma
+            ;set speed min list 3.83 speed                            ; limit in range (0.75 - 3.83)
+            ;set speed max list 0.75 speed
             set speed speed / patch_to_meter                         ; turning m/s to patch/tick
 
             if speed < 0.001 [set speed 0.001]                         ; if speed is too low, set it to very small non-zero value
@@ -1238,8 +1240,8 @@ to pedestrians-behaviour
 
     ; move the pedestrians that should move
     if moving? [
-      if model = "new" or model = "base_density" [
-        update-density-ahead-pedestrians
+      update-density-ahead-pedestrians
+      if model = "esteso" or model = "base_density" [
         set speed update-pedestrian-speed free_speed density_ahead
       ]
 
@@ -1561,8 +1563,6 @@ to handle-four-way
     if empty? crossing-cars [
       let filtered-cars find-right-of-way
 
-      ;; se 4 auto arrivano nello stesso tempo VERAMENTE IMPROBABILE!!!!
-
       let dir1 0
       let dir2 0
       let dir3 0
@@ -1745,10 +1745,15 @@ to multiple-runs
       let prefix (word "./plot_results/data/" model)
       let suffix (word R1_HorEvac_Foot "-" R2_HorEvac_Car "-" iteration ".csv")
 
+      set enable-plots true
+      update-plots
+
       ; export plot
       export-plot "Percentage of Evacuated" (word prefix "/evacuated/evacuated-" suffix)
       export-plot "Percentage of Casualties" (word prefix "/casualties/casualties-" suffix)
       export-plot "Evacuation Time Histogram" (word prefix "/times/times-" suffix)
+
+      set enable-plots false
 
       ; export network data
       csv:to-file (word prefix "/roads/roads-" suffix) road_data
@@ -2000,7 +2005,7 @@ to view-evacuation-time [agent-type]
     let value (ifelse-value agent-type = "cars" [car-avg_ev_times][ped-avg_ev_times])
 
     if value != 0 [
-      let col palette:scale-gradient-hsb color-list value 0 (45 * 60)
+      let col palette:scale-gradient-hsb color-list value 0 (50 * 60)
       set color col
       set size 2.5
       set shape "circle"
@@ -2203,17 +2208,17 @@ to view-micro-level-speed [ped? car?]
       let spd speed * fd_to_mph * 1.609
       let col palette:scale-gradient-hsb color-list spd 0 max-n
       set color col
-      set size 3
+      set size 0.5
     ]
   ]
 
   if ped? [
-    let max-n 3.83
+    let max-n 2
     ask pedestrians [
       let spd speed * fd_to_ftps / 3.281;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       let col palette:scale-gradient-hsb color-list spd 0 max-n
       set color col
-      set size 3
+      set size 0.5
     ]
   ]
 
@@ -2368,9 +2373,6 @@ to view-intersection-flow3
 
   ask intersections [set size 0] ; hide non-crossroads
 
-
-
-
   ask crossroads [
 
     let in-roads link-set map [x -> road x who] ([who] of in-link-neighbors)
@@ -2456,7 +2458,6 @@ to-report show-speed-casualties [measure]
   report list a b
 end
 
-
 to show-intersections-casualties
   let max-n max [casualties] of roads
   print max-n
@@ -2490,7 +2491,7 @@ to show-ints-casualties
   let ints (list 173 188 250 373 389 519)
   let perc (list 26.5 16.8 7 8.5 7.7 5.3)
 
-  if model = "new" [
+  if model = "esteso" [
     set ints (list 128 140 152 173 188 201)
     set perc (list 44.9 6.3 8.6 5.4 6.6 10.8)
   ]
@@ -2551,22 +2552,24 @@ to get-distance-from-cost
   ;csv:to-file "./road_network/ints_distances.csv" dists
 end
 
-to profile
-  reset-ticks
-  load1
-  load2                                          ;; set up the model
-  profiler:start                                 ;; start profiling
-  repeat 60 * 60 [ go ]                          ;; run something you want to measure
-  profiler:stop                                  ;; stop profiling
-  csv:to-file "profiler_data.csv" profiler:data  ;; save the results
-  profiler:reset                                 ;; clear the data
-end
+
+
+;to profile
+;  reset-ticks
+;  load1
+;  load2                                          ;; set up the model
+;  profiler:start                                 ;; start profiling
+;  repeat 60 * 60 [ go ]                          ;; run something you want to measure
+;  profiler:stop                                  ;; stop profiling
+;  csv:to-file "profiler_data.csv" profiler:data  ;; save the results
+;  profiler:reset                                 ;; clear the data
+;end
 @#$#@#$#@
 GRAPHICS-WINDOW
-228
-11
-940
-724
+253
+10
+965
+723
 -1
 -1
 3.5025
@@ -2590,10 +2593,10 @@ ticks
 30.0
 
 PLOT
-946
-342
-1370
-495
+971
+341
+1395
+494
 Percentage of Evacuated
 Min
 %
@@ -2610,9 +2613,9 @@ PENS
 "Pedestrians" 1.0 0 -14835848 true "" "plotxy (ticks / 60) (count pedestrians with [ color = green ] / (count residents + count pedestrians + count cars) * 100)"
 
 SWITCH
-11
+7
 48
-216
+242
 81
 immediate_evacuation
 immediate_evacuation
@@ -2621,10 +2624,10 @@ immediate_evacuation
 -1000
 
 BUTTON
-1145
-12
-1236
-45
+1170
+11
+1261
+44
 GO
 \ngo
 T
@@ -2638,31 +2641,31 @@ NIL
 1
 
 TEXTBOX
-12
-170
-221
-198
-Residents' Decision Making Probabalisties : (Percent)
+10
+127
+245
+155
+Residents' Decision Making Probabalisties: (Percent)
 11
 0.0
 1
 
 INPUTBOX
-12
-203
-113
-263
+6
+159
+117
+219
 R1_HorEvac_Foot
-100.0
+50.0
 1
 0
 Number
 
 MONITOR
-947
-52
-1037
-97
+972
+51
+1062
+96
 Time (min)
 ticks / 60
 1
@@ -2670,21 +2673,21 @@ ticks / 60
 11
 
 INPUTBOX
-118
-275
-168
-335
+151
+227
+242
+287
 Hc
-1.0
+0.5
 1
 0
 Number
 
 PLOT
-945
-158
-1370
-332
+970
+157
+1395
+331
 Percentage of Casualties
 Min
 %
@@ -2701,10 +2704,10 @@ PENS
 "Pedestrians" 1.0 0 -955883 true "" "plotxy (ticks / 60) ((count pedestrians with [color = red] + count residents with [color = red]) / (count residents + count pedestrians + count cars) * 100)"
 
 BUTTON
-947
-12
-1038
-45
+972
+11
+1063
+44
 READ (1/2)
 load1\noutput-print \"READ (1/2) DONE!\"\nbeep
 NIL
@@ -2718,74 +2721,52 @@ NIL
 1
 
 TEXTBOX
-9
-276
-125
-318
-Critical Depth and Time: (Meters and Seconds)
+8
+232
+138
+274
+Critical Depth: (Meters)
 11
 0.0
 1
 
 INPUTBOX
-10
-545
-60
-605
+7
+563
+57
+623
 Rtau1
-10.0
+1.0
 1
 0
 Number
 
 INPUTBOX
-60
-545
-110
-605
+64
+563
+114
+623
 Rsig1
-1.65
-1
-0
-Number
-
-INPUTBOX
-10
-609
-60
-669
-Rtau3
-10.0
-1
-0
-Number
-
-INPUTBOX
-60
-609
-110
-669
-Rsig3
-1.65
+0.5
 1
 0
 Number
 
 TEXTBOX
-12
-529
-212
-557
+9
+541
+209
+569
 Evacuation Decsion Making Times:
 11
 0.0
 1
 
 MONITOR
-1044
-53
-1138
-98
+1069
+52
+1163
+97
 Evacuated
 count turtles with [ color = green ]
 17
@@ -2793,10 +2774,10 @@ count turtles with [ color = green ]
 11
 
 MONITOR
-1145
-54
-1236
-99
+1170
+53
+1261
+98
 Casualty
 count turtles with [ color = red ]
 17
@@ -2804,10 +2785,10 @@ count turtles with [ color = red ]
 11
 
 MONITOR
-1144
-105
-1236
-150
+1169
+104
+1261
+149
 Mortality (%)
 mortality_rate
 2
@@ -2815,10 +2796,10 @@ mortality_rate
 11
 
 BUTTON
-1044
-12
-1139
-45
+1069
+11
+1164
+44
 Read (2/2)
 load2\noutput-print \"READ (2/2) DONE!\"\nbeep
 NIL
@@ -2832,65 +2813,43 @@ NIL
 1
 
 INPUTBOX
-118
-202
-218
-262
+123
+159
+242
+219
 R2_HorEvac_Car
-0.0
+50.0
 1
 0
 Number
 
 INPUTBOX
-116
-545
-166
-605
+140
+563
+190
+623
 Rtau2
-10.0
+1.0
 1
 0
 Number
 
 INPUTBOX
-166
-545
-216
-605
+194
+563
+244
+623
 Rsig2
-1.65
+0.5
 1
 0
 Number
 
 INPUTBOX
-118
-610
-168
-670
-Rtau4
-10.0
-1
-0
-Number
-
-INPUTBOX
-165
-610
-215
-670
-Rsig4
-1.65
-1
-0
-Number
-
-INPUTBOX
-68
-346
-139
-406
+149
+356
+239
+416
 max_speed
 35.0
 1
@@ -2898,20 +2857,20 @@ max_speed
 Number
 
 TEXTBOX
-15
-346
-55
-374
+11
+369
+51
+397
 by car:\n(mph)
 11
 0.0
 1
 
 INPUTBOX
-68
-407
-141
-467
+149
+417
+239
+477
 acceleration
 5.0
 1
@@ -2920,19 +2879,19 @@ Number
 
 TEXTBOX
 10
-419
+441
 59
-453
+475
 (ft/s^2)
 11
 0.0
 1
 
 INPUTBOX
-68
-468
-141
-528
+148
+478
+239
+538
 alpha
 0.14
 1
@@ -2940,19 +2899,19 @@ alpha
 Number
 
 TEXTBOX
-7
-482
-67
-523
+9
+498
+69
+539
 (mi^2/hr)
 11
 0.0
 1
 
 BUTTON
-9
+6
 10
-216
+242
 43
 Initialize
 setup-init-val
@@ -2967,10 +2926,10 @@ NIL
 1
 
 PLOT
-947
-504
-1370
-724
+972
+503
+1395
+723
 Evacuation Time Histogram
 Minutes (after the earthquake)
 #
@@ -2987,10 +2946,10 @@ PENS
 "Median" 1.0 0 -2674135 true "set-plot-pen-mode 0 ; line mode" "plot-pen-reset\nplot-pen-up\nplotxy median ev_times 0\nplot-pen-down\nplotxy median ev_times plot-y-max"
 
 MONITOR
-1044
-105
-1139
-150
+1069
+104
+1164
+149
 Evacuated (%)
 count turtles with [ color = green ] / (count residents + count pedestrians + count cars) * 100
 1
@@ -2998,70 +2957,21 @@ count turtles with [ color = green ] / (count residents + count pedestrians + co
 11
 
 INPUTBOX
-171
-275
-221
-335
-Tc
-120.0
-1
-0
-Number
-
-PLOT
-1384
-10
-1795
-162
-pedestrian density-speed
-p/m²
-m/s
-0.0
-8.0
-0.0
-3.83
-false
-true
-"" ""
-PENS
-"simulation" 1.0 2 -13791810 true "" ";;plotxy\n;;  ((mean [density_ahead] of pedestrians with [moving?]) * 11.625)\n;;  ((mean [speed] of pedestrians with [moving?]) * fd_to_ftps / 3.281)\n\n;if enable-plots [;and ticks mod 200 = 0 [\n;  clear-plot\n;  ask pedestrians with [dead? = false][;; and (precision (free_speed * fd_to_ftps / 3.281) 2) = 1.21] [;    \n;  plotxy (density_ahead) (speed * patch_to_meter)\n;  ]\n;]\n"
-
-PLOT
-1384
-171
-1795
-327
-waiting pedestrian crossing
-Min
-%
-0.0
-60.0
-0.0
-0.0
-true
-true
-"" ""
-PENS
-"crossing ped" 1.0 0 -955883 true "" ";if enable-plots [\n;let total count pedestrians with [not evacuated? and not dead?]\n;ifelse total = 0 [ \n;  plotxy int(ticks) 0\n;][\n; plotxy int(ticks) count pedestrians with [crossing?] / total * 100\n;]\n;]"
-"cars waiting peds" 1.0 0 -13791810 true "" ";if enable-plots [\n;let total count cars\n;ifelse total = 0 [ \n;   plotxy int(ticks) 0\n;][\n;  plotxy int(ticks) count cars with [waiting? and not rightofway?] / total  * 100\n;]\n;]"
-"cars waiting cars" 1.0 0 -13840069 true "" ";if enable-plots [\n;let total count cars\n;ifelse total = 0 [ \n;   plotxy int(ticks) 0\n;][\n;  plotxy int(ticks) count cars with [not waiting? and not rightofway?] / total  * 100\n;]\n;]"
-
-INPUTBOX
-1246
-91
-1371
-151
+1271
+90
+1396
+150
 iteration
-1.0
+31.0
 1
 0
 Number
 
 BUTTON
-1246
-13
-1371
-46
+1271
+12
+1396
+45
 Multiple Runs
 multiple-runs
 T
@@ -3075,9 +2985,9 @@ NIL
 1
 
 SWITCH
-10
+6
 85
-215
+241
 118
 enable-plots
 enable-plots
@@ -3086,10 +2996,10 @@ enable-plots
 -1000
 
 BUTTON
-1246
-52
-1372
-85
+1271
+51
+1397
+84
 Reset
 reset-ticks\nset iteration 1
 NIL
@@ -3103,20 +3013,20 @@ NIL
 1
 
 CHOOSER
-10
-120
-215
-165
+7
+631
+241
+676
 model
 model
-"base" "new_const" "new" "base_density"
-2
+"base" "esteso"
+0
 
 BUTTON
-132
-687
-210
-720
+162
+689
+240
+722
 Import
 import-network-data\n
 NIL
@@ -3130,10 +3040,10 @@ NIL
 1
 
 SLIDER
-13
-687
-122
-720
+7
+688
+149
+721
 minute
 minute
 0
@@ -3144,24 +3054,37 @@ minute
 NIL
 HORIZONTAL
 
-PLOT
-1384
-339
-1795
-497
-speed-dists
-NIL
-NIL
+INPUTBOX
+59
+290
+146
+350
+Ped_Speed
+1.2
+1
+0
+Number
+
+INPUTBOX
+150
+290
+241
+350
+Ped_Sigma
+0.2
+1
+0
+Number
+
+TEXTBOX
+7
+295
+65
+325
+On foot:\n(m/s)
+12
 0.0
-200.0
-0.0
-0.0
-true
-false
-"" ""
-PENS
-"dead" 1.0 1 -2674135 true "set-histogram-num-bars 40" ""
-"alive" 1.0 1 -13840069 true "set-histogram-num-bars 40\nset-plot-pen-mode 1 ; bar mode" ""
+1
 
 @#$#@#$#@
 @#$#@#$#@
