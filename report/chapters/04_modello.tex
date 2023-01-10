@@ -79,14 +79,15 @@ Gli agenti durante l'evacuazione possono:
 
 \subsubsection{Pedoni}
 La velocità di camminata viene stabilita tramite una distribuzione normale
-con media $\mu_p$ e deviazione standard $\sigma_p$, in questo modo vengono considerati diversi tipi di pedoni dai più veloci ai più lenti.
+con media $\mu_p$ e deviazione standard $\sigma_p$, in questo modo vengono considerati diversi
+ tipi di pedoni dai più veloci ai più lenti (Fig. \ref{fig:modello-base-velocita-pedoni-img}).
 La velocità di ogni pedone rimane costante durante tutta l'evacuazione.
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.8\textwidth]{images/modello_base_velocità_pedoni.png}
-  \label{fig:modello-base-velocità-pedoni-img}
   \caption{Differenti distribuzioni di velocità al variare di $\mu_p$ e $\sigma_p$.}
+  \label{fig:modello-base-velocita-pedoni-img}
 \end{figure}
 
 \subsubsection{Auto}
@@ -95,14 +96,14 @@ Le auto possono raggiungere la velocità massima imposta dalla strada, ovvero 55
 
 Il comportamento delle auto è modellato tramite il modello \textit{General Motors} il quale fa parte dei modelli
 di tipo \textit{car-following}. Questi modelli descrivono come un veicolo ne segue un altro
-e cambi il proprio comportamenteo reagendo a quest'ultimo.
+e cambi il proprio comportamenteo reagendo a quest'ultimo (Fig. \ref{fig:general-motors-img}).
 
 \begin{figure}[ht]
   \centering
   \includegraphics[width=0.6\textwidth]{images/GM.png}
-  \label{fig:general-motors-img}
   \caption{Schema generale dei modelli \textit{car-following}, dove $n+1$ è il veicolo corrente e $n$ quello di fronte, 
   $v_{n+1}, v_{n}$ sono le rispettive velocità, mentre $x_{n+1}, x_{n}$ sono le rispettive posizioni e $x_{n} - x_{n + 1}$ è la distanza tra i due veicoli.}
+  \label{fig:general-motors-img}
 \end{figure}
 
 Secondo il modello General Motors ogni auto risponde alle condizioni del traffico circostante esclusivamente accelerando o decelerando. 
