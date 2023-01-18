@@ -1,5 +1,8 @@
-Questo progetto è un'estensione del lavoro https://github.com/armostafizi/EvacuationModel e si concentra sulla gestione degli incroci, in particolare solo gli incroci a quattro vie sono considerati e modellati come AWSC (All Way Stop Controlled) o TWSC (Two Way Stop Controlled),
-tramite appositi contatori per gli attraversameti pedonali e lo stabilimento delle precedenze tra le auto. Infine la velocità dei pedoni viene ridotta in base alla densità ahead.
+Questo progetto è un'estensione del lavoro https://github.com/armostafizi/EvacuationModel e si concentra sulla gestione degli incroci. In particolare sono considerati solo gli incroci a quattro vie distinti in AWSC (All Way Stop Controlled) o TWSC (Two Way Stop Controlled) e vengono gestiti
+tramite appositi contatori per gli attraversameti pedonali e la risoluzione delle precedenze tra le auto. 
+Infine la velocità dei pedoni viene ridotta in base alla densità ahead.
+
+Maggiori dettagli possono essere trovati nella [presentazione](Simulazione%20di%20evacuazione%20in%20caso%20di%20tsunami.pdf) o nella [relazione](report/main.pdf).
 
 ## NetLogo Interface
 ![image](https://user-images.githubusercontent.com/30373288/213201467-caac3355-fd15-4e35-bd0a-96a05a150868.png)
@@ -10,7 +13,6 @@ tramite appositi contatori per gli attraversameti pedonali e lo stabilimento del
 
 ## Modello Base
 [Screencast from 18-01-2023 16:14:09.webm](https://user-images.githubusercontent.com/30373288/213209650-7d506bab-257c-4773-afd6-677a6c2590f8.webm)
-
 
 
 
