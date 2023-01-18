@@ -1,6 +1,7 @@
 \section{Simulazione}
 \label{sec:simulazione}
-Per la simulazione alcuni parametri sono stati fissati secondo il modello \parencite{mostafizi2017agent}, mentre altri parametri sono estratti randomicamente 
+Per la simulazione alcuni parametri sono stati fissati secondo il modello \parencite{mostafizi2017agent},
+ mentre altri parametri sono estratti randomicamente 
 o sono stati cambiati manualmente per i diversi esperimenti.
 
 \subsection{Parametri Fissati}
@@ -34,13 +35,15 @@ Parametri per il comportamento dei pedoni:
 \begin{itemize}
   \item \textbf{search\_length}: 4 m. Lunghezza della strada davanti al pedone per calcolare la densità.
   \item \textbf{jam\_density}: 6 ped/m². Densità massima.
+  \item \textbf{$\mu_p$}: 1.22 m/s. Velocità media.
+  \item \textbf{$\sigma_p$}: 0.2. Deviazione standard della velocità.
 \end{itemize}
 
 \noindent
 Parametri per le dimensioni delle strade:
 \begin{itemize}
   \item \textbf{side\_width}: 1.5 m. Larghezza di un marciapiede.
-  \item \textbf{lane\_width}: 3.6 m. Larghezza di una corsia.
+  \item \textbf{lane\_width}: 3.65 m. Larghezza di una corsia.
 \end{itemize}
 
 \subsection{Parametri Variabili}
@@ -64,11 +67,9 @@ Sono state provate le seguenti combinazioni di auto e pedoni:
 \noindent
 Parametri per il comportamento dei pedoni:
 \begin{itemize}
-  \item \textbf{$\mu_p$}: 1.22 m/s. Velocità media.
-  \item \textbf{$\sigma_p$}: 0.2. Deviazione standard della velocità.
   \item \textbf{side}: lato del marciapiede all'inizio della simulazione (0 sinistro e 1 destro), assegnato in modo equiprobabile. 
   Durante la simulazione può variare. 
 \end{itemize}
 
 \noindent
-Per via della randomicità dei parametri i risultati degli esperimenti sono stati mediati su 30 simulazioni.
+Per via della randomicità del modello i risultati degli esperimenti sono stati mediati su 30 simulazioni.

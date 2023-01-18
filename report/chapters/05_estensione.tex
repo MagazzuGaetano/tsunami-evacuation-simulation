@@ -53,13 +53,13 @@ di cui 206 a 3 strade e 98 a 4 strade. Tra le intersezioni a 4 strade, 20 sono d
 \subsection{Gestione delle Intersezioni}
 % Per la gestione delle intersezioni sono stati considerati esclusivamente le intersezioni a 4 strade e trattati come intersezioni di tipo AWSC (All Way Stop Controlled) o TWSC (Two Way Stop controlled).
 La gestione delle intersezioni consiste nel definire quali auto possano passare rispettando le precedenze di auto e pedoni.
-I pedoni hanno sempre la precedenza e non hanno alcuna attesa per l'attraversamento.
+Si assume che i pedoni hanno sempre la precedenza e non hanno alcuna attesa per l'attraversamento.
 
 Per gestire queste interazioni tra pedoni e auto è stata introdotta una zona di attraversamento (Fig. \ref{fig:crossing-area}).
 
 % TODO: anticipare in breve cosa succede quando le auto entrano nella zona?
 
-È stato assunto che le intersezioni abbiano lunghezza e larghezza pari alla larghezza della strada, ovvero 10.3 m.
+È stato assunto inoltre che le intersezioni abbiano lunghezza e larghezza pari alla larghezza della strada, ovvero 10.3 m.
 Dal momento che la rappresentazione della strada è \textit{network-based} è stato deciso che
 la zona di attraversamento inizi prima dell'intersezione e termini dopo dell'intersezione a una distanza pari alla metà della larghezza dal centro (5.15 m).
 
@@ -69,6 +69,8 @@ la zona di attraversamento inizi prima dell'intersezione e termini dopo dell'int
     \caption{Zona di attraversamento di un'intersezione.}
     \label{fig:crossing-area}
 \end{figure}
+
+\pagebreak
 
 Per rappresentare l'attraversamento dei pedoni e delle auto a ogni intersezione $i$ sono state aggiunte le seguenti informazioni:
 \begin{itemize}
@@ -135,7 +137,7 @@ intersezione viene dato il via libera solo a quelle che possono passare insieme 
 Una volta che un'auto $x$ ottiene il via libera, viene controllato se ci sono pedoni che stanno attraversando le strade
 su cui deve passare per attraversare l'intersezione, ovvero $(x_{curr}, x_{next})$ e $(x_{prev}, x_{curr})$.
 Nello specifico se $C(x_{curr},x_{prev}) = 0$ l'auto può iniziare ad attraversare e se $C(x_{curr},x_{next}) = 0$
-l'auto può uscire dalla zona di attraversamento (Fig. \ref{fig:auto-ped-crossing}) e viene rimossa da $\textit{Arrival}(i)$ e $\textit{Crossing}(i)$.
+l'auto può uscire dalla zona di attraversamento (Fig. \ref{fig:auto-ped-crossing}) e viene rimossa da $\textit{Arrival}(i)$ e da $\textit{Crossing}(i)$.
 Finché sono presenti pedoni in queste due occasioni l'auto resta in attesa.
 
 \begin{figure}[ht]
@@ -150,15 +152,16 @@ Finché sono presenti pedoni in queste due occasioni l'auto resta in attesa.
 \label{subsubsec:AWSC}
 Nelle intersezioni di tipo AWSC la prima auto che arriva ha la precedenza sulle altre e deve aspettare eventuali pedoni come spiegato in precedenza.
 
-La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo, ovvero $\textit{Arrival}(i)$.
+La risoluzione delle precedenze avviene tra le auto che arrivano a un'intersezione allo stesso tempo, 
+ovvero quelle che hanno il tempo di arrivo minore presenti in $\textit{Arrival}(i)$.
 L'auto che ha la destra libera viene considerata provenire da \textit{origin} e dal suo punto di riferimento
 vengono identificate le direzioni di provenienza delle altre auto.
 
 Basandosi sulle direzioni di provenienza delle auto e sulle rispettive destinazioni viene verificato
 in senso orario (\textit{origin} $\rightarrow$ \textit{left} $\rightarrow$ \textit{straight})
 quali auto possono passare contemporaneamente. Queste auto vengono aggiunte a $\textit{Crossing}(i)$.
-
-Nelle tabelle \ref{tab:origin-left}, \ref{tab:origin-straight}, e \ref{tab:origin-left-straight}) sono
+%
+Nelle tabelle \ref{tab:origin-left}, \ref{tab:origin-straight}, e \ref{tab:origin-left-straight} sono
 elencati i casi tra due e tre auto in cui queste possono passare insieme.
 
 \begin{table}[p]
@@ -207,7 +210,7 @@ elencati i casi tra due e tre auto in cui queste possono passare insieme.
     \label{tab:origin-left-straight}
 \end{table}
 
-\pagebreak
+%\pagebreak
 
 \subsubsection{TWSC}
 \label{subsubsec:TWSC}

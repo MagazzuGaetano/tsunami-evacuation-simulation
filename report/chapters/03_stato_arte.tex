@@ -38,12 +38,9 @@ sulla visione. Gli agenti si muovono verso un luogo sicuro ben visibile sceglien
 Anche in questo lavoro vengono distinti visitatori, che si affidano alla visione, e non-visitatori, che hanno conoscenza di un'area
 limita al di fuori della quale vengono considerati visitatori.
 
-\pagebreak
-
 In molti modelli vengono considerati esclusivamente solo pedoni, ma alcuni lavori hanno analizzato l'aggiunta della presenza di auto e altri veicoli,
 e si concentrano nella gestione delle interazioni tra i diversi tipi di agenti \parencite{goto2012tsunami, wang2016agent, wang2021novel}.
 
-Questi modelli di evacuazione multimodale verranno approfonditi in quanto questo lavoro si focalizza sulle interazioni tra i diversi tipi di agenti.
 
 \subsection{Goto et al. (2012)}
 In questo lavoro sono stati modellati diversi tipi di agenti raggruppati in famglie: pedoni lenti, pedoni normali, motociclisti e occupanti di un'auto.
@@ -118,34 +115,22 @@ Inoltre verranno mostrate alcune modifiche effettuate in altri lavori degli stes
 
 \subsubsection*{Wang et. al (2016)}
 
-Nel lavoro di \textcite{wang2016agent} viene studiato come il tempo di preparazione, la scelta della modalità di evacuazione, la velocità dei pedoni e la 
-presenza di rifugi per l'evacuazione verticale influenzi la quantità di vittime.
+Nel lavoro di \textcite{wang2016agent} viene studiato come la quantità di vittime viene influenzata da diversi fattori:
+il tempo di preparazione, la scelta della modalità di evacuazione, la velocità dei pedoni e la 
+presenza di rifugi per l'evacuazione verticale.
 
 Al contrario del modello di \textcite{goto2012tsunami} viene considerato un numero molto limitato di agenti, ovvero 4502 individui. 
 Inoltre i rifugi si assume che abbiano capacità illimitata e che non subiscano danni sismici. 
 
 Come nel lavoro di \textcite{goto2012tsunami} il routing avviene tramite il percorso più breve e viene considerato lo stesso casualty model.
 
-\pagebreak
-
 Il modello gestisce due tipi di agenti: auto e pedoni. Le interazioni tra questi tipi di agenti sono limitate.
 I pedoni hanno velocità costante definita secondo una distribuzione normale, e le auto interagiscono tra loro 
 tramite il modello \textit{General Motors}. Quindi non è gestita nessuna interazione pedone-pedone e pedone-auto.
 
 
-% Questo modello verrà descritto brevemente in quanto selezionato come modello di partenza per questo lavoro e nella sezione successiva.
-% Questo modello consiste di un numero molto limitato di agenti rispetto al modello di \textcite{goto2012tsunami}, 4502 individui.
-% Viene analizzato come l'aggiunta di rifugi verticali modalità
-% Anche qui il routing avviene mediate l'utilizzo del percorso più breve ed lo stesso casualty model viene considerato, 
-% mentre gli shelter si assume abbiano capacità illimitata.
-
-% Al contrario di \textcite{goto2012tsunami} le interazioni tra i diversi tipi di agenti sono abbastanza limitate.
-% I pedoni hanno velocità costante definita secondo una distribuzione normale, mentre le auto interagiscono tra di loro secondo il modello \textit{General Motors}.
-% Infine non avendo dati sul quali fare validazione gli autori si sono limitati ad uno studio 
-% dell'impatto sulla mortalità dato dai diversi parametri del modello tempi di preparazione, velocità dei pedoni e modalità di evacuazione.
-
 \subsubsection*{Mostafizi, et. al. (2017)}
-Il lavoro di \textcite{mostafizi2017agent} è basato sul precedente \parencite{wang2016agent} e si focalizza sul misurare la resilienza della rete stradale tramite l'analisi della mortalità.
+Il lavoro di \textcite{mostafizi2017agent} è basato sul precedente e si focalizza sul misurare la resilienza della rete stradale tramite l'analisi della mortalità.
 
 Per i tempi di preparazione viene considarata una situazione ideale in cui gli agenti evacuano immediatamente dopo l'allarme. Inoltre per poter rappresentare
 meglio il rischio per persone anziane o bambini, la profondità critica per il casualty model è stata ridotta a 0.5 m.
@@ -154,9 +139,13 @@ Ogni scenario è stato simulato molteplici volte per catturare la randomicità d
 Per misurare il contributo di ogni link alla mortalità totale è stata considerata la mortalità media per ogni scenario al variare del numero di auto e pedoni.
 I link critici sono stati identificati come quelli con una percentuale di mortalità superiore al 5\% sulla media di ogni combinazione di agenti.
 
+Inoltre è stato effettuato un piano di retrofitting, che con un numero limitato di risorse stabilisce quali link critici aggiornare
+categorizzandoli in percorribili solo da pedoni (PED), percorribili sia da auto che da pedoni (INTACT) oppure inagibili (FAILED).
+
+
 \subsubsection*{Mostafizi, et. al. (2019)}
 Il lavoro di \textcite{mostafizi2019agent} si basa sui due lavori precedenti e 
-presenta un'analisi di sensitività di diversi fattori. 
+presenta un'ulteriore analisi di sensitività di diversi fattori. 
 In aggiunta ai precedenti lavori sono stati analizzati diversi parametri per 
 il modello \textit{General Motors} e diversi limiti di velocità per le auto.
 
@@ -167,7 +156,7 @@ nei danni sismici nelle strade e nei parametri del modello. Inoltre viene introd
 gestite le interazioni tra auto e pedoni.
 
 Sono state considerate diverse popolazioni al variare del numero di agenti: 5000 e 10,000,
-che rappresentano la popolazione all'inizio dell'estate e 15,000 rappresenta il picco nella stagione estiva.
+che rappresentano la popolazione all'inizio dell'estate e 15,000 rappresenta il picco nella stagione estiva composta in parte da turisti.
 
 Gli agenti sono distinti in pedoni e auto ed evacuano verso il rifugio più vicino seguendo il percorso più breve.
 Ogni auto contiene 4 persone ed è equivalente a 10 volte un pedone in spazio occupato.

@@ -2,32 +2,36 @@
 \label{sec:conclusione}
 In questo lavoro è stato implementato un modello agent-based per la simulazione di evacuazione in caso di tsunami.
 Il modello di \textcite{wang2016agent} è stato usato come base di partenza ed esteso aggiungendo una velocità
-variabile ai pedoni e la gestione delle interazioni tra auto e pedoni, in particolare nelle intersezioni.
+variabile ai pedoni e la gestione delle interazioni tra auto e pedoni nelle intersezioni.
 
 Successivamente sono stati effettuati diversi esperimenti al variare del numero di auto e pedoni.
 I risultati di ogni esperimento sono stati mediati tra 30 simulazioni per via della randomicità di alcuni parametri
 e sono stati confrontati con il modello di partenza e in seguito con il modello di \textcite{wang2021novel}.
 
+Nonostante l'evacuazione sia immediata non tutti riescono ad evacuare nei casi con traffico misto.
+
+La percentuale di evacuati aumenta al diminuire del numero di auto, quindi il caso migliore risulta essere quello con solo pedoni
+con il 99\% di evacuati.
+
 Comparato al modello base il modello esteso ha risultati meno ottimistici.
-La gestione delle intersezioni rallenta l'evacuazione poichè aggiunge dei tempi di attesa nelle intersezioni,
-abbassa il flusso sia in entrata che in uscita e di conseguenza si ha un numero minore di evacuati e
-un numero maggiore di vittime rispetto al modello base, soprattutto nei casi con sia auto che pedoni.
 
 Per quanto riguarda i pedoni non sembra esserci alcun cambiamento significativo,
 infatti si hanno delle percentuali di vittime, evacuati e tempi di evacuazione molto simili con il modello base.
 
-La percentuale di evacuati aumenta al diminuire del numero di auto, quindi il caso migliore risulta essere quello con solo pedoni.
-Infatti come suggerito dal piano di evacuazione della città di Seaside\footnote{\url{https://www.oregongeology.org/pubs/tsubrochures/SeasideGearhart-EvacBrochure_onscreen.pdf}}
-la modalità di evacuazione consigliata è quella a piedi.
+La gestione delle intersezioni rallenta l'evacuazione poichè aggiunge dei tempi di attesa nelle intersezioni,
+abbassa il flusso sia in entrata che in uscita e di conseguenza si ha un numero minore di evacuati e
+un numero maggiore di vittime rispetto al modello base, soprattutto nei casi con sia auto che pedoni.
+
+I casi con solo auto e solo pedoni sono quelli subiscono meno l'effetto della gestione delle intersezioni.
 
 Infine comparato al modello di \textcite{wang2021novel} il modello base e il modello esteso hanno risulti simili per quanto riguarda i pedoni, nonostante
-molti fattori tra i modelli siano molto diversi come ad esempio i tempi di partenza, la distribuzione di velocità e l'interazione con le auto.
+molti fattori tra i modelli siano diversi come ad esempio i tempi di partenza, la distribuzione di velocità e l'interazione con le auto.
 
-Per le auto invece si ha una differenza significativa dovuta alla numerosità degli agenti, poichè viene considerato che un auto corrisponda a 4 persone, e alla 
+Per le auto invece si ha una differenza significativa dovuta alla numerosità degli agenti, poichè viene considerato che un auto corrisponde a 4 persone, e alla 
 velocità massima considerata. 
 
-In particolare il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni
-che prevede un rallentamento del traffico e più vittime rispetto al modello base.
+In particolare il modello esteso risulta più ottimistico per evacuati e vittime rispetto al modello di \textcite{wang2021novel} nonostante la gestione delle intersezioni,
+che prevede un rallentamento del traffico e più vittime rispetto al modello base, ma va tenuto conto dell'evacuzione immediata.
 
 \subsection{Sviluppi Futuri}
 In questo lavoro ci si è limitati a intersezioni a 4 strade, esclusivamente di tipo AWSC e TWSC, quindi potrebbero essere considerate
@@ -38,14 +42,18 @@ può portare a situazioni in cui delle auto potrebbero passare, ma invece rimang
 Questo potrebbe essere risolto aggiornando i tempi di arrivo delle auto in attesa e anticipare il controllo dei pedoni prima
 selezionare le auto con tempo di arrivo più basso.
 
-Le auto nelle strade secondarie degli incroci di tipo TWSC nel modello attuale tendono a prendersi la precendenza alle auto sulla strada principale se nel tempo in cui
-avviene il controllo non ci sono auto. Per risolvere si potrebbe estendere la zona di attraversamento per la strada principale.
+Le auto nelle strade secondarie degli incroci di tipo TWSC tendono a prendersi la precendenza alle auto sulla strada principale 
+poichè le auto non sono considerate in Arrival finchè non sono sulla linea di stop.
 
 Nelle intersezioni i pedoni hanno sempre la precendenza, in un lavoro futuro si potrebbe pensare di aggiungere delle attese anche per i pedoni
-nel caso delle auto stiano già attraversando, inoltre potrebbero essere gestite le interazioni pedone-pedone nelle intersezioni.
+nel caso delle auto stiano già attraversando.
+
+Un'altra possibile aggiunta è quella di introdurre una fase di decelerazione prima di raggiungere la zona di attraversamento e una fase
+di accelerazione quando si ottiene il via libera.
 
 Un'altra limitazione è l'utilizzo del percorso più breve, altre strategie di \textit{routing} più realistiche potrebbero essere usate come ad esempio Nash equilibrium.
 Per i percorsi dei pedoni inoltre si potrebbe creare un secondo grafo per ottimizzare i percorsi tramite i marciapiedi.
 
-Un'altra possibile aggiunta è quella di introdurre una fase di decelerazione prima di raggiungere la zona di attraversamento e una fase
-di accelerazione quando si ottiene il via libera.
+Altri sviluppi futuri suggeriti in altri lavori riguardano considerare scenari a diverse ore del giorno, rendere 
+più realistiche le interazioni tra agenti, in casi di congestione abbandonare i veicoli per proseguire a piedi e 
+simulare inoltre la propagazione delle comunicazioni durante l'evacuazione e la validazione con dati di precedenti tsunami.

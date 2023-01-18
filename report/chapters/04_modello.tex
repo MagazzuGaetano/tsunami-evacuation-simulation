@@ -1,9 +1,9 @@
 \section{Descrizione del Modello}
 \label{sec:modello}
-In questa sezione verranno descritti i diversi agenti e l'ambiente.
+In questa sezione verrà approfondito il modello di \textcite{wang2016agent} e descritti i diversi agenti e l'ambiente.
 I parametri usati per questo lavoro saranno specificati nella sezione \ref{sec:simulazione}.
 
-Il modello considerato \parencite{mostafizi2016agent} è un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
+Il modello considerato è un sistema multi-agente che prevede l'evacuazione della città di Seaside, Oregon in caso di tsunami di auto e pedoni.
 %
 L'evacuazione inizia subito dopo il terremoto e non vengono considerati eventuali danni causati dal terremoto.
 
@@ -44,7 +44,8 @@ La simulazione prevede diversi tipi di agenti: residenti, pedoni e auto.
 \subsubsection{Residenti}
 All'inizio dell'evacuazione i residenti si trovano all'esterno degli edifici e delle auto
 e scelgono come evacuare autonomamente.
-Un residente sceglie con una certa probabilità la modalità per evacuare: a piedi o in auto e verso un rifugio verticale oppure orizzontale.
+Un residente sceglie con una certa probabilità la modalità per evacuare: a piedi o in auto e verso un rifugio verticale oppure orizzontale 
+(in questo lavoro è stato analizzata sola la modalità orizzontale). 
 Una volta che ogni agente decide in che modo evacuare non cambierà scelta per tutta la simulazione.
 
 Prima di iniziare l'evacuazione i residenti impiegano del tempo per prepararsi
