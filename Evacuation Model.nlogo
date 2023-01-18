@@ -1109,6 +1109,9 @@ to residents-behaviour
             set miltime start_time
 
 
+            ; set speed 0 ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
             ifelse random-float 1 < 0.5 [
               set side 0
             ][
@@ -1563,6 +1566,8 @@ to handle-four-way
     if empty? crossing-cars [
       let filtered-cars find-right-of-way
 
+      ;; se 4 auto arrivano nello stesso tempo VERAMENTE IMPROBABILE!!!!
+
       let dir1 0
       let dir2 0
       let dir3 0
@@ -1867,7 +1872,6 @@ to export-network-data
   ]
 end
 
-
 to import-network-data
   ; setup
   reset-ticks
@@ -2012,6 +2016,8 @@ to view-evacuation-time [agent-type]
     ]
   ]
 end
+
+
 
 ;;; roads analysis
 
@@ -2230,6 +2236,8 @@ to view-micro-level-speed [ped? car?]
 
 end
 
+
+
 ;;; intersections analysis
 
 to view-intersection-car-delay
@@ -2362,7 +2370,6 @@ to view-intersection-flow2 [agent-type]
   ask crossroads with [empty? stops] [ set shape "triangle" set size 6 ]
 end
 
-
 to view-intersection-flow3
   ask patches [set pcolor black]
   ask intersections with [not shelter?] [set color white]
@@ -2479,7 +2486,6 @@ to show-intersections-casualties
   ]
 end
 
-
 to show-ints-casualties
  ask patches [set pcolor black]
   ask roads [
@@ -2553,6 +2559,28 @@ to get-distance-from-cost
 end
 
 
+to show-destinations
+  let shelter_list [who] of intersections with [shelter?]
+  let color_list [15 25 35 45 55 65 75 85]
+
+  ask intersections with [not shelter? and hor-path != 0][
+    let s last hor-path
+    let c_idx (position s shelter_list)
+    set color item c_idx color_list
+    set size 3
+    set shape "circle"
+  ]
+
+  foreach (n-values 8  [ i -> i ]) [i ->
+    ask intersection (item i shelter_list) [
+      set color item i color_list
+      set size 5
+    ]
+  ]
+
+  ask residents [set size 0]
+end
+
 
 ;to profile
 ;  reset-ticks
@@ -2564,6 +2592,8 @@ end
 ;  csv:to-file "profiler_data.csv" profiler:data  ;; save the results
 ;  profiler:reset                                 ;; clear the data
 ;end
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 253
@@ -2656,7 +2686,7 @@ INPUTBOX
 117
 219
 R1_HorEvac_Foot
-50.0
+100.0
 1
 0
 Number
@@ -2818,7 +2848,7 @@ INPUTBOX
 242
 219
 R2_HorEvac_Car
-50.0
+0.0
 1
 0
 Number
@@ -3060,7 +3090,7 @@ INPUTBOX
 146
 350
 Ped_Speed
-1.2
+1.22
 1
 0
 Number
